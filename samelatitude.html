@@ -1,0 +1,376 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Same-Latitude Great Circle & Vertex Calculator</title>
+    <!-- Leaflet CSS for Map Rendering -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent: #f59e0b;
+            --vertex: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            color: #38bdf8;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            flex-grow: 1;
+            height: calc(100vh - 65px);
+        }
+
+        .sidebar {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+
+        input {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .card {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.4rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .vertex-highlight {
+            color: var(--vertex);
+            font-weight: bold;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background-color: #050b14;
+        }
+
+        .formula-box {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            background: rgba(0,0,0,0.2);
+            padding: 0.75rem;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 400px;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Great Circle Vertex Calculator</h1>
+            <p>Calculate peak latitude (vertex) for routes sharing the same latitude</p>
+        </div>
+        <div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Ref: AirMilesCalculator Navigation Model</span>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sidebar">
+            <form id="calcForm" onsubmit="event.preventDefault(); calculate();">
+                <div class="input-group">
+                    <label>Shared Latitude (θ)</label>
+                    <input type="number" id="lat" step="any" min="-89.9" max="89.9" value="37.5" required>
+                </div>
+
+                <div class="input-group" style="margin-top: 0.75rem;">
+                    <label>Longitude 1 (Point A)</label>
+                    <input type="number" id="lon1" step="any" min="-180" max="180" value="-122.4" required>
+                </div>
+
+                <div class="input-group" style="margin-top: 0.75rem;">
+                    <label>Longitude 2 (Point B)</label>
+                    <input type="number" id="lon2" step="any" min="-180" max="180" value="139.7" required>
+                </div>
+
+                <button type="submit">Calculate Vertex & Distance</button>
+            </form>
+
+            <div class="card">
+                <h3>Vertex Coordinates (Max Latitude)</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Vertex Latitude:</span>
+                    <span class="stat-value vertex-highlight" id="resVertexLat">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Vertex Longitude:</span>
+                    <span class="stat-value" id="resVertexLon">-</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Route Metrics</h3>
+                <div class="stat-row">
+                    <span class="stat-label">Great Circle Distance:</span>
+                    <span class="stat-value" id="resGCDistance">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Small Circle (Parallel) Distance:</span>
+                    <span class="stat-value" id="resSCDistance">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Distance Saved:</span>
+                    <span class="stat-value" style="color: #4ade80;" id="resSaved">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Initial Bearing:</span>
+                    <span class="stat-value" id="resBearing">-</span>
+                </div>
+            </div>
+
+            <div class="formula-box">
+                <strong>Mathematics Summary:</strong><br>
+                For equal latitudes ($\phi_1 = \phi_2 = \phi$), the vertex longitude lies at the midpoint: $\lambda_v = \frac{\lambda_1 + \lambda_2}{2}$.<br>
+                Vertex Latitude formula:<br>
+                <code>cos(φ_v) = cos(φ) * sin(Initial Bearing)</code>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <!-- Leaflet & Great Circle Visualization Libraries -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+
+    <script>
+        // Initialize Map
+        const map = L.map('map').setView([20, 0], 2);
+        
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 18
+        }).addTo(map);
+
+        let layerGroup = L.layerGroup().addTo(map);
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        function calculate() {
+            layerGroup.clearLayers();
+
+            const lat = parseFloat(document.getElementById('lat').value);
+            const lon1 = parseFloat(document.getElementById('lon1').value);
+            const lon2 = parseFloat(document.getElementById('lon2').value);
+
+            const R = 6371; // Earth Radius in km
+            const phi = toRad(lat);
+            
+            // Calculate longitudinal difference (delta lambda)
+            let dLon = toRad(lon2 - lon1);
+            // Normalize dLon to [-PI, PI]
+            while (dLon > Math.PI) dLon -= 2 * Math.PI;
+            while (dLon < -Math.PI) dLon += 2 * Math.PI;
+
+            // 1. Great Circle Distance (Haversine Formula)
+            const a = Math.sin(0/2)**2 + Math.cos(phi) * Math.cos(phi) * Math.sin(dLon/2)**2;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const gcDistance = R * c;
+
+            // 2. Small Circle Distance (Along the parallel)
+            const scDistance = R * Math.abs(dLon) * Math.cos(phi);
+
+            // 3. Initial Bearing
+            const y = Math.sin(dLon) * Math.cos(phi);
+            const x = Math.cos(phi) * Math.sin(phi) - Math.sin(phi) * Math.cos(phi) * Math.cos(dLon);
+            let initBearing = (toDeg(Math.atan2(y, x)) + 360) % 360;
+
+            // 4. Calculate Vertex Coordinates
+            // For equal latitude, the vertex longitude is exactly halfway along the shortest arc
+            let midLonRad = toRad(lon1) + dLon / 2;
+            let vertexLon = toDeg(midLonRad);
+            // Normalize vertex longitude to [-180, 180]
+            vertexLon = (vertexLon + 540) % 360 - 180;
+
+            // Vertex Latitude calculation: cos(lat_v) = cos(lat) * sin(bearing)
+            // Or directly via spherical trigonometry for equal latitudes:
+            // cos(lat_v) = cos(lat) * cos(dLon / 2)
+            const cosLatV = Math.cos(phi) * Math.sin(toRad(initBearing));
+            let vertexLat = toDeg(Math.acos(Math.abs(cosLatV)));
+            if (lat < 0) vertexLat = -vertexLat; // Mirror for southern hemisphere
+
+            // Display Results
+            document.getElementById('resVertexLat').innerText = `${vertexLat.toFixed(4)}°`;
+            document.getElementById('resVertexLon').innerText = `${vertexLon.toFixed(4)}°`;
+            document.getElementById('resGCDistance').innerText = `${gcDistance.toFixed(1)} km (${(gcDistance * 0.539957).toFixed(1)} NM)`;
+            document.getElementById('resSCDistance').innerText = `${scDistance.toFixed(1)} km (${(scDistance * 0.539957).toFixed(1)} NM)`;
+            
+            const saved = scDistance - gcDistance;
+            document.getElementById('resSaved').innerText = `${saved.toFixed(1)} km (${(saved * 0.539957).toFixed(1)} NM)`;
+            document.getElementById('resBearing').innerText = `${initBearing.toFixed(1)}°`;
+
+            // Visualization using Turf.js
+            const ptA = [lon1, lat];
+            const ptB = [lon2, lat];
+            const ptVertex = [vertexLon, vertexLat];
+
+            // Great Circle path
+            const gcGreatCircle = turf.greatCircle(ptA, ptB, { npoints: 100 });
+            L.geoJSON(gcGreatCircle, {
+                style: { color: '#38bdf8', weight: 3 }
+            }).addTo(layerGroup);
+
+            // Small Circle (Latitude Parallel Line)
+            const scLine = {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [ptA, [lon1 + toDeg(dLon), lat]]
+                }
+            };
+            L.geoJSON(scLine, {
+                style: { color: '#f59e0b', weight: 2, dashArray: '5, 5' }
+            }).addTo(layerGroup);
+
+            // Markers
+            L.circleMarker([lat, lon1], { radius: 6, color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 1 })
+                .bindPopup("Point A")
+                .addTo(layerGroup);
+
+            L.circleMarker([lat, lon2], { radius: 6, color: '#38bdf8', fillColor: '#38bdf8', fillOpacity: 1 })
+                .bindPopup("Point B")
+                .addTo(layerGroup);
+
+            L.circleMarker([vertexLat, vertexLon], { radius: 8, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 1 })
+                .bindPopup(`<b>Vertex (Peak Latitude)</b><br>Lat: ${vertexLat.toFixed(4)}°<br>Lon: ${vertexLon.toFixed(4)}°`)
+                .addTo(layerGroup);
+
+            // Adjust Bounds
+            const bounds = L.latLngBounds([[lat, lon1], [lat, lon2], [vertexLat, vertexLon]]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+
+        // Run default on load
+        window.onload = calculate;
+    </script>
+</body>
+</html>
