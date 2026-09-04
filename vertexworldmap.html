@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>정점 중심 대원항로 & 거리각 90° 적도 분석기</title>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/topojson-client@3"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Pretendard', Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f4f7fb;
+      color: #172033;
+    }
+    .container {
+      max-width: 1240px;
+      margin: 20px auto;
+      padding: 24px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+    }
+    h2 { margin-top: 0; margin-bottom: 6px; color: #0f172a; }
+    p { color: #4b5563; margin-bottom: 20px; font-size: 0.95rem; }
+
+    /* Controls Grid */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .control-group {
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .control-group.vertex-group {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .control-group h4 { margin: 0 0 12px 0; color: #1e293b; display: flex; justify-content: space-between; align-items: center; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    input[type="text"], input[type="number"] {
+      padding: 8px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.88rem;
+      outline: none;
+      flex: 1;
+    }
+    input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+    button {
+      padding: 8px 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover { background: #1d4ed8; }
+    button.btn-vertex { background: #059669; }
+    button.btn-vertex:hover { background: #047857; }
+
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .preset-btn { background: #e2e8f0; color: #334155; font-size: 0.8rem; padding: 6px 12px; }
+    .preset-btn:hover { background: #cbd5e1; }
+
+    .waypoint-panel {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .waypoint-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Results Dashboard */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .card b { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+    .card span { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+
+    .map-section { margin-bottom: 24px; position: relative; }
+    .map-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .map-title { font-weight: 600; color: #334155; }
+    
+    .zoom-controls { display: flex; gap: 4px; }
+    .zoom-btn {
+      background: #ffffff;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      padding: 4px 10px;
+      font-size: 0.85rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .zoom-btn:hover { background: #e2e8f0; }
+
+    .svg-wrapper {
+      position: relative;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+    }
+
+    svg {
+      background: #eef4f8;
+      width: 100%;
+      height: 480px;
+      display: block;
+      cursor: grab;
+    }
+    svg:active { cursor: grabbing; }
+
+    .land { fill: #d1d5db; stroke: #9ca3af; stroke-width: 0.5px; vector-effect: non-scaling-stroke; }
+    .graticule { fill: none; stroke: #cbd5e1; stroke-width: 0.5px; stroke-dasharray: 2,2; vector-effect: non-scaling-stroke; }
+    .equator { stroke: #ef4444; stroke-width: 2.5px; vector-effect: non-scaling-stroke; }
+
+    .city-marker { fill: #2563eb; stroke: #ffffff; stroke-width: 2px; }
+    .vertex-marker { fill: #dc2626; stroke: #ffffff; stroke-width: 2px; }
+    .waypoint-marker { fill: #10b981; stroke: #ffffff; stroke-width: 1.5px; }
+    .city-label { font-size: 11px; font-weight: 600; fill: #1e293b; text-anchor: middle; }
+
+    #leaflet-map { height: 420px; border-radius: 8px; border: 1px solid #cbd5e1; }
+    .status-msg { font-size: 0.85rem; min-height: 1.2em; }
+    .status-error { color: #dc2626; }
+    .status-success { color: #16a34a; }
+
+    .table-container {
+      max-height: 350px;
+      overflow-y: auto;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th, td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; }
+    th { background-color: #f1f5f9; color: #334155; position: sticky; top: 0; z-index: 2; }
+    tr:hover { background-color: #f8fafc; }
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .bg-start { background: #dbeafe; color: #1e40af; }
+    .bg-end { background: #fee2e2; color: #991b1b; }
+    .bg-vertex { background: #fef08a; color: #854d0e; }
+    .bg-wp { background: #d1fae5; color: #065f46; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>정점 중심 대원항로 & 거리각 90° 적도 분석기</h2>
+  <p>사용자가 설정한 정점(Vertex)을 대원항로의 최고점으로 삼아, 정점으로부터 정확히 거리각 90° 떨어진 적도상의 출발지(A)와 도착지(B)를 자동 동기화하여 대원항로 및 웨이포인트를 시각화합니다.</p>
+
+  <div class="controls-grid">
+    <!-- 정점 Vertex 입력 -->
+    <div class="control-group vertex-group">
+      <h4><b>중심 정점 (Vertex / 최고점)</b></h4>
+      <div class="input-row">
+        <input type="text" id="cityV-input" placeholder="정점 도시 검색 (예: 앵커리지)" value="앵커리지">
+        <button class="btn-vertex" onclick="searchCity('V')">검색</button>
+      </div>
+      <div class="input-row">
+        <input type="number" id="latV-input" placeholder="위도" step="0.0001" value="61.2181">
+        <input type="number" id="lonV-input" placeholder="경도" step="0.0001" value="-149.9003">
+      </div>
+      <div id="statusV" class="status-msg"></div>
+    </div>
+
+    <!-- 출발지 A (거리각 90° 적도) -->
+    <div class="control-group">
+      <h4>출발지 A (정점 기준 -90° 적도)</h4>
+      <div class="input-row">
+        <input type="text" id="city1-input" value="적도 서쪽 지점 (Equator West)" readonly style="background:#f1f5f9;">
+      </div>
+      <div class="input-row">
+        <input type="number" id="lat1-input" placeholder="위도" readonly style="background:#f1f5f9;">
+        <input type="number" id="lon1-input" placeholder="경도" readonly style="background:#f1f5f9;">
+      </div>
+      <div id="status1" class="status-msg">자동 계산됨 ($\Delta\sigma = 90^\circ$)</div>
+    </div>
+
+    <!-- 도착지 B (거리각 90° 적도) -->
+    <div class="control-group">
+      <h4>도착지 B (정점 기준 +90° 적도)</h4>
+      <div class="input-row">
+        <input type="text" id="city2-input" value="적도 동쪽 지점 (Equator East)" readonly style="background:#f1f5f9;">
+      </div>
+      <div class="input-row">
+        <input type="number" id="lat2-input" placeholder="위도" readonly style="background:#f1f5f9;">
+        <input type="number" id="lon2-input" placeholder="경도" readonly style="background:#f1f5f9;">
+      </div>
+      <div id="status2" class="status-msg">자동 계산됨 ($\Delta\sigma = 90^\circ$)</div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button onclick="applyVertexInput()" style="padding: 10px 24px; font-weight:600; background:#059669;">정점 중심 항로 재계산</button>
+    <div class="preset-buttons">
+      <button class="preset-btn" onclick="setVertexPreset('앵커리지', 61.2181, -149.9003)">정점: 앵커리지 (61.2°N)</button>
+      <button class="preset-btn" onclick="setVertexPreset('런던 북부', 51.5074, -0.1276)">정점: 런던 상공 (51.5°N)</button>
+      <button class="preset-btn" onclick="setVertexPreset('서울 북위 상공', 37.5665, 126.9780)">정점: 서울 상공 (37.6°N)</button>
+    </div>
+  </div>
+
+  <div class="waypoint-panel">
+    <h4 style="margin-top:0; margin-bottom:8px;">웨이포인트 개수 설정</h4>
+    <div class="waypoint-bar">
+      <label for="wpCountInput"><b>중간 웨이포인트 개수:</b></label>
+      <input type="number" id="wpCountInput" value="8" min="2" max="100" style="max-width: 100px;" oninput="updateAll()">
+      <span style="font-size:0.85rem; color:#64748b;">(적도A $\rightarrow$ 정점V $\rightarrow$ 적도B 전체 경로 분할 개수)</span>
+    </div>
+  </div>
+
+  <div class="results-grid">
+    <div class="card"><b>총 대원항로 거리</b><span id="resDist">—</span></div>
+    <div class="card"><b>A↔V, V↔B 거리</b><span id="resHalfDist">10,007.5 km</span></div>
+    <div class="card"><b>정점(Vertex) 위도</b><span id="resVLat">—</span></div>
+    <div class="card"><b>정점(Vertex) 경도</b><span id="resVLon">—</span></div>
+  </div>
+
+  <div class="map-section">
+    <div class="map-title">웨이포인트 상세 GPS 및 거리 데이터 표</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>지점명</th>
+            <th>위도(Lat)</th>
+            <th>경도(Lon)</th>
+            <th>구간 거리(km)</th>
+            <th>누적 거리(km)</th>
+          </tr>
+        </thead>
+        <tbody id="waypoint-table-body">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="map-section">
+    <div class="map-header">
+      <div class="map-title">정점 중심 사투영 심사도 지도 (Vertex Centered Great Circle Arc)</div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomIn()" title="확대">+</button>
+        <button class="zoom-btn" onclick="zoomOut()" title="축소">-</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="초기화">🔄 리셋</button>
+      </div>
+    </div>
+    <div class="svg-wrapper">
+      <svg id="map" viewBox="0 0 960 480">
+        <g id="map-zoom-group">
+          <path class="graticule"></path>
+          <path class="land"></path>
+          <line x1="0" y1="240" x2="960" y2="240" class="equator"></line>
+          <g id="marker-group"></g>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <div class="map-section">
+    <div class="map-title">표준 지도 시각화 (Leaflet Interactive Map)</div>
+    <div id="leaflet-map"></div>
+  </div>
+</div>
+
+<script>
+  const R = 6371.0088; // 지구 평균 반지름 (km)
+  const width = 960, height = 480;
+
+  let pV = [-149.9003, 61.2181]; // [Lon, Lat]
+  let p1 = [0, 0];
+  let p2 = [0, 0];
+  let labelV = "앵커리지";
+  let label1 = "적도 서쪽 (A)";
+  let label2 = "적도 동쪽 (B)";
+
+  let calculatedWaypoints = [];
+  let currentZoomScale = 1;
+
+  const rad = d => d * Math.PI / 180;
+  const deg = r => r * 180 / Math.PI;
+  const clamp = x => Math.max(-1, Math.min(1, x));
+
+  function vec(lat, lon) {
+    lat = rad(lat); lon = rad(lon);
+    return [Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat)];
+  }
+  function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+  function cross(a, b) {
+    return [
+      a[1]*b[2] - a[2]*b[1],
+      a[2]*b[0] - a[0]*b[2],
+      a[0]*b[1] - a[1]*b[0]
+    ];
+  }
+  function norm(a) { return Math.sqrt(dot(a, a)); }
+  function unit(a) { let n = norm(a); return n === 0 ? [0,0,0] : a.map(x => x / n); }
+  function angle(a, b) { return Math.acos(clamp(dot(a, b))); }
+  function latLon(v) { return [deg(Math.asin(clamp(v[2]))), deg(Math.atan2(v[1], v[0]))]; }
+
+  // 구면 보간 SLERP
+  function slerp(A, B, t) {
+    const omega = angle(A, B);
+    const sinOmega = Math.sin(omega);
+    if (sinOmega === 0) return A;
+    const cA = Math.sin((1 - t) * omega) / sinOmega;
+    const cB = Math.sin(t * omega) / sinOmega;
+    return [
+      cA * A[0] + cB * B[0],
+      cA * A[1] + cB * B[1],
+      cA * A[2] + cB * B[2]
+    ];
+  }
+
+  // D3 투영 설정
+  const projection = d3.geoGnomonic().scale(190).translate([width / 2, height / 2]).clipAngle(80);
+  const path = d3.geoPath().projection(projection);
+  const svg = d3.select("#map");
+  const zoomGroup = d3.select("#map-zoom-group");
+  const graticule = d3.geoGraticule();
+
+  const graticulePath = zoomGroup.select(".graticule");
+  const landPath = zoomGroup.select(".land");
+  const markerGroup = zoomGroup.select("#marker-group");
+
+  const zoomBehavior = d3.zoom()
+    .scaleExtent([0.6, 12])
+    .on("zoom", (event) => {
+      zoomGroup.attr("transform", event.transform);
+      currentZoomScale = event.transform.k;
+      adjustMarkerSizes(currentZoomScale);
+    });
+
+  svg.call(zoomBehavior);
+
+  function adjustMarkerSizes(k) {
+    markerGroup.selectAll("circle.city-marker")
+      .attr("r", 6 / k)
+      .style("stroke-width", (2 / k) + "px");
+
+    markerGroup.selectAll("circle.vertex-marker")
+      .attr("r", 7 / k)
+      .style("stroke-width", (2 / k) + "px");
+
+    markerGroup.selectAll("circle.waypoint-marker")
+      .attr("r", 4 / k)
+      .style("stroke-width", (1.5 / k) + "px");
+
+    markerGroup.selectAll("text.city-label")
+      .style("font-size", (11 / k) + "px")
+      .attr("dy", -9 / k);
+  }
+
+  function zoomIn() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1.3); }
+  function zoomOut() { svg.transition().duration(300).call(zoomBehavior.scaleBy, 1 / 1.3); }
+  function resetZoom() { svg.transition().duration(400).call(zoomBehavior.transform, d3.zoomIdentity); }
+
+  let worldData = null;
+  d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json")
+    .then(world => {
+      worldData = topojson.feature(world, world.objects.land);
+      updateAll();
+    })
+    .catch(() => {
+      d3.json("https://unpkg.com/world-atlas@2.0.2/land-110m.json").then(world => {
+        worldData = topojson.feature(world, world.objects.land);
+        updateAll();
+      });
+    });
+
+  const leafletMap = L.map('leaflet-map').setView([30, 0], 2);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(leafletMap);
+
+  let routeLayers = [], leafletMarkers = [];
+
+  // 정점 V로부터 거리각 90도 떨어진 적도 A, B 지점 수학적 구하기
+  function computeEquatorEndpointsFromVertex(vLon, vLat) {
+    const latRad = rad(vLat);
+    const lonRad = rad(vLon);
+
+    // 정점에서 위도가 0(적도)에 도달하는 경도 차이 deltaLon: cos(latRad) * tan(deltaLon) = 0 => deltaLon = 90 deg
+    const deltaLon = 90;
+
+    let lonA = vLon - deltaLon;
+    let lonB = vLon + deltaLon;
+
+    // 경도 정규화 (-180 ~ 180)
+    if (lonA < -180) lonA += 360;
+    if (lonB > 180) lonB -= 360;
+
+    return {
+      A: [lonA, 0],
+      B: [lonB, 0]
+    };
+  }
+
+  function computeWaypoints(A_coord, V_coord, B_coord, count) {
+    const waypoints = [];
+    const steps = count;
+    const halfSteps = Math.floor(steps / 2);
+
+    const A = vec(A_coord[1], A_coord[0]);
+    const V = vec(V_coord[1], V_coord[0]);
+    const B = vec(B_coord[1], B_coord[0]);
+
+    const dist1 = R * (Math.PI / 2); // 90도 거리각 = R * pi/2
+    const dist2 = R * (Math.PI / 2);
+    const totalDist = dist1 + dist2;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      let p, name, type = "WP";
+
+      if (i === 0) {
+        p = A; name = "적도 출발지 (A)"; type = "START";
+      } else if (i === steps) {
+        p = B; name = "적도 도착지 (B)"; type = "END";
+      } else if (i === halfSteps && steps % 2 === 0) {
+        p = V; name = labelV + " (정점)"; type = "VERTEX";
+      } else if (t < 0.5) {
+        p = slerp(A, V, t * 2);
+        name = `WP ${i}`;
+      } else {
+        p = slerp(V, B, (t - 0.5) * 2);
+        name = `WP ${i}`;
+      }
+
+      const [lat, lon] = latLon(p);
+      waypoints.push({
+        index: i, name: name, type: type, lat: lat, lon: lon,
+        stepDist: totalDist / steps,
+        cumDist: totalDist * t
+      });
+    }
+    return waypoints;
+  }
+
+  function updateAll() {
+    const wpCount = parseInt(document.getElementById("wpCountInput").value) || 8;
+
+    labelV = document.getElementById("cityV-input").value || "정점";
+    const vLat = parseFloat(document.getElementById("latV-input").value);
+    const vLon = parseFloat(document.getElementById("lonV-input").value);
+    pV = [vLon, vLat];
+
+    // 정점으로부터 거리각 90도 적도 지점 자동 도출
+    const endpoints = computeEquatorEndpointsFromVertex(vLon, vLat);
+    p1 = endpoints.A;
+    p2 = endpoints.B;
+
+    document.getElementById("lat1-input").value = p1[1].toFixed(4);
+    document.getElementById("lon1-input").value = p1[0].toFixed(4);
+    document.getElementById("lat2-input").value = p2[1].toFixed(4);
+    document.getElementById("lon2-input").value = p2[0].toFixed(4);
+
+    calculatedWaypoints = computeWaypoints(p1, pV, p2, wpCount);
+
+    const totalDistance = R * Math.PI; // 180도 전체 호 길이
+    document.getElementById("resDist").textContent = totalDistance.toFixed(1) + " km";
+    document.getElementById("resVLat").textContent = pV[1].toFixed(4) + "°";
+    document.getElementById("resVLon").textContent = pV[0].toFixed(4) + "°";
+
+    renderTable();
+
+    // 정점 V가 중심으로 오도록 D3 사투영 회전
+    projection.rotate([-pV[0], -pV[1], 0]);
+
+    graticulePath.datum(graticule).attr("d", path);
+    if (worldData) landPath.datum(worldData).attr("d", path);
+
+    renderMarkersAndLeaflet();
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById("waypoint-table-body");
+    tbody.innerHTML = "";
+
+    calculatedWaypoints.forEach(wp => {
+      const tr = document.createElement("tr");
+
+      let badgeClass = "bg-wp";
+      let badgeText = "웨이포인트";
+      if (wp.type === "START") { badgeClass = "bg-start"; badgeText = "출발지(A)"; }
+      else if (wp.type === "END") { badgeClass = "bg-end"; badgeText = "도착지(B)"; }
+      else if (wp.type === "VERTEX") { badgeClass = "bg-vertex"; badgeText = "정점(Vertex)"; }
+
+      tr.innerHTML = `
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+        <td><b>${wp.name}</b></td>
+        <td>${wp.lat.toFixed(4)}°</td>
+        <td>${wp.lon.toFixed(4)}°</td>
+        <td>${wp.stepDist.toFixed(1)} km</td>
+        <td><b>${wp.cumDist.toFixed(1)} km</b></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderMarkersAndLeaflet() {
+    markerGroup.selectAll("*").remove();
+
+    // D3 지도 정점 마커
+    const vXy = projection(pV);
+    if (vXy && !isNaN(vXy[0])) {
+      markerGroup.append("circle")
+        .attr("cx", vXy[0]).attr("cy", vXy[1])
+        .attr("class", "vertex-marker");
+
+      markerGroup.append("text")
+        .attr("x", vXy[0]).attr("y", vXy[1])
+        .attr("class", "city-label")
+        .text(`${labelV} (Vertex)`);
+    }
+
+    // D3 지도 웨이포인트 마커
+    calculatedWaypoints.forEach(wp => {
+      const xy = projection([wp.lon, wp.lat]);
+      if (xy && !isNaN(xy[0]) && !isNaN(xy[1])) {
+        const isEndpoint = wp.type === "START" || wp.type === "END";
+        markerGroup.append("circle")
+          .attr("cx", xy[0]).attr("cy", xy[1])
+          .attr("class", isEndpoint ? "city-marker" : (wp.type === "VERTEX" ? "vertex-marker" : "waypoint-marker"));
+
+        markerGroup.append("text")
+          .attr("x", xy[0]).attr("y", xy[1])
+          .attr("class", "city-label")
+          .text(wp.name);
+      }
+    });
+
+    adjustMarkerSizes(currentZoomScale);
+
+    // Leaflet 지도
+    leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+    routeLayers.forEach(l => leafletMap.removeLayer(l));
+    leafletMarkers = []; routeLayers = [];
+
+    const drawArc = (pt1, pt2, color) => {
+      const A = vec(pt1[1], pt1[0]), B = vec(pt2[1], pt2[0]);
+      const omega = angle(A, B);
+      const arcPts = [];
+      const steps = 100;
+      for (let i = 0; i <= steps; i++) {
+        const p = slerp(A, B, i / steps);
+        const ll = latLon(p);
+        arcPts.push([ll[0], ll[1]]);
+      }
+      const poly = L.polyline(arcPts, { color: color, weight: 3.5, opacity: 0.85 }).addTo(leafletMap);
+      routeLayers.push(poly);
+      return poly;
+    };
+
+    drawArc(p1, pV, '#059669');
+    drawArc(pV, p2, '#2563eb');
+
+    calculatedWaypoints.forEach(wp => {
+      let marker;
+      if (wp.type === "START" || wp.type === "END") {
+        marker = L.marker([wp.lat, wp.lon]).addTo(leafletMap)
+          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°`);
+      } else if (wp.type === "VERTEX") {
+        marker = L.circleMarker([wp.lat, wp.lon], {
+          radius: 8, fillColor: '#dc2626', color: '#fff', fillOpacity: 1, weight: 2
+        }).addTo(leafletMap)
+          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°`);
+      } else {
+        marker = L.circleMarker([wp.lat, wp.lon], {
+          radius: 5, fillColor: '#10b981', color: '#ffffff', fillOpacity: 1, weight: 1.5
+        }).addTo(leafletMap)
+          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°<br>누적거리: ${wp.cumDist.toFixed(1)} km`);
+      }
+      leafletMarkers.push(marker);
+    });
+
+    leafletMap.invalidateSize();
+    if (routeLayers.length > 0) {
+      const group = new L.featureGroup(routeLayers);
+      leafletMap.fitBounds(group.getBounds().pad(0.2));
+    }
+  }
+
+  async function searchCity(index) {
+    const inputEl = document.getElementById('cityV-input');
+    const cityName = inputEl.value.trim();
+    if (!cityName) return;
+
+    setStatus('statusV', "검색 중...", "");
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName)}`);
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const lat = parseFloat(data[0].lat);
+        const lon = parseFloat(data[0].lon);
+        const name = data[0].display_name.split(',')[0];
+
+        document.getElementById('latV-input').value = lat.toFixed(4);
+        document.getElementById('lonV-input').value = lon.toFixed(4);
+        pV = [lon, lat]; labelV = name;
+
+        setStatus('statusV', `찾음: ${name}`, "success");
+        updateAll();
+      } else {
+        setStatus('statusV', "도시를 찾을 수 없습니다.", "error");
+      }
+    } catch (err) {
+      setStatus('statusV', "검색 오류 발생", "error");
+    }
+  }
+
+  function applyVertexInput() {
+    const latV = parseFloat(document.getElementById("latV-input").value);
+    const lonV = parseFloat(document.getElementById("lonV-input").value);
+
+    if (isNaN(latV) || isNaN(lonV)) {
+      alert("정점의 올바른 GPS 좌표를 입력해주세요.");
+      return;
+    }
+
+    pV = [lonV, latV];
+    labelV = document.getElementById("cityV-input").value || "정점 지점";
+
+    updateAll();
+  }
+
+  function setVertexPreset(nameV, latV, lonV) {
+    document.getElementById("cityV-input").value = nameV;
+    document.getElementById("latV-input").value = latV;
+    document.getElementById("lonV-input").value = lonV;
+
+    pV = [lonV, latV];
+    labelV = nameV;
+
+    updateAll();
+  }
+
+  function setStatus(id, msg, type) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `status-msg ${type ? 'status-' + type : ''}`;
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      leafletMap.invalidateSize();
+    }, 300);
+  });
+</script>
+</body>
+</html>
