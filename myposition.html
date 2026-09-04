@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0b5cff">
+<title>내 GPS 위치 전송</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7fb;color:#172033}
+header{background:#0b5cff;color:#fff;padding:22px 18px;text-align:center}
+header h1{margin:0 0 6px;font-size:24px}
+header p{margin:0;opacity:.9;font-size:14px}
+main{max-width:720px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 5px 20px rgba(20,40,80,.08)}
+.status{display:flex;align-items:center;gap:10px;font-weight:700}
+.dot{width:12px;height:12px;border-radius:50%;background:#999}
+.dot.ok{background:#16a34a}.dot.wait{background:#f59e0b}.dot.err{background:#dc2626}
+.coords{font-size:27px;font-weight:800;letter-spacing:.3px;margin:12px 0;word-break:break-word}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{background:#f5f7fa;border-radius:12px;padding:12px}
+.label{font-size:12px;color:#697386;margin-bottom:4px}
+.value{font-size:16px;font-weight:700;word-break:break-word}
+button{width:100%;border:0;border-radius:13px;padding:14px 12px;font-size:16px;font-weight:750;cursor:pointer;margin-top:9px}
+.primary{background:#0b5cff;color:white}.secondary{background:#e8efff;color:#0845bb}.green{background:#16a34a;color:#fff}.dark{background:#172033;color:#fff}.light{background:#eef2f7;color:#172033}
+button:disabled{opacity:.45;cursor:not-allowed}
+#map{width:100%;height:300px;border:0;border-radius:14px;background:#e9eef5;display:block}
+.note{font-size:13px;color:#667085;line-height:1.55}
+pre{white-space:pre-wrap;word-break:break-all;background:#f5f7fa;border-radius:12px;padding:12px;font-size:13px}
+footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
+@media(max-width:420px){.coords{font-size:22px}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📍 내 GPS 위치 전송</h1>
+  <p>스마트폰의 현재 위치를 확인하고 바로 공유하세요.</p>
+</header>
+
+<main>
+  <section class="card">
+    <div class="status"><span id="dot" class="dot wait"></span><span id="status">GPS 위치를 기다리는 중...</span></div>
+    <div id="coords" class="coords">위도 -- / 경도 --</div>
+    <div class="row">
+      <div class="item"><div class="label">위도 (Latitude)</div><div id="lat" class="value">--</div></div>
+      <div class="item"><div class="label">경도 (Longitude)</div><div id="lon" class="value">--</div></div>
+      <div class="item"><div class="label">정확도</div><div id="accuracy" class="value">--</div></div>
+      <div class="item"><div class="label">고도</div><div id="altitude" class="value">--</div></div>
+      <div class="item"><div class="label">속도</div><div id="speed" class="value">--</div></div>
+      <div class="item"><div class="label">마지막 측정</div><div id="time" class="value">--</div></div>
+    </div>
+    <button id="startBtn" class="primary" onclick="startGPS()">📡 현재 위치 측정 시작</button>
+    <button id="stopBtn" class="light" onclick="stopGPS()" disabled>⏹ GPS 측정 중지</button>
+  </section>
+
+  <section class="card">
+    <h2>📤 위치 전송</h2>
+    <button id="shareBtn" class="green" onclick="shareLocation()" disabled>📲 내 위치 공유하기</button>
+    <button id="copyBtn" class="secondary" onclick="copyCoordinates()" disabled>📋 GPS 좌표 복사</button>
+    <button id="smsBtn" class="dark" onclick="openSMS()" disabled>💬 문자로 위치 보내기</button>
+    <p class="note">공유 버튼은 스마트폰의 기본 공유 메뉴를 엽니다. 카카오톡, 문자, 메신저 등이 설치되어 있으면 해당 앱으로 위치 링크를 보낼 수 있습니다.</p>
+  </section>
+
+  <section class="card">
+    <h2>🗺️ 현재 위치 지도</h2>
+    <iframe id="map" title="현재 GPS 위치 지도" srcdoc="<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>GPS 측정 후 지도가 표시됩니다.</div>"></iframe>
+    <button id="mapBtn" class="secondary" onclick="openGoogleMaps()" disabled>🌐 Google Maps에서 열기</button>
+  </section>
+
+  <section class="card">
+    <h2>🔗 전송용 위치 정보</h2>
+    <pre id="message">아직 GPS 위치가 측정되지 않았습니다.</pre>
+  </section>
+
+  <section class="card">
+    <h2>⚠️ 스마트폰에서 GPS가 작동하지 않을 때</h2>
+    <p class="note">
+      1. 스마트폰의 위치 서비스를 켜세요.<br>
+      2. 브라우저의 위치 권한을 허용하세요.<br>
+      3. 가능하면 HTTPS로 접속하세요. 대부분의 모바일 브라우저는 보안 연결에서 위치 기능을 정상적으로 제공합니다.<br>
+      4. 실외에서 잠시 기다리면 GPS 정확도가 좋아질 수 있습니다.
+    </p>
+  </section>
+</main>
+
+<footer>GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.</footer>
+
+<script>
+let watchId = null;
+let currentPosition = null;
+
+const $ = id => document.getElementById(id);
+
+function setStatus(text, type){
+  $("status").textContent = text;
+  $("dot").className = "dot " + type;
+}
+
+function startGPS(){
+  if(!navigator.geolocation){
+    setStatus("이 브라우저는 GPS 위치 기능을 지원하지 않습니다.", "err");
+    return;
+  }
+
+  if(watchId !== null) navigator.geolocation.clearWatch(watchId);
+
+  setStatus("GPS 위치를 측정하는 중...", "wait");
+  $("startBtn").disabled = true;
+  $("stopBtn").disabled = false;
+
+  watchId = navigator.geolocation.watchPosition(
+    updatePosition,
+    handleError,
+    {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 15000
+    }
+  );
+}
+
+function stopGPS(){
+  if(watchId !== null){
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
+  setStatus("GPS 측정을 중지했습니다.", "");
+  $("startBtn").disabled = false;
+  $("stopBtn").disabled = true;
+}
+
+function updatePosition(position){
+  currentPosition = position;
+  const c = position.coords;
+
+  const lat = c.latitude;
+  const lon = c.longitude;
+
+  $("lat").textContent = lat.toFixed(7) + "°";
+  $("lon").textContent = lon.toFixed(7) + "°";
+  $("coords").textContent = `${lat.toFixed(6)}°, ${lon.toFixed(6)}°`;
+
+  $("accuracy").textContent = c.accuracy != null ? `±${Math.round(c.accuracy)} m` : "--";
+  $("altitude").textContent = c.altitude != null ? `${c.altitude.toFixed(1)} m` : "지원 안 됨";
+  $("speed").textContent = c.speed != null && c.speed >= 0 ? `${(c.speed * 3.6).toFixed(1)} km/h` : "--";
+
+  const d = new Date(position.timestamp);
+  $("time").textContent = d.toLocaleTimeString("ko-KR");
+
+  setStatus("GPS 위치가 정상적으로 측정되었습니다.", "ok");
+
+  const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+  $("message").textContent =
+`📍 현재 내 위치
+위도: ${lat.toFixed(7)}
+경도: ${lon.toFixed(7)}
+정확도: ${c.accuracy != null ? "약 " + Math.round(c.accuracy) + " m" : "알 수 없음"}
+시간: ${d.toLocaleString("ko-KR")}
+
+🗺️ 지도:
+${mapsUrl}`;
+
+  ["shareBtn","copyBtn","smsBtn","mapBtn"].forEach(id => $(id).disabled = false);
+  updateMap(lat, lon);
+}
+
+function handleError(error){
+  let msg = "GPS 위치를 가져오지 못했습니다.";
+  if(error.code === 1) msg = "위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용하세요.";
+  if(error.code === 2) msg = "현재 위치를 확인할 수 없습니다. GPS/위치 서비스를 확인하세요.";
+  if(error.code === 3) msg = "GPS 응답 시간이 초과되었습니다. 실외에서 다시 시도하세요.";
+  setStatus(msg, "err");
+  $("startBtn").disabled = false;
+  $("stopBtn").disabled = true;
+}
+
+function getShareText(){
+  if(!currentPosition) return "";
+  const c = currentPosition.coords;
+  const d = new Date(currentPosition.timestamp);
+  return `📍 내 현재 위치\n위도: ${c.latitude.toFixed(7)}\n경도: ${c.longitude.toFixed(7)}\n정확도: 약 ${Math.round(c.accuracy)}m\n시간: ${d.toLocaleString("ko-KR")}\n\n🗺️ Google Maps\nhttps://www.google.com/maps?q=${c.latitude},${c.longitude}`;
+}
+
+async function shareLocation(){
+  const text = getShareText();
+  if(!text) return;
+
+  if(navigator.share){
+    try{
+      await navigator.share({
+        title: "내 현재 GPS 위치",
+        text: text
+      });
+    }catch(e){}
+  }else{
+    await copyText(text);
+    alert("공유 기능을 지원하지 않아 위치 정보를 클립보드에 복사했습니다.");
+  }
+}
+
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    return true;
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
+}
+
+async function copyCoordinates(){
+  if(!currentPosition) return;
+  const c = currentPosition.coords;
+  const text = `${c.latitude.toFixed(7)}, ${c.longitude.toFixed(7)}`;
+  await copyText(text);
+  alert("GPS 좌표를 복사했습니다.");
+}
+
+function openSMS(){
+  if(!currentPosition) return;
+  const text = encodeURIComponent(getShareText());
+  window.location.href = `sms:?body=${text}`;
+}
+
+function openGoogleMaps(){
+  if(!currentPosition) return;
+  const c = currentPosition.coords;
+  window.open(`https://www.google.com/maps?q=${c.latitude},${c.longitude}`, "_blank");
+}
+
+function updateMap(lat, lon){
+  const map = $("map");
+  const delta = 0.01;
+  const bbox = `${lon-delta},${lat-delta},${lon+delta},${lat+delta}`;
+  const marker = encodeURIComponent(`https://www.google.com/maps?q=${lat},${lon}`);
+  map.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
+}
+
+window.addEventListener("load", ()=>{
+  if(!window.isSecureContext && location.hostname !== "localhost"){
+    setStatus("주의: HTTPS가 아니면 스마트폰에서 GPS가 차단될 수 있습니다.", "err");
+  }
+});
+</script>
+</body>
+</html>
