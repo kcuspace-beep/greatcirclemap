@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>근거리 정밀 웨이포인트 분석기 (소수점 5자리)</title>
+  <title>음성/나침반 지원 근거리 정밀 웨이포인트 네비게이터</title>
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -27,6 +27,76 @@
     h2 { margin-top: 0; margin-bottom: 6px; color: #0f172a; }
     p { color: #4b5563; margin-bottom: 20px; font-size: 0.95rem; }
 
+    /* Voice Panel */
+    .voice-panel {
+      background: #eff6ff;
+      border: 2px solid #2563eb;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .voice-btn {
+      background: #dc2626;
+      color: white;
+      font-weight: bold;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 50px;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+      transition: all 0.2s;
+    }
+    .voice-btn:hover { background: #b91c1c; }
+    .voice-btn.listening {
+      background: #16a34a;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+      70% { box-shadow: 0 0 0 15px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+
+    /* Compass & Nav Panel */
+    .nav-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .compass-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .compass-dial {
+      width: 120px;
+      height: 120px;
+      border: 4px solid #334155;
+      border-radius: 50%;
+      position: relative;
+      margin: 12px 0;
+      background: #ffffff;
+    }
+    .compass-needle {
+      width: 4px;
+      height: 50px;
+      background: #dc2626;
+      position: absolute;
+      top: 10px;
+      left: 58px;
+      transform-origin: bottom center;
+      transition: transform 0.2s ease-out;
+    }
+
     .controls-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -49,10 +119,6 @@
       outline: none;
       flex: 1;
     }
-    input:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
-    }
     button {
       padding: 8px 16px;
       background: #2563eb;
@@ -62,37 +128,12 @@
       font-weight: 500;
       font-size: 0.88rem;
       cursor: pointer;
-      transition: background 0.2s;
     }
     button:hover { background: #1d4ed8; }
 
-    .action-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-    }
-    .preset-btn { background: #e2e8f0; color: #334155; font-size: 0.8rem; padding: 6px 12px; }
-    .preset-btn:hover { background: #cbd5e1; }
-
-    .waypoint-panel {
-      background: #f1f5f9;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-    .waypoint-bar {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
     .results-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 12px;
       margin-bottom: 20px;
     }
@@ -102,204 +143,150 @@
       border-radius: 8px;
       padding: 12px;
     }
-    .card b { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+    .card b { display: block; font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
     .card span { font-size: 1.1rem; font-weight: 700; color: #0f172a; }
 
-    .map-section { margin-bottom: 24px; }
-    .map-title { font-weight: 600; color: #334155; margin-bottom: 8px; }
-
-    #leaflet-map { height: 420px; border-radius: 8px; border: 1px solid #cbd5e1; }
-    .status-msg { font-size: 0.85rem; min-height: 1.2em; }
-    .status-error { color: #dc2626; }
-    .status-success { color: #16a34a; }
-
+    #leaflet-map { height: 380px; border-radius: 8px; border: 1px solid #cbd5e1; }
     .table-container {
-      max-height: 350px;
+      max-height: 250px;
       overflow-y: auto;
       border: 1px solid #cbd5e1;
       border-radius: 8px;
       margin-bottom: 24px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.9rem;
-    }
-    th, td {
-      padding: 10px 14px;
-      border-bottom: 1px solid #e2e8f0;
-    }
-    th {
-      background-color: #f1f5f9;
-      color: #334155;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-    tr:hover { background-color: #f8fafc; }
-    .badge {
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      font-weight: 600;
-    }
-    .bg-start { background: #dbeafe; color: #1e40af; }
-    .bg-end { background: #fee2e2; color: #991b1b; }
-    .bg-wp { background: #d1fae5; color: #065f46; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { padding: 8px 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+    th { background: #f1f5f9; position: sticky; top: 0; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>근거리 정밀 웨이포인트 분석기 (소수점 5자리)</h2>
-  <p>10km 내외의 근거리 이동 경로에서 GPS 좌표를 <strong>소수점 5자리(약 1.1m 단위)</strong>까지 자동 계산합니다.</p>
+  <h2>음성/나침반 지원 정밀 웨이포인트 네비게이터</h2>
+  <p>음성 명령 조작, 나침반 방위각(Bearing) 산출, 5분 주기 음성 자동 안내 시스템이 탑재된 구조지원 어플리케이션입니다.</p>
+
+  <div class="voice-panel">
+    <button id="voice-start-btn" class="voice-btn" onclick="toggleVoiceRecognition()">🎤 음성 명령 시작하기</button>
+    <p id="voice-status" style="margin: 10px 0 0 0; font-weight: 600; color: #1e293b;">
+      "버튼을 누르고 '출발지 서울역', '웨이포인트 5개', '경로 계산' 등을 명령하세요."
+    </p>
+  </div>
+
+  <div class="nav-grid">
+    <div class="compass-box">
+      <h4 style="margin: 0 0 8px 0;">실시간 모바일 나침반</h4>
+      <div class="compass-dial">
+        <div id="compass-needle" class="compass-needle"></div>
+      </div>
+      <div>현재 방위: <b id="heading-val">0°</b> (북쪽 기준)</div>
+      <button onclick="requestCompassPermission()" style="margin-top: 8px; font-size: 0.75rem;">나침반 센서 활성화</button>
+    </div>
+
+    <div class="compass-box" style="justify-content: space-around;">
+      <h4 style="margin: 0;">5분 자동 음성 브리핑</h4>
+      <div>
+        <label><input type="checkbox" id="auto-brief-toggle" onchange="toggleAutoBriefing(this)"> 5분 주기 음성 안내 활성화</label>
+      </div>
+      <button onclick="speakCurrentStatus()" style="background: #059669;">📢 지금 음성 브리핑 듣기</button>
+      <div style="font-size: 0.8rem; color: #64748b;">* 현재 GPS, 다음 WP 방위각, 남은 거리를 안내합니다.</div>
+    </div>
+  </div>
 
   <div class="controls-grid">
     <div class="control-group">
-      <h4>출발지 (Location A)</h4>
+      <h4>내 위치 / 출발지 (Location A)</h4>
       <div class="input-row">
         <input type="text" id="city1-input" placeholder="장소 검색" value="서울역">
         <button onclick="searchCity(1)">검색</button>
+        <button onclick="setCurrentLocation()" style="background:#475569;">GPS 내위치</button>
       </div>
       <div class="input-row">
-        <input type="number" id="lat1-input" placeholder="위도" step="0.00001" value="37.55472">
-        <input type="number" id="lon1-input" placeholder="경도" step="0.00001" value="126.97083">
+        <input type="number" id="lat1-input" step="0.00001" value="37.55472">
+        <input type="number" id="lon1-input" step="0.00001" value="126.97083">
       </div>
-      <div id="status1" class="status-msg"></div>
     </div>
 
     <div class="control-group">
-      <h4>도착지 (Location B)</h4>
+      <h4>조난자 / 도착지 (Location B)</h4>
       <div class="input-row">
         <input type="text" id="city2-input" placeholder="장소 검색" value="여의도한강공원">
         <button onclick="searchCity(2)">검색</button>
       </div>
       <div class="input-row">
-        <input type="number" id="lat2-input" placeholder="위도" step="0.00001" value="37.52841">
-        <input type="number" id="lon2-input" placeholder="경도" step="0.00001" value="126.93308">
+        <input type="number" id="lat2-input" step="0.00001" value="37.52841">
+        <input type="number" id="lon2-input" step="0.00001" value="126.93308">
       </div>
-      <div id="status2" class="status-msg"></div>
     </div>
   </div>
 
-  <div class="action-bar">
-    <button onclick="applyGpsInputs()" style="padding: 10px 24px; font-weight:600;">경로 및 웨이포인트 계산</button>
-    <div class="preset-buttons">
-      <button class="preset-btn" onclick="setPreset('서울역', 37.55472, 126.97083, '여의도한강공원', 37.52841, 126.93308)">서울역 — 여의도 (약 6.2km)</button>
-      <button class="preset-btn" onclick="setPreset('강남역', 37.49795, 127.02764, '잠실역', 37.51326, 127.10013)">강남역 — 잠실역 (약 6.5km)</button>
-    </div>
-  </div>
-
-  <div class="waypoint-panel">
-    <h4 style="margin-top:0; margin-bottom:8px;">웨이포인트 개수 설정</h4>
-    <div class="waypoint-bar">
-      <label for="wpCountInput"><b>중간 웨이포인트 개수:</b></label>
-      <input type="number" id="wpCountInput" value="5" min="1" max="100" style="max-width: 100px;" oninput="updateAll()">
-      <span style="font-size:0.85rem; color:#64748b;">(A와 B 사이 나눌 지점 개수)</span>
-    </div>
+  <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center;">
+    <button onclick="updateAll()" style="padding: 10px 24px; font-weight:600;">경로 및 웨이포인트 계산</button>
+    <label><b>중간 웨이포인트 개수:</b></label>
+    <input type="number" id="wpCountInput" value="5" min="1" max="100" style="width: 80px;" oninput="updateAll()">
   </div>
 
   <div class="results-grid">
-    <div class="card"><b>총 경로 거리</b><span id="resDist">—</span></div>
-    <div class="card"><b>구간별 평균 거리</b><span id="resStepDist">—</span></div>
-    <div class="card"><b>출발지 GPS</b><span id="resStartCoords" style="font-size:0.95rem;">—</span></div>
-    <div class="card"><b>도착지 GPS</b><span id="resEndCoords" style="font-size:0.95rem;">—</span></div>
+    <div class="card"><b>총 직선 거리</b><span id="resDist">—</span></div>
+    <div class="card"><b>목적지 방향각 (Bearing)</b><span id="resBearing" style="color:#dc2626;">—</span></div>
+    <div class="card"><b>구간별 거리</b><span id="resStepDist">—</span></div>
+    <div class="card"><b>다음 웨이포인트</b><span id="resNextWp">—</span></div>
   </div>
 
-  <div class="map-section">
-    <div class="map-title">웨이포인트 정밀 GPS (소수점 5자리) 데이터 표</div>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>구분</th>
-            <th>지점명</th>
-            <th>위도 (Latitude)</th>
-            <th>경도 (Longitude)</th>
-            <th>구간 거리</th>
-            <th>누적 거리</th>
-          </tr>
-        </thead>
-        <tbody id="waypoint-table-body">
-        </tbody>
-      </table>
-    </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>구분</th>
+          <th>지점명</th>
+          <th>위도</th>
+          <th>경도</th>
+          <th>구간거리</th>
+          <th>방위각</th>
+        </tr>
+      </thead>
+      <tbody id="waypoint-table-body"></tbody>
+    </table>
   </div>
 
-  <div class="map-section">
-    <div class="map-title">인터랙티브 지도 (Leaflet Map)</div>
-    <div id="leaflet-map"></div>
-  </div>
+  <div id="leaflet-map"></div>
 </div>
 
 <script>
-  const R = 6371; // 지구 평균 반지름 (km)
-
-  let p1 = [126.97083, 37.55472]; // [Lon, Lat]
-  let p2 = [126.93308, 37.52841];
-  let label1 = "서울역";
-  let label2 = "여의도한강공원";
-
+  const R = 6371; // 지구 반지름 (km)
   let calculatedWaypoints = [];
+  let briefTimer = null;
+  let currentHeading = 0;
 
   const rad = d => d * Math.PI / 180;
   const deg = r => r * 180 / Math.PI;
 
-  // Haversine 공식을 사용한 정밀 거리 계산 함수 (km 단위)
+  // Haversine 거리 연산
   function haversineDistance(lat1, lon1, lat2, lon2) {
     const dLat = rad(lat2 - lat1);
     const dLon = rad(lon2 - lon1);
     const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
               Math.cos(rad(lat1)) * Math.cos(rad(lat2)) *
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  // 지도 생성
+  // 두 지점 간 방위각(Bearing) 계산 공식 (0° ~ 360°)
+  function calculateBearing(lat1, lon1, lat2, lon2) {
+    const y = Math.sin(rad(lon2 - lon1)) * Math.cos(rad(lat2));
+    const x = Math.cos(rad(lat1)) * Math.sin(rad(lat2)) -
+              Math.sin(rad(lat1)) * Math.cos(rad(lat2)) * Math.cos(rad(lon2 - lon1));
+    const brng = deg(Math.atan2(y, x));
+    return (brng + 360) % 360;
+  }
+
+  // Leaflet 지도 초기화
   const leafletMap = L.map('leaflet-map').setView([37.5415, 126.9520], 13);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
+    maxZoom: 19, attribution: '© OpenStreetMap'
   }).addTo(leafletMap);
-
   let routeLayer, leafletMarkers = [];
 
-  // 근거리 정밀 웨이포인트 계산 (소수점 5자리 산출)
-  function computeWaypoints(lat1, lon1, lat2, lon2, count) {
-    const totalDist = haversineDistance(lat1, lon1, lat2, lon2);
-    const waypoints = [];
-    const steps = count + 1;
-
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      // 근거리 직선/선형 보간
-      const curLat = lat1 + (lat2 - lat1) * t;
-      const curLon = lon1 + (lon2 - lon1) * t;
-
-      const cumDist = totalDist * t;
-      const stepDist = i === 0 ? 0 : totalDist / steps;
-
-      let type = "WP";
-      let name = `웨이포인트 ${i}`;
-      if (i === 0) { type = "START"; name = label1; }
-      else if (i === steps) { type = "END"; name = label2; }
-
-      waypoints.push({
-        index: i,
-        name: name,
-        type: type,
-        lat: Number(curLat.toFixed(5)),
-        lon: Number(curLon.toFixed(5)),
-        stepDist: stepDist,
-        cumDist: cumDist
-      });
-    }
-    return waypoints;
-  }
-
-  // 데이터 업데이트 및 연산 수행
+  // 데이터 연산 및 업데이트
   function updateAll() {
     const lat1 = parseFloat(document.getElementById("lat1-input").value);
     const lon1 = parseFloat(document.getElementById("lon1-input").value);
@@ -309,146 +296,235 @@
 
     if ([lat1, lon1, lat2, lon2].some(isNaN)) return;
 
-    const totalDistance = haversineDistance(lat1, lon1, lat2, lon2);
-    const totalMeters = (totalDistance * 1000).toFixed(0);
+    const totalDist = haversineDistance(lat1, lon1, lat2, lon2);
+    const bearing = calculateBearing(lat1, lon1, lat2, lon2);
 
-    // 요약 카드 업데이트
-    document.getElementById("resDist").textContent = totalDistance < 1 
-      ? `${totalMeters} m` 
-      : `${totalDistance.toFixed(3)} km (${totalMeters} m)`;
-
-    const stepMeters = ((totalDistance / (wpCount + 1)) * 1000).toFixed(0);
-    document.getElementById("resStepDist").textContent = `${(totalDistance / (wpCount + 1)).toFixed(3)} km (${stepMeters} m)`;
-
-    document.getElementById("resStartCoords").textContent = `${lat1.toFixed(5)}, ${lon1.toFixed(5)}`;
-    document.getElementById("resEndCoords").textContent = `${lat2.toFixed(5)}, ${lon2.toFixed(5)}`;
+    document.getElementById("resDist").textContent = `${totalDist.toFixed(2)} km`;
+    document.getElementById("resBearing").textContent = `${bearing.toFixed(1)}°`;
+    document.getElementById("resStepDist").textContent = `${(totalDist / (wpCount + 1)).toFixed(2)} km`;
 
     // 웨이포인트 데이터 생성
-    calculatedWaypoints = computeWaypoints(lat1, lon1, lat2, lon2, wpCount);
-    
+    calculatedWaypoints = [];
+    const steps = wpCount + 1;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const curLat = lat1 + (lat2 - lat1) * t;
+      const curLon = lon1 + (lon2 - lon1) * t;
+      
+      let nextBearing = 0;
+      if (i < steps) {
+        const nextLat = lat1 + (lat2 - lat1) * ((i + 1) / steps);
+        const nextLon = lon1 + (lon2 - lon1) * ((i + 1) / steps);
+        nextBearing = calculateBearing(curLat, curLon, nextLat, nextLon);
+      }
+
+      calculatedWaypoints.push({
+        index: i,
+        name: i === 0 ? "출발지" : i === steps ? "조난자 위치" : `WP ${i}`,
+        lat: Number(curLat.toFixed(5)),
+        lon: Number(curLon.toFixed(5)),
+        bearing: nextBearing.toFixed(1)
+      });
+    }
+
+    if (calculatedWaypoints.length > 1) {
+      document.getElementById("resNextWp").textContent = `${calculatedWaypoints[1].name} (${calculatedWaypoints[0].bearing}° 방향)`;
+    }
+
     renderTable();
     renderLeaflet();
   }
 
-  // 표(Table) 그리기
   function renderTable() {
     const tbody = document.getElementById("waypoint-table-body");
     tbody.innerHTML = "";
-
     calculatedWaypoints.forEach(wp => {
       const tr = document.createElement("tr");
-
-      let badgeClass = "bg-wp";
-      let badgeText = "웨이포인트";
-      if (wp.type === "START") { badgeClass = "bg-start"; badgeText = "출발지(A)"; }
-      else if (wp.type === "END") { badgeClass = "bg-end"; badgeText = "도착지(B)"; }
-
-      const stepMeters = (wp.stepDist * 1000).toFixed(0);
-      const stepDisplay = wp.stepDist === 0 ? "-" : `${wp.stepDist.toFixed(3)} km (${stepMeters} m)`;
-
       tr.innerHTML = `
-        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
         <td><b>${wp.name}</b></td>
-        <td><b>${wp.lat.toFixed(5)}°</b></td>
-        <td><b>${wp.lon.toFixed(5)}°</b></td>
-        <td>${stepDisplay}</td>
-        <td><b>${wp.cumDist.toFixed(3)} km</b></td>
+        <td>${wp.name}</td>
+        <td>${wp.lat}°</td>
+        <td>${wp.lon}°</td>
+        <td>-</td>
+        <td><b>${wp.bearing}°</b></td>
       `;
       tbody.appendChild(tr);
     });
   }
 
-  // 지도 마커 및 경로 그리기
   function renderLeaflet() {
     leafletMarkers.forEach(m => leafletMap.removeLayer(m));
     leafletMarkers = [];
     if (routeLayer) leafletMap.removeLayer(routeLayer);
 
     const latLngs = calculatedWaypoints.map(wp => [wp.lat, wp.lon]);
-    routeLayer = L.polyline(latLngs, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(leafletMap);
+    routeLayer = L.polyline(latLngs, { color: '#2563eb', weight: 4 }).addTo(leafletMap);
 
     calculatedWaypoints.forEach(wp => {
-      let marker;
-      if (wp.type === "START" || wp.type === "END") {
-        marker = L.marker([wp.lat, wp.lon]).addTo(leafletMap)
-          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(5)}°<br>경도: ${wp.lon.toFixed(5)}°`);
-      } else {
-        marker = L.circleMarker([wp.lat, wp.lon], {
-          radius: 6, fillColor: '#10b981', color: '#ffffff', fillOpacity: 1, weight: 2
-        }).addTo(leafletMap)
-          .bindPopup(`<b>${wp.name}</b><br>위도: <b>${wp.lat.toFixed(5)}°</b><br>경도: <b>${wp.lon.toFixed(5)}°</b><br>누적거리: ${wp.cumDist.toFixed(3)} km`);
-      }
+      const marker = L.marker([wp.lat, wp.lon]).addTo(leafletMap)
+        .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat}<br>경도: ${wp.lon}`);
       leafletMarkers.push(marker);
     });
 
-    leafletMap.invalidateSize();
     leafletMap.fitBounds(routeLayer.getBounds().pad(0.2));
   }
 
-  // 주소 검색 API
-  async function searchCity(index) {
-    const inputEl = document.getElementById(`city${index}-input`);
-    const query = inputEl.value.trim();
-    if (!query) return;
-
-    setStatus(`status${index}`, "검색 중...", "");
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        const lat = parseFloat(data[0].lat);
-        const lon = parseFloat(data[0].lon);
-        const name = data[0].display_name.split(',')[0];
-
-        document.getElementById(`lat${index}-input`).value = lat.toFixed(5);
-        document.getElementById(`lon${index}-input`).value = lon.toFixed(5);
-
-        if (index === 1) { label1 = name; }
-        else { label2 = name; }
-
-        setStatus(`status${index}`, `찾음: ${name}`, "success");
-        updateAll();
-      } else {
-        setStatus(`status${index}`, "위치를 찾을 수 없습니다.", "error");
-      }
-    } catch (err) {
-      setStatus(`status${index}`, "검색 중 오류가 발생했습니다.", "error");
+  // --- TTS (음성 출력) 기능 ---
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // 이전 음성 캔슬
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
     }
   }
 
-  function applyGpsInputs() {
-    label1 = document.getElementById("city1-input").value || "출발지";
-    label2 = document.getElementById("city2-input").value || "도착지";
-    updateAll();
+  function speakCurrentStatus() {
+    const lat = document.getElementById("lat1-input").value;
+    const lon = document.getElementById("lon1-input").value;
+    const dist = document.getElementById("resDist").textContent;
+    const bearing = document.getElementById("resBearing").textContent;
+
+    const message = `현재 위치 브리핑입니다. 현재 위도 ${lat}, 경도 ${lon}입니다. 조난자까지의 남은 거리는 ${dist} 이며, 이동 방위각은 ${bearing} 방향입니다.`;
+    speak(message);
   }
 
-  function setPreset(name1, lat1, lon1, name2, lat2, lon2) {
-    document.getElementById("city1-input").value = name1;
-    document.getElementById("lat1-input").value = lat1.toFixed(5);
-    document.getElementById("lon1-input").value = lon1.toFixed(5);
+  // --- STT (음성 인식) 기능 ---
+  let recognition;
+  let isListening = false;
 
-    document.getElementById("city2-input").value = name2;
-    document.getElementById("lat2-input").value = lat2.toFixed(5);
-    document.getElementById("lon2-input").value = lon2.toFixed(5);
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'ko-KR';
+    recognition.continuous = false;
 
-    label1 = name1;
-    label2 = name2;
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript.trim();
+      document.getElementById("voice-status").textContent = `인식된 명령: "${transcript}"`;
+      parseVoiceCommand(transcript);
+    };
 
-    updateAll();
+    recognition.onend = () => {
+      isListening = false;
+      const btn = document.getElementById("voice-start-btn");
+      btn.classList.remove("listening");
+      btn.textContent = "🎤 음성 명령 시작하기";
+    };
   }
 
-  function setStatus(id, msg, type) {
-    const el = document.getElementById(id);
-    el.textContent = msg;
-    el.className = `status-msg ${type ? 'status-' + type : ''}`;
+  function toggleVoiceRecognition() {
+    if (!recognition) {
+      alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+      return;
+    }
+    const btn = document.getElementById("voice-start-btn");
+    if (isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+      isListening = true;
+      btn.classList.add("listening");
+      btn.textContent = "🎙️ 음성 듣는 중...";
+    }
   }
 
-  window.addEventListener('load', () => {
-    setTimeout(() => {
+  // 음성 명령 구문 분석
+  function parseVoiceCommand(cmd) {
+    if (cmd.includes("출발지")) {
+      const location = cmd.replace("출발지", "").trim();
+      document.getElementById("city1-input").value = location;
+      searchCity(1);
+      speak(`출발지를 ${location}로 설정합니다.`);
+    } else if (cmd.includes("도착지") || cmd.includes("조난자")) {
+      const location = cmd.replace("도착지", "").replace("조난자", "").trim();
+      document.getElementById("city2-input").value = location;
+      searchCity(2);
+      speak(`도착지를 ${location}로 설정합니다.`);
+    } else if (cmd.includes("웨이포인트")) {
+      const count = cmd.match(/\d+/);
+      if (count) {
+        document.getElementById("wpCountInput").value = count[0];
+        updateAll();
+        speak(`웨이포인트 개수를 ${count[0]}개로 설정했습니다.`);
+      }
+    } else if (cmd.includes("계산") || cmd.includes("경로")) {
       updateAll();
-    }, 300);
-  });
+      speak("경로 계산을 완료했습니다.");
+      setTimeout(speakCurrentStatus, 1500);
+    } else if (cmd.includes("안내") || cmd.includes("위치")) {
+      speakCurrentStatus();
+    }
+  }
+
+  // --- 나침반 센서 (DeviceOrientation) ---
+  function requestCompassPermission() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(response => {
+          if (response === 'granted') {
+            window.addEventListener('deviceorientation', handleOrientation, true);
+          }
+        });
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+  }
+
+  function handleOrientation(event) {
+    let heading = event.alpha;
+    if (event.webkitCompassHeading) {
+      heading = event.webkitCompassHeading; // iOS 처리
+    }
+    if (heading !== null) {
+      currentHeading = heading;
+      document.getElementById("heading-val").textContent = `${Math.round(heading)}°`;
+      document.getElementById("compass-needle").style.transform = `rotate(${heading}deg)`;
+    }
+  }
+
+  // --- 5분 주기 자동 음성 안내 ---
+  function toggleAutoBriefing(checkbox) {
+    if (checkbox.checked) {
+      speak("5분 주기 자동 음성 안내를 시작합니다.");
+      briefTimer = setInterval(() => {
+        speakCurrentStatus();
+      }, 5 * 60 * 1000); // 5분 (300,000ms)
+    } else {
+      if (briefTimer) clearInterval(briefTimer);
+      speak("자동 음성 안내를 종료합니다.");
+    }
+  }
+
+  // GPS 현재 위치 가져오기
+  function setCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        document.getElementById("lat1-input").value = position.coords.latitude.toFixed(5);
+        document.getElementById("lon1-input").value = position.coords.longitude.toFixed(5);
+        document.getElementById("city1-input").value = "현재 위치";
+        updateAll();
+        speak("현재 GPS 위치가 등록되었습니다.");
+      });
+    }
+  }
+
+  async function searchCity(index) {
+    const query = document.getElementById(`city${index}-input`).value.trim();
+    if (!query) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        document.getElementById(`lat${index}-input`).value = parseFloat(data[0].lat).toFixed(5);
+        document.getElementById(`lon${index}-input`).value = parseFloat(data[0].lon).toFixed(5);
+        updateAll();
+      }
+    } catch (e) {}
+  }
+
+  window.addEventListener('load', () => updateAll());
 </script>
 </body>
 </html>
