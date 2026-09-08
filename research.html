@@ -1,322 +1,385 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Craster Parabolic - 중심 좌표 사용자 정의 세계지도</title>
-    <style>
-        :root {
-            --bg-color: #0f172a;
-            --panel-bg: #1e293b;
-            --accent-color: #38bdf8;
-            --text-color: #f8fafc;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: system-ui, -apple-system, sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        header {
-            background-color: var(--panel-bg);
-            padding: 1rem 1.5rem;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-            z-index: 10;
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--accent-color);
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-        }
-
-        input[type="number"] {
-            background: #0f172a;
-            border: 1px solid #475569;
-            color: #fff;
-            padding: 0.4rem 0.6rem;
-            border-radius: 4px;
-            width: 90px;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: #0f172a;
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background-color: #0284c7;
-            color: #fff;
-        }
-
-        #canvas-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            padding: 1rem;
-        }
-
-        canvas {
-            background-color: #020617;
-            border-radius: 8px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-        }
-
-        .info-box {
-            position: absolute;
-            bottom: 1.5rem;
-            left: 1.5rem;
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(4px);
-            padding: 0.8rem 1.2rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            border: 1px solid #334155;
-            pointer-events: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국가 중심 세계지도 — 대원 수학 모델</title>
+<style>
+:root{
+  --bg:#071426; --panel:#0d2138; --panel2:#102b47; --line:#1c557a;
+  --cyan:#4dd8ff; --blue:#168ee8; --gold:#ffd45a; --red:#ff6675;
+  --text:#eef7ff; --muted:#9db8cd; --green:#5fe0a2;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#06111f,#0a1d32);color:var(--text);
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif;height:100vh;overflow:hidden}
+header{height:76px;padding:12px 20px;display:flex;align-items:center;gap:18px;
+background:rgba(8,25,43,.96);border-bottom:1px solid var(--line);box-shadow:0 4px 20px #0008}
+.brand{flex:1;min-width:250px}.brand h1{margin:0;font-size:22px;color:var(--cyan)}
+.brand small{color:var(--muted)}
+.badge{padding:8px 12px;border:1px solid #2877a8;border-radius:10px;color:var(--gold);font-size:12px}
+main{height:calc(100vh - 76px);display:grid;grid-template-columns:330px 1fr 370px;gap:10px;padding:10px}
+.panel{background:rgba(13,33,56,.96);border:1px solid var(--line);border-radius:12px;overflow:auto}
+.section{padding:13px;border-bottom:1px solid #173c59}.section:last-child{border:0}
+.section h2{font-size:14px;margin:0 0 10px;color:var(--cyan)}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+input,select,button{width:100%;border-radius:7px;border:1px solid #34627d;background:#071827;color:white;padding:9px}
+button{cursor:pointer;font-weight:700;background:#1179be;border-color:#3eb8ef}
+button:hover{filter:brightness(1.15)}
+button.secondary{background:#193650}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.math{font-family:Georgia,"Times New Roman",serif;font-size:16px;line-height:1.65;color:#fff}
+.math .eq{padding:7px 9px;background:#081b2c;border:1px solid #214d69;border-radius:8px;margin:6px 0}
+.note{font-size:11px;line-height:1.55;color:var(--muted)}
+#mapPanel{position:relative;display:flex;flex-direction:column;min-width:0}
+.mapTitle{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+#mapCanvas{width:100%;height:100%;display:block;background:#03101d}
+.mapWrap{position:relative;flex:1;min-height:0}
+.overlay{position:absolute;left:12px;bottom:12px;background:#071827dd;border:1px solid #2a6385;border-radius:9px;
+padding:9px 12px;font-size:11px;line-height:1.55;backdrop-filter:blur(5px)}
+#globeCanvas{width:100%;height:220px;background:#061320;border-radius:8px;border:1px solid #24516b}
+table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:6px;border-bottom:1px solid #1b4058;text-align:left}th{color:var(--cyan)}
+.value{color:var(--gold);font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+@media(max-width:1100px){main{grid-template-columns:280px 1fr}.right{display:none}}
+@media(max-width:720px){body{overflow:auto;height:auto}header{height:auto;flex-wrap:wrap}main{height:auto;grid-template-columns:1fr}.left,.right{display:block}.mapWrap{height:60vh}}
+</style>
 </head>
 <body>
+<header>
+  <div class="brand">
+    <h1>국가 중심 세계지도와 대원의 수학적 원리</h1>
+    <small>GPS → 3D 벡터 → 좌표 회전 → 새로운 위·경도 → 지도 투영</small>
+  </div>
+  <div class="badge">Great Circle • Vertex • Rotation • Projection</div>
+</header>
 
-    <header>
-        <h1>Craster Parabolic 중심 변경 지도</h1>
-        <div class="input-group">
-            <label for="center-lat">중심 위도(Lat):</label>
-            <input type="number" id="center-lat" value="36.78" step="0.01" min="-90" max="90">
-        </div>
-        <div class="input-group">
-            <label for="center-lon">중심 경도(Lon):</label>
-            <input type="number" id="center-lon" value="126.15" step="0.01" min="-180" max="180">
-        </div>
-        <button id="update-btn">지도 재투영</button>
-        <button id="reset-btn" style="background:#64748b; color:#fff;">태안(만리포) 설정</button>
-    </header>
-
-    <div id="canvas-container">
-        <canvas id="mapCanvas"></canvas>
-        <div class="info-box">
-            • <b>중심점(0,0)</b>: 지정한 GPS 좌표<br>
-            • <b>투영 알고리즘</b>: Craster Parabolic (등면적 포물선 투영)<br>
-            • 빨간 십자선: 재설정된 중심 원점
-        </div>
+<main>
+<aside class="panel left">
+  <div class="section">
+    <h2>① 최고점 / 중심 GPS</h2>
+    <div class="row">
+      <div><label>위도 φ (°)</label><input id="lat" type="number" step="0.000001" value="36.78"></div>
+      <div><label>경도 λ (°)</label><input id="lon" type="number" step="0.000001" value="126.15"></div>
     </div>
+    <label>좌표계 모드</label>
+    <select id="mode">
+      <option value="center">선택점을 새 지도 원점 (0°,0°)으로</option>
+      <option value="pole">선택점을 새 북극 (90°,0°)으로</option>
+    </select>
+    <div class="buttons" style="margin-top:8px">
+      <button onclick="setTaean()">태안/만리포</button>
+      <button class="secondary" onclick="setPole()">북극</button>
+    </div>
+  </div>
 
-    <script>
-        const canvas = document.getElementById('mapCanvas');
-        const ctx = canvas.getContext('2d');
+  <div class="section">
+    <h2>② 경도 기준 이동</h2>
+    <label>Δλ — X축/경도 오프셋 (°)</label>
+    <input id="offset" type="number" step="1" value="0">
+    <div class="buttons" style="margin-top:8px">
+      <button class="secondary" onclick="offset(-30)">−30°</button>
+      <button class="secondary" onclick="offset(30)">+30°</button>
+    </div>
+    <p class="note">새 경도는 λ″ = λ′ − Δλ 로 정규화합니다. 단순 원통형 좌표에서는 X″ = X − kΔλ가 됩니다.</p>
+  </div>
 
-        // 입력 엘리먼트
-        const latInput = document.getElementById('center-lat');
-        const lonInput = document.getElementById('center-lon');
-        const updateBtn = document.getElementById('update-btn');
-        const resetBtn = document.getElementById('reset-btn');
+  <div class="section">
+    <h2>③ 지도 투영법</h2>
+    <select id="projection">
+      <option value="craster">Craster Parabolic (등면적 포물선)</option>
+      <option value="equirect">등거리 원통도법</option>
+      <option value="mercator">Mercator</option>
+      <option value="ortho">정사영 (Orthographic)</option>
+    </select>
+    <p class="note">회전된 구면좌표는 동일하지만 투영법에 따라 평면 X,Y의 왜곡과 경계가 달라집니다.</p>
+  </div>
 
-        // 내장 간단한 대륙 윤곽선 데이터 (샘플 위경도 폴리곤 데이터)
-        // 실제 정밀 지도를 위해 주요 대륙 좌표셋 포함
-        const landFeatures = [
-            // 아시아 & 유럽 & 아프리카 (구대륙 간략화)
-            [[35,140],[60,170],[70,100],[70,40],[40,30],[30,35],[15,45],[10,75],[20,80],[25,120],[35,140]],
-            [[35,10],[10,14],[0,9],[ -30,18],[-34,26],[5,48],[30,32],[36,5],[35,10]],
-            [[60,5],[50,30],[40,25],[40,0],[50,-10],[60,5]],
-            // 한반도 주변
-            [[38,126],[40,129],[38,129],[35,129],[34,126],[38,126]],
-            // 아메리카
-            [[65,-168],[70,-100],[50,-55],[30,-80],[25,-98],[55,-130],[65,-168]],
-            [[10,-75],[-10,-40],[-35,-55],[-53,-70],[-18,-70],[0,-80],[10,-75]],
-            // 호주
-            [[-12,130],[-15,145],[-35,150],[-35,115],[-22,114],[-12,130]],
-            // 남극
-            [[-70,0],[-70,90],[-70,180],[-70,-90],[-70,0]]
-        ];
+  <div class="section">
+    <h2>④ 대원 계산</h2>
+    <div class="row">
+      <div><label>출발 φ₁</label><input id="aLat" type="number" value="37.5665"></div>
+      <div><label>출발 λ₁</label><input id="aLon" type="number" value="126.9780"></div>
+      <div><label>도착 φ₂</label><input id="bLat" type="number" value="35.6762"></div>
+      <div><label>도착 λ₂</label><input id="bLon" type="number" value="139.6503"></div>
+    </div>
+    <button style="margin-top:8px" onclick="calculateGreatCircle()">대원 / 최고점 계산</button>
+    <div id="gcResult" class="note" style="margin-top:8px">대원 결과가 여기에 표시됩니다.</div>
+  </div>
 
-        // 캔버스 크기 조정
-        function resizeCanvas() {
-            const container = document.getElementById('canvas-container');
-            const w = container.clientWidth - 32;
-            const h = container.clientHeight - 32;
-            
-            // 크라스터 포물선 투영의 종횡비는 2:1
-            if (w / h > 2) {
-                canvas.height = h;
-                canvas.width = h * 2;
-            } else {
-                canvas.width = w;
-                canvas.height = w / 2;
-            }
-            render();
-        }
+  <div class="section">
+    <h2>⑤ 수학적 핵심</h2>
+    <div class="math">
+      <div class="eq">x = cosφ cosλ<br>y = cosφ sinλ<br>z = sinφ</div>
+      <div class="eq">p′ = R p</div>
+      <div class="eq">φ′ = asin(z′)<br>λ′ = atan2(y′, x′)</div>
+      <div class="eq">λ″ = λ′ − Δλ</div>
+    </div>
+  </div>
+</aside>
 
-        // 구면 회전 변환: 지정한 (centerLat, centerLon)을 (0,0)으로 이동
-        function rotateSpherical(lat, lon, centerLat, centerLon) {
-            const deg2rad = Math.PI / 180;
-            const rad2deg = 180 / Math.PI;
+<section class="panel" id="mapPanel">
+  <div class="mapTitle">
+    <b id="mapTitle">국가 중심 세계지도</b>
+    <span class="value" id="centerReadout"></span>
+  </div>
+  <div class="mapWrap">
+    <canvas id="mapCanvas"></canvas>
+    <div class="overlay">
+      <b>해석</b><br>
+      <span id="modeText"></span><br>
+      빨강: 기준점 · 주황: 대원 · 청록: 위·경선
+    </div>
+  </div>
+</section>
 
-            let phi = lat * deg2rad;
-            let lambda = lon * deg2rad;
-            let phi0 = centerLat * deg2rad;
-            let lambda0 = centerLon * deg2rad;
+<aside class="panel right">
+  <div class="section">
+    <h2>⑥ 3D 구면 좌표와 회전</h2>
+    <canvas id="globeCanvas"></canvas>
+    <div class="note" style="margin-top:8px">
+      선택점 벡터를 새 기준축으로 삼고, 모든 GPS 벡터에 동일한 직교 회전을 적용합니다.
+      <br><b>중심 모드:</b> 선택점 → (1,0,0) → 새 위도 0°, 경도 0°
+      <br><b>북극 모드:</b> 선택점 → (0,0,1) → 새 위도 90°, 경도 0°
+    </div>
+  </div>
 
-            // 구면 좌표계 회전 공식 (Euler Rotation)
-            let dLambda = lambda - lambda0;
+  <div class="section">
+    <h2>⑦ 변환 결과</h2>
+    <table>
+      <tr><th>항목</th><th>값</th></tr>
+      <tr><td>원래 GPS</td><td id="orig">—</td></tr>
+      <tr><td>3D 벡터</td><td id="vec">—</td></tr>
+      <tr><td>회전 후</td><td id="rot">—</td></tr>
+      <tr><td>새 위도</td><td id="newLat" class="value">—</td></tr>
+      <tr><td>새 경도</td><td id="newLon" class="value">—</td></tr>
+    </table>
+  </div>
 
-            let sinPhi = Math.sin(phi0) * Math.sin(phi) + Math.cos(phi0) * Math.cos(phi) * Math.cos(dLambda);
-            sinPhi = Math.max(-1, Math.min(1, sinPhi)); // Clamp
-            let newLat = Math.asin(sinPhi);
+  <div class="section">
+    <h2>⑧ 대원 방정식</h2>
+    <div class="math">
+      <div class="eq">n = (a × b) / |a × b|</div>
+      <div class="eq">n · p = 0</div>
+      <div class="eq">q = k − (k · n)n</div>
+      <div class="eq">v = q / |q|</div>
+    </div>
+    <p class="note">n은 두 점이 만드는 대원 평면의 법선벡터이며, v는 북쪽 방향을 기준으로 한 대원의 최고점 후보입니다.</p>
+  </div>
 
-            let y = Math.cos(phi) * Math.sin(dLambda);
-            let x = Math.cos(phi0) * Math.sin(phi) - Math.sin(phi0) * Math.cos(phi) * Math.cos(dLambda);
-            let newLon = Math.atan2(y, x);
+  <div class="section">
+    <h2>⑨ 프로젝트 단계</h2>
+    <ol class="note" style="padding-left:20px;line-height:1.8">
+      <li>GPS 입력 및 3D 벡터화</li>
+      <li>최고점/중심 기준 좌표계 설정</li>
+      <li>직교 회전행렬 생성</li>
+      <li>모든 위치의 새 위·경도 계산</li>
+      <li>대원 및 웨이포인트 계산</li>
+      <li>Δλ 경도 이동</li>
+      <li>다양한 지도투영 적용</li>
+      <li>GitHub 웹앱으로 공개</li>
+    </ol>
+  </div>
+</aside>
+</main>
 
-            return {
-                lat: newLat * rad2deg,
-                lon: newLon * rad2deg
-            };
-        }
+<script>
+const $=id=>document.getElementById(id), D=Math.PI/180, R2D=180/Math.PI;
+const canvas=$("mapCanvas"), ctx=canvas.getContext("2d"), globe=$("globeCanvas"), gctx=globe.getContext("2d");
 
-        // Craster Parabolic 투영 공식
-        function projectCrasterParabolic(lat, lon, width, height) {
-            const deg2rad = Math.PI / 180;
-            const phi = lat * deg2rad;
-            const lambda = lon * deg2rad;
+const land=[
+[[35,140],[60,170],[70,100],[70,40],[40,30],[30,35],[15,45],[10,75],[20,80],[25,120],[35,140]],
+[[35,10],[10,14],[0,9],[-30,18],[-34,26],[5,48],[30,32],[36,5],[35,10]],
+[[60,5],[50,30],[40,25],[40,0],[50,-10],[60,5]],
+[[65,-168],[70,-100],[50,-55],[30,-80],[25,-98],[55,-130],[65,-168]],
+[[10,-75],[-10,-40],[-35,-55],[-53,-70],[-18,-70],[0,-80],[10,-75]],
+[[-12,130],[-15,145],[-35,150],[-35,115],[-22,114],[-12,130]],
+[[-70,0],[-70,90],[-70,180],[-70,-90],[-70,0]]
+];
 
-            // 스케일 인자 (반지름 R 역할)
-            const R = height / 3.06; // 수학적 경계에 맞춤
+function v(lat,lon){
+  lat*=D; lon*=D;
+  return [Math.cos(lat)*Math.cos(lon),Math.cos(lat)*Math.sin(lon),Math.sin(lat)];
+}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function norm(a){let n=Math.hypot(...a);return a.map(x=>x/n)}
+function sub(a,b){return a.map((x,i)=>x-b[i])}
+function scale(a,k){return a.map(x=>x*k)}
+function clamp(x){return Math.max(-1,Math.min(1,x))}
+function sph(p){return {lat:Math.asin(clamp(p[2]))*R2D,lon:Math.atan2(p[1],p[0])*R2D}}
+function fmt(x){return Number(x).toFixed(5)}
 
-            // 크라스터 포물선 수식
-            // x = 3 * R * lambda * sqrt(1/3pi) * (2 * cos(2phi/3) - 1)
-            // y = R * sqrt(3pi) * sin(phi/3)
-            const sqrt_1_3pi = Math.sqrt(1 / (3 * Math.PI));
-            const sqrt_3pi = Math.sqrt(3 * Math.PI);
+function makeBasis(lat0,lon0,mode){
+  const c=v(lat0,lon0), k=[0,0,1];
+  if(mode==="pole"){
+    // Columns are new axes expressed in old coordinates.
+    // New z-axis = c. New y-axis is chosen from the global north tangent.
+    let ey=norm(sub(k,scale(c,dot(k,c))));
+    let ex=norm(cross(ey,c));
+    return {ex,ey,ez:c};
+  }else{
+    // New x-axis points toward selected center; selected point becomes (1,0,0).
+    let ez=norm(sub(k,scale(c,dot(k,c))));
+    // At exact pole the local north direction is undefined; choose a stable axis.
+    if(Math.hypot(...ez)<1e-9) ez=[1,0,0];
+    let ey=norm(cross(ez,c));
+    return {ex:c,ey:ey,ez:ez};
+  }
+}
+function rotatePoint(lat,lon,b){
+  const p=v(lat,lon);
+  return [dot(p,b.ex),dot(p,b.ey),dot(p,b.ez)];
+}
+function rotateSph(lat,lon,b){
+  return sph(rotatePoint(lat,lon,b));
+}
 
-            const x = 3 * R * lambda * sqrt_1_3pi * (2 * Math.cos((2 * phi) / 3) - 1);
-            const y = R * sqrt_3pi * Math.sin(phi / 3);
+function normalizeLon(x){return ((x+180)%360+360)%360-180}
 
-            // Canvas 화면 중앙 (0,0) 좌표로 변환 및 Y축 반전
-            return {
-                x: width / 2 + x,
-                y: height / 2 - y
-            };
-        }
+function project(lat,lon,w,h,type){
+  let p=lat*D, l=normalizeLon(lon)*D;
+  if(type==="ortho"){
+    // Orthographic centered at rotated (0,0)
+    return {x:w/2+(w*.47)*Math.cos(p)*Math.sin(l),
+            y:h/2-(h*.47)*(Math.sin(p))};
+  }
+  if(type==="mercator"){
+    const y=Math.log(Math.tan(Math.PI/4+Math.max(-85.05,Math.min(85.05,lat))*D/2));
+    const yy=Math.max(-4.5,Math.min(4.5,y));
+    return {x:w/2+(w/(2*Math.PI))*l,y:h/2-(h/(2*4.5))*yy};
+  }
+  if(type==="equirect"){
+    return {x:w/2+(w/(2*Math.PI))*l,y:h/2-(h/Math.PI)*p};
+  }
+  // Craster Parabolic
+  const RR=h/3.06;
+  const x=3*RR*l*Math.sqrt(1/(3*Math.PI))*(2*Math.cos(2*p/3)-1);
+  const y=RR*Math.sqrt(3*Math.PI)*Math.sin(p/3);
+  return {x:w/2+x,y:h/2-y};
+}
 
-        // 전체 지도 그리기
-        function render() {
-            const width = canvas.width;
-            const height = canvas.height;
+function resize(){
+  const r=canvas.getBoundingClientRect(), d=devicePixelRatio||1;
+  canvas.width=r.width*d; canvas.height=r.height*d; ctx.setTransform(d,0,0,d,0,0);
+  const gr=globe.getBoundingClientRect(); globe.width=gr.width*d; globe.height=gr.height*d; gctx.setTransform(d,0,0,d,0,0);
+  render();
+}
+function getState(){
+  return {
+    lat:parseFloat($("lat").value)||0, lon:parseFloat($("lon").value)||0,
+    mode:$("mode").value, offset:parseFloat($("offset").value)||0,
+    proj:$("projection").value
+  };
+}
+function drawPath(points,stroke,width=1,fill=null){
+  if(!points.length)return;
+  ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+  if(fill){ctx.fillStyle=fill;ctx.fill()} ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();
+}
+function render(){
+  const s=getState(), w=canvas.clientWidth, h=canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  const b=makeBasis(s.lat,s.lon,s.mode);
 
-            const centerLat = parseFloat(latInput.value) || 0;
-            const centerLon = parseFloat(lonInput.value) || 0;
+  // background grid
+  ctx.strokeStyle="#12344c";ctx.lineWidth=1;
+  for(let lo=-180;lo<=180;lo+=30){
+    let pts=[]; for(let la=-90;la<=90;la+=3){let q=rotateSph(la,lo,b);q.lon=normalizeLon(q.lon-s.offset);pts.push(project(q.lat,q.lon,w,h,s.proj))}
+    drawPath(pts,"#12384f");
+  }
+  for(let la=-75;la<=75;la+=15){
+    let pts=[]; for(let lo=-180;lo<=180;lo+=3){let q=rotateSph(la,lo,b);q.lon=normalizeLon(q.lon-s.offset);pts.push(project(q.lat,q.lon,w,h,s.proj))}
+    drawPath(pts,"#12384f");
+  }
 
-            ctx.clearRect(0, 0, width, height);
+  // land
+  land.forEach(poly=>{
+    let pts=[];
+    poly.forEach(c=>{let q=rotateSph(c[0],c[1],b);q.lon=normalizeLon(q.lon-s.offset);pts.push(project(q.lat,q.lon,w,h,s.proj))});
+    drawPath(pts,"#2e91bd",1.1,"#183e55");
+  });
 
-            // 1. 위경도 격자(Graticule) 그리기
-            ctx.strokeStyle = '#1e293b';
-            ctx.lineWidth = 1;
+  // great circle route
+  const a=v(parseFloat($("aLat").value)||0,parseFloat($("aLon").value)||0);
+  const bb=v(parseFloat($("bLat").value)||0,parseFloat($("bLon").value)||0);
+  const ang=Math.acos(clamp(dot(a,bb)));
+  if(ang>1e-8 && Math.abs(Math.PI-ang)>1e-8){
+    let pts=[];
+    for(let i=0;i<=180;i++){
+      const t=i/180, sinA=Math.sin(ang);
+      const p=add(scale(a,Math.sin((1-t)*ang)/sinA),scale(bb,Math.sin(t*ang)/sinA));
+      const q=sph(p); const rq=rotateSph(q.lat,q.lon,b); rq.lon=normalizeLon(rq.lon-s.offset);
+      pts.push(project(rq.lat,rq.lon,w,h,s.proj));
+    }
+    drawPath(pts,"#ff9d4d",2.5);
+  }
 
-            // 경선 (Longitude)
-            for (let lon = -180; lon <= 180; lon += 30) {
-                ctx.beginPath();
-                let first = true;
-                for (let lat = -90; lat <= 90; lat += 5) {
-                    const rot = rotateSpherical(lat, lon, centerLat, centerLon);
-                    const pt = projectCrasterParabolic(rot.lat, rot.lon, width, height);
-                    if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
-                    else { ctx.lineTo(pt.x, pt.y); }
-                }
-                ctx.stroke();
-            }
+  // chosen center marker
+  const c=project(0,0,w,h,s.proj);
+  ctx.strokeStyle="#ff6675";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(c.x-13,c.y);ctx.lineTo(c.x+13,c.y);ctx.moveTo(c.x,c.y-13);ctx.lineTo(c.x,c.y+13);ctx.stroke();
+  ctx.fillStyle="#ff6675";ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
 
-            // 위선 (Latitude)
-            for (let lat = -80; lat <= 80; lat += 20) {
-                ctx.beginPath();
-                let first = true;
-                for (let lon = -180; lon <= 180; lon += 5) {
-                    const rot = rotateSpherical(lat, lon, centerLat, centerLon);
-                    const pt = projectCrasterParabolic(rot.lat, rot.lon, width, height);
-                    if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
-                    else { ctx.lineTo(pt.x, pt.y); }
-                }
-                ctx.stroke();
-            }
+  $("centerReadout").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;
+  $("mapTitle").textContent=`국가 중심 세계지도 · ${$("projection").selectedOptions[0].text}`;
+  $("modeText").textContent=s.mode==="center"?"선택 GPS가 새 좌표계의 (0°, 0°)":"선택 GPS가 새 좌표계의 북극 (90°, 0°)";
+  updateReadout(b,s);
+  drawGlobe(b,s);
+}
+function add(a,b){return a.map((x,i)=>x+b[i])}
 
-            // 2. 대륙 도형 그리기
-            ctx.fillStyle = '#334155';
-            ctx.strokeStyle = '#0284c7';
-            ctx.lineWidth = 1.5;
+function updateReadout(b,s){
+  const p=v(s.lat,s.lon);
+  const rp=rotatePoint(s.lat,s.lon,b), sp=sph(rp);
+  $("orig").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;
+  $("vec").textContent=`(${fmt(p[0])}, ${fmt(p[1])}, ${fmt(p[2])})`;
+  $("rot").textContent=`(${fmt(rp[0])}, ${fmt(rp[1])}, ${fmt(rp[2])})`;
+  $("newLat").textContent=fmt(sp.lat)+"°";
+  $("newLon").textContent=fmt(normalizeLon(sp.lon-s.offset))+"°";
+}
 
-            landFeatures.forEach(poly => {
-                ctx.beginPath();
-                let first = true;
-                poly.forEach(coord => {
-                    const rot = rotateSpherical(coord[0], coord[1], centerLat, centerLon);
-                    const pt = projectCrasterParabolic(rot.lat, rot.lon, width, height);
-                    if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
-                    else { ctx.lineTo(pt.x, pt.y); }
-                });
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-            });
+function drawGlobe(b,s){
+  const w=globe.clientWidth,h=globe.clientHeight;gctx.clearRect(0,0,w,h);
+  const cx=w/2,cy=h/2,r=Math.min(w,h)*.38;
+  gctx.fillStyle="#0b3850";gctx.beginPath();gctx.arc(cx,cy,r,0,Math.PI*2);gctx.fill();
+  gctx.strokeStyle="#4dd8ff";gctx.lineWidth=1;
+  for(let lat=-60;lat<=60;lat+=30){
+    let pts=[];for(let lo=-180;lo<=180;lo+=4){let q=rotateSph(lat,lo,b);let x=cx+r*Math.cos(q.lat*D)*Math.sin(q.lon*D);let y=cy-r*Math.sin(q.lat*D);pts.push({x,y})}
+    gctx.beginPath();pts.forEach((p,i)=>i?gctx.lineTo(p.x,p.y):gctx.moveTo(p.x,p.y));gctx.stroke();
+  }
+  for(let lo=-150;lo<=150;lo+=30){
+    let pts=[];for(let la=-90;la<=90;la+=4){let q=rotateSph(la,lo,b);let x=cx+r*Math.cos(q.lat*D)*Math.sin(q.lon*D);let y=cy-r*Math.sin(q.lat*D);pts.push({x,y})}
+    gctx.beginPath();pts.forEach((p,i)=>i?gctx.lineTo(p.x,p.y):gctx.moveTo(p.x,p.y));gctx.stroke();
+  }
+  // chosen point
+  gctx.fillStyle="#ff6675";gctx.beginPath();gctx.arc(cx,cy,6,0,Math.PI*2);gctx.fill();
+  gctx.fillStyle="#eef7ff";gctx.font="11px system-ui";gctx.fillText(s.mode==="center"?"새 원점":"새 북극",cx+9,cy-9);
+}
 
-            // 3. 중심점 (0,0) 조준선 표시
-            const centerPt = projectCrasterParabolic(0, 0, width, height);
-            
-            ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            
-            // 십자선
-            ctx.beginPath();
-            ctx.moveTo(centerPt.x - 12, centerPt.y);
-            ctx.lineTo(centerPt.x + 12, centerPt.y);
-            ctx.moveTo(centerPt.x, centerPt.y - 12);
-            ctx.lineTo(centerPt.x, centerPt.y + 12);
-            ctx.stroke();
+function calculateGreatCircle(){
+  const a=v(parseFloat($("aLat").value)||0,parseFloat($("aLon").value)||0);
+  const b=v(parseFloat($("bLat").value)||0,parseFloat($("bLon").value)||0);
+  const n0=cross(a,b), nn=Math.hypot(...n0);
+  if(nn<1e-10){$("gcResult").textContent="두 점이 같거나 대원이 정의되지 않는 경우입니다.";return}
+  const n=n0.map(x=>x/nn), k=[0,0,1];
+  const q=sub(k,scale(n,dot(k,n)));
+  const qn=Math.hypot(...q);
+  if(qn<1e-10){$("gcResult").textContent="이 대원은 극점을 포함하므로 최고점 방향 계산이 특수한 경우입니다.";return}
+  const vv=q.map(x=>x/qn), top=sph(vv);
+  const angle=Math.acos(clamp(dot(a,b))), km=angle*6371.0088;
+  $("gcResult").innerHTML=`대원 중심각: <b>${fmt(angle*R2D)}°</b><br>대원 거리: <b>${fmt(km)} km</b><br>북쪽 최고점 후보 Vertex: <b>${fmt(top.lat)}°, ${fmt(top.lon)}°</b>`;
+  render();
+}
+function setTaean(){$("lat").value=36.78;$("lon").value=126.15;render()}
+function setPole(){$("lat").value=90;$("lon").value=0;$("mode").value="pole";render()}
+function offset(x){$("offset").value=(parseFloat($("offset").value)||0)+x;render()}
 
-            // 중심점 포인트
-            ctx.fillStyle = '#ef4444';
-            ctx.beginPath();
-            ctx.arc(centerPt.x, centerPt.y, 4, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        // 이벤트 리스너 등록
-        updateBtn.addEventListener('click', render);
-        resetBtn.addEventListener('click', () => {
-            latInput.value = 36.78;
-            lonInput.value = 126.15;
-            render();
-        });
-
-        window.addEventListener('resize', resizeCanvas);
-
-        // 초기 실행
-        resizeCanvas();
-    </script>
+["lat","lon","mode","offset","projection"].forEach(id=>$(id).addEventListener("input",render));
+["aLat","aLon","bLat","bLon"].forEach(id=>$(id).addEventListener("input",render));
+window.addEventListener("resize",resize);
+resize();calculateGreatCircle();
+</script>
 </body>
 </html>
