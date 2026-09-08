@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0b5cff">
+  <title>통합 해양/야외 조난구조 & 웨이포인트 네비게이터</title>
+
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    :root {
+      --primary: #0b5cff;
+      --primary-dark: #0845bb;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --bg-color: #f4f7fb;
+      --card-bg: #ffffff;
+      --text-main: #172033;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    header {
+      background: linear-gradient(135deg, #0b5cff 0%, #1e40af 100%);
+      color: #fff;
+      padding: 24px 18px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(11, 92, 255, 0.15);
+    }
+    header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
+    header p { margin: 0; opacity: 0.9; font-size: 14px; }
+
+    main {
+      max-width: 1100px;
+      margin: 20px auto;
+      padding: 0 16px 40px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border-color);
+    }
+
+    h2 { font-size: 18px; margin-top: 0; margin-bottom: 16px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+
+    /* 상태 표시줄 */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: #999; flex-shrink: 0; }
+    .dot.ok { background: var(--success); }
+    .dot.wait { background: var(--warning); }
+    .dot.err { background: var(--danger); }
+
+    /* 그리드 레이아웃 */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+    /* 위치 및 조난자 파싱 섹션 */
+    .parse-box {
+      background: #f8fafc;
+      border: 1px dashed var(--primary);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    textarea {
+      width: 100%;
+      height: 70px;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 13px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    /* 입력 폼 스타일 */
+    .loc-card {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border-color);
+    }
+    .loc-card h3 { margin: 0 0 12px; font-size: 15px; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+    .input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    input[type="text"], input[type="number"] {
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      flex: 1;
+    }
+    input:focus { border-color: var(--primary); }
+
+    /* 버튼 스타일 */
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary { background: #e8efff; color: var(--primary-dark); }
+    .btn-secondary:hover { background: #d0e0ff; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-dark { background: #172033; color: white; }
+    .btn-light { background: #eef2f7; color: var(--text-main); }
+
+    /* 나침반 & 음성 기능 섹션 */
+    .compass-dial {
+      width: 100px;
+      height: 100px;
+      border: 4px solid #334155;
+      border-radius: 50%;
+      position: relative;
+      margin: 10px auto;
+      background: #ffffff;
+    }
+    .compass-needle {
+      width: 4px;
+      height: 42px;
+      background: var(--danger);
+      position: absolute;
+      top: 8px;
+      left: 44px;
+      transform-origin: bottom center;
+      transition: transform 0.2s ease-out;
+    }
+
+    /* 계산 결과 카드 */
+    .res-card {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+    }
+    .res-card b { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .res-card span { font-size: 18px; font-weight: 800; color: #0f172a; }
+
+    /* 지도 및 테이블 */
+    #leaflet-map { height: 400px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .table-container {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      margin-top: 12px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); text-align: left; }
+    th { background: #f1f5f9; position: sticky; top: 0; color: #475569; font-weight: 700; }
+
+    /* 음성 가이드 버튼 애니메이션 */
+    .listening { animation: pulse 1.5s infinite; background: var(--success) !important; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+      70% { box-shadow: 0 0 0 12px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+
+    @media(max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>📍 통합 조난자 구조 & 네비게이터</h1>
+  <p>내 위치 측정, 조난자 GPS 좌표 연동, 방위각 및 웨이포인트 경로 안내</p>
+</header>
+
+<main>
+  <!-- 1. GPS 및 내 위치 확인 카드 -->
+  <section class="card">
+    <h2>📡 출발점: 내 현재 GPS 위치</h2>
+    <div class="status-bar">
+      <span id="dot" class="dot wait"></span>
+      <span id="status">GPS 위치 측정이 준비되었습니다.</span>
+    </div>
+
+    <div class="input-row" style="margin-bottom: 12px;">
+      <button id="startBtn" class="btn-primary" onclick="startGPS()">📡 실시간 GPS 측정 시작</button>
+      <button id="stopBtn" class="btn-light" onclick="stopGPS()" disabled>⏹ 중지</button>
+      <button id="shareBtn" class="btn-success" onclick="shareLocation()" disabled>📲 내 위치 공유</button>
+      <button id="smsBtn" class="btn-dark" onclick="openSMS()" disabled>💬 SMS 전송</button>
+    </div>
+
+    <div class="grid-4" style="margin-top: 12px;">
+      <div class="res-card"><b>내 위도</b><span id="lat-val">--</span></div>
+      <div class="res-card"><b>내 경도</b><span id="lon-val">--</span></div>
+      <div class="res-card"><b>정확도</b><span id="acc-val">--</span></div>
+      <div class="res-card"><b>측정 시간</b><span id="time-val">--</span></div>
+    </div>
+  </section>
+
+  <!-- 2. 조난자 GPS 좌표 입력 & 복사 붙여넣기 파싱 카드 -->
+  <section class="card">
+    <h2>🆘 도착점: 조난자 GPS 좌표 파싱 및 입력</h2>
+    <div class="parse-box">
+      <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;">
+        📋 조난자에게서 수신된 문자/메시지 전체를 아래에 붙여넣으세요:
+      </label>
+      <textarea id="gps-paste-input" placeholder="예: [조난자 위치] 위도: 36.7821, 경도: 126.1423 또는 36.7821, 126.1423 또는 구글맵 링크 등"></textarea>
+      <div style="margin-top: 8px; display: flex; gap: 8px;">
+        <button class="btn-primary" onclick="parsePastedGPS()">🔍 좌표 추출하여 조난자 위치 지정</button>
+        <button class="btn-light" onclick="document.getElementById('gps-paste-input').value=''">초기화</button>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- 출발지 입력/검색 -->
+      <div class="loc-card">
+        <h3>📍 출발지 (내 위치 / 구조대)</h3>
+        <div class="input-row">
+          <input type="text" id="city1-input" placeholder="장소 검색 (예: 서울역)" value="현재 위치">
+          <button class="btn-secondary" onclick="searchCity(1)">검색</button>
+        </div>
+        <div class="input-row">
+          <input type="number" id="lat1-input" step="0.00001" placeholder="위도" value="37.55472">
+          <input type="number" id="lon1-input" step="0.00001" placeholder="경도" value="126.97083">
+        </div>
+      </div>
+
+      <!-- 도착지 입력/검색 -->
+      <div class="loc-card">
+        <h3>🚨 도착지 (조난자 위치)</h3>
+        <div class="input-row">
+          <input type="text" id="city2-input" placeholder="장소 검색 (예: 한강공원)" value="조난 지점">
+          <button class="btn-secondary" onclick="searchCity(2)">검색</button>
+        </div>
+        <div class="input-row">
+          <input type="number" id="lat2-input" step="0.00001" placeholder="위도" value="37.52841">
+          <input type="number" id="lon2-input" step="0.00001" placeholder="경도" value="126.93308">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 음성 브리핑 & 모바일 나침반 카드 -->
+  <section class="card">
+    <h2>🧭 나침반 & 음성 브리핑 / 명령</h2>
+    <div class="grid-2">
+      <!-- 모바일 나침반 -->
+      <div style="text-align: center; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <h4 style="margin: 0;">실시간 모바일 나침반</h4>
+        <div class="compass-dial">
+          <div id="compass-needle" class="compass-needle"></div>
+        </div>
+        <div style="font-size: 14px;">현재 진행 방위: <b id="heading-val" style="color:var(--danger)">0°</b></div>
+        <button class="btn-light" onclick="requestCompassPermission()" style="margin-top: 8px; font-size: 12px;">나침반 센서 활성화</button>
+      </div>
+
+      <!-- 음성 명령 & 브리핑 -->
+      <div style="display: flex; flex-direction: column; justify-content: space-between; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
+        <div>
+          <h4 style="margin: 0 0 8px;">음성 제어 & 브리핑</h4>
+          <button id="voice-start-btn" class="btn-danger" style="width: 100%;" onclick="toggleVoiceRecognition()">🎤 음성 명령 시작하기</button>
+          <p id="voice-status" style="font-size: 12px; color: var(--text-muted); margin: 6px 0;">"경로 계산", "음성 브리핑" 등을 명령하세요.</p>
+        </div>
+        <div>
+          <label style="font-size: 13px; font-weight: 600;">
+            <input type="checkbox" id="auto-brief-toggle" onchange="toggleAutoBriefing(this)"> 5분 주기 음성 자동 브리핑
+          </label>
+          <button class="btn-success" style="width: 100%; margin-top: 6px;" onclick="speakCurrentStatus()">📢 현재 위치 브리핑 들기</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 경로 계산 결과 및 지도 영역 -->
+  <section class="card">
+    <h2>🗺️ 이동 경로 및 웨이포인트 산출</h2>
+    
+    <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+      <button class="btn-primary" onclick="updateAll()" style="padding: 10px 20px;">⚡ 경로 및 웨이포인트 계산</button>
+      <label style="font-size: 14px; font-weight: 600;">중간 웨이포인트 개수:</label>
+      <input type="number" id="wpCountInput" value="5" min="1" max="50" style="width: 70px;" oninput="updateAll()">
+    </div>
+
+    <div class="grid-4" style="margin-bottom: 16px;">
+      <div class="res-card"><b>총 직선 거리</b><span id="resDist">—</span></div>
+      <div class="res-card"><b>조난자 방향각 (Bearing)</b><span id="resBearing" style="color:var(--danger);">—</span></div>
+      <div class="res-card"><b>구간별 간격 거리</b><span id="resStepDist">—</span></div>
+      <div class="res-card"><b>첫 번째 웨이포인트</b><span id="resNextWp" style="font-size: 14px;">—</span></div>
+    </div>
+
+    <!-- Leaflet 지도 -->
+    <div id="leaflet-map"></div>
+
+    <!-- 웨이포인트 리스트 테이블 -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>지점명</th>
+            <th>위도</th>
+            <th>경도</th>
+            <th>방위각</th>
+          </tr>
+        </thead>
+        <tbody id="waypoint-table-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  const R = 6371; // 지구 반지름 (km)
+  let watchId = null;
+  let currentPosition = null;
+  let calculatedWaypoints = [];
+  let briefTimer = null;
+
+  const $ = id => document.getElementById(id);
+  const rad = d => d * Math.PI / 180;
+  const deg = r => r * 180 / Math.PI;
+
+  // --- 1. GPS 실시간 위치 측정 기능 ---
+  function setStatus(text, type){
+    $("status").textContent = text;
+    $("dot").className = "dot " + type;
+  }
+
+  function startGPS(){
+    if(!navigator.geolocation){
+      setStatus("이 브라우저는 GPS 위치 기능을 지원하지 않습니다.", "err");
+      return;
+    }
+    if(watchId !== null) navigator.geolocation.clearWatch(watchId);
+
+    setStatus("GPS 위치를 측정한 중...", "wait");
+    $("startBtn").disabled = true;
+    $("stopBtn").disabled = false;
+
+    watchId = navigator.geolocation.watchPosition(updatePosition, handleError, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 15000
+    });
+  }
+
+  function stopGPS(){
+    if(watchId !== null){
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    setStatus("GPS 측정을 중지했습니다.", "");
+    $("startBtn").disabled = false;
+    $("stopBtn").disabled = true;
+  }
+
+  function updatePosition(position){
+    currentPosition = position;
+    const c = position.coords;
+
+    $("lat-val").textContent = c.latitude.toFixed(6) + "°";
+    $("lon-val").textContent = c.longitude.toFixed(6) + "°";
+    $("acc-val").textContent = c.accuracy != null ? `±${Math.round(c.accuracy)}m` : "--";
+    $("time-val").textContent = new Date(position.timestamp).toLocaleTimeString("ko-KR");
+
+    setStatus("GPS 위치가 정상 수신되었습니다.", "ok");
+    ["shareBtn", "smsBtn"].forEach(id => $(id).disabled = false);
+
+    // 출발지에 GPS 좌표 자동 입력
+    $("lat1-input").value = c.latitude.toFixed(5);
+    $("lon1-input").value = c.longitude.toFixed(5);
+    
+    updateAll();
+  }
+
+  function handleError(error){
+    let msg = "GPS 위치를 가져오지 못했습니다.";
+    if(error.code === 1) msg = "위치 권한이 거부되었습니다.";
+    if(error.code === 2) msg = "위치 정보를 이용할 수 없습니다.";
+    if(error.code === 3) msg = "GPS 측정 시간이 초과되었습니다.";
+    setStatus(msg, "err");
+    $("startBtn").disabled = false;
+    $("stopBtn").disabled = true;
+  }
+
+  // --- 2. 조난자 좌표 텍스트 파싱 기능 ---
+  function parsePastedGPS() {
+    const text = $("gps-paste-input").value;
+    if(!text.trim()){
+      alert("파싱할 텍스트를 입력해 주세요.");
+      return;
+    }
+
+    // 숫자.숫자 패턴 추출 (위도, 경도 추출)
+    const regex = /[-+]?\d{1,3}\.\d+/g;
+    const matches = text.match(regex);
+
+    if(matches && matches.length >= 2){
+      const lat = parseFloat(matches[0]);
+      const lon = parseFloat(matches[1]);
+
+      if(lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180){
+        $("lat2-input").value = lat.toFixed(5);
+        $("lon2-input").value = lon.toFixed(5);
+        $("city2-input").value = "조난자 수신 위치";
+        alert(`조난자 위치 좌표 추출 성공:\n위도: ${lat}, 경도: ${lon}`);
+        updateAll();
+      } else {
+        alert("유효한 위도/경도 범위를 찾지 못했습니다.");
+      }
+    } else {
+      alert("텍스트에서 위도/경도 좌표 패턴을 추출할 수 없습니다.");
+    }
+  }
+
+  // --- 3. 연산 (Haversine & Bearing) ---
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    const dLat = rad(lat2 - lat1);
+    const dLon = rad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(rad(lat1)) * Math.cos(rad(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function calculateBearing(lat1, lon1, lat2, lon2) {
+    const y = Math.sin(rad(lon2 - lon1)) * Math.cos(rad(lat2));
+    const x = Math.cos(rad(lat1)) * Math.sin(rad(lat2)) -
+              Math.sin(rad(lat1)) * Math.cos(rad(lat2)) * Math.cos(rad(lon2 - lon1));
+    return (deg(Math.atan2(y, x)) + 360) % 360;
+  }
+
+  // --- 4. Leaflet 지도 연동 ---
+  const leafletMap = L.map('leaflet-map').setView([37.5415, 126.9520], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(leafletMap);
+  let routeLayer, leafletMarkers = [];
+
+  function updateAll() {
+    const lat1 = parseFloat($("lat1-input").value);
+    const lon1 = parseFloat($("lon1-input").value);
+    const lat2 = parseFloat($("lat2-input").value);
+    const lon2 = parseFloat($("lon2-input").value);
+    const wpCount = parseInt($("wpCountInput").value) || 1;
+
+    if ([lat1, lon1, lat2, lon2].some(isNaN)) return;
+
+    const totalDist = haversineDistance(lat1, lon1, lat2, lon2);
+    const bearing = calculateBearing(lat1, lon1, lat2, lon2);
+
+    $("resDist").textContent = `${totalDist.toFixed(2)} km`;
+    $("resBearing").textContent = `${bearing.toFixed(1)}°`;
+    $("resStepDist").textContent = `${(totalDist / (wpCount + 1)).toFixed(2)} km`;
+
+    // 웨이포인트 데이터 생성
+    calculatedWaypoints = [];
+    const steps = wpCount + 1;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const curLat = lat1 + (lat2 - lat1) * t;
+      const curLon = lon1 + (lon2 - lon1) * t;
+      
+      let nextBearing = 0;
+      if (i < steps) {
+        const nextLat = lat1 + (lat2 - lat1) * ((i + 1) / steps);
+        const nextLon = lon1 + (lon2 - lon1) * ((i + 1) / steps);
+        nextBearing = calculateBearing(curLat, curLon, nextLat, nextLon);
+      }
+
+      calculatedWaypoints.push({
+        index: i,
+        name: i === 0 ? "출발지(내 위치)" : i === steps ? "도착지(조난자)" : `WP ${i}`,
+        lat: Number(curLat.toFixed(5)),
+        lon: Number(curLon.toFixed(5)),
+        bearing: nextBearing.toFixed(1)
+      });
+    }
+
+    if (calculatedWaypoints.length > 1) {
+      $("resNextWp").textContent = `${calculatedWaypoints[1].name} (${calculatedWaypoints[0].bearing}° 방향)`;
+    }
+
+    renderTable();
+    renderLeaflet();
+  }
+
+  function renderTable() {
+    const tbody = $("waypoint-table-body");
+    tbody.innerHTML = "";
+    calculatedWaypoints.forEach(wp => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${wp.name}</b></td>
+        <td>${wp.name}</td>
+        <td>${wp.lat}°</td>
+        <td>${wp.lon}°</td>
+        <td><b>${wp.bearing}°</b></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderLeaflet() {
+    leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+    leafletMarkers = [];
+    if (routeLayer) leafletMap.removeLayer(routeLayer);
+
+    const latLngs = calculatedWaypoints.map(wp => [wp.lat, wp.lon]);
+    routeLayer = L.polyline(latLngs, { color: '#0b5cff', weight: 4 }).addTo(leafletMap);
+
+    calculatedWaypoints.forEach(wp => {
+      const marker = L.marker([wp.lat, wp.lon]).addTo(leafletMap)
+        .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat}<br>경도: ${wp.lon}`);
+      leafletMarkers.push(marker);
+    });
+
+    leafletMap.fitBounds(routeLayer.getBounds().pad(0.2));
+  }
+
+  // --- 5. 음성 지원 (TTS & STT) ---
+  function speak(text) {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ko-KR';
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  function speakCurrentStatus() {
+    const lat = $("lat1-input").value;
+    const lon = $("lon1-input").value;
+    const dist = $("resDist").textContent;
+    const bearing = $("resBearing").textContent;
+
+    const message = `현재 구조대 위치 위도 ${lat}, 경도 ${lon}입니다. 조난자까지의 거리는 ${dist} 이며, 이동 방위각은 ${bearing} 방향입니다.`;
+    speak(message);
+  }
+
+  let recognition;
+  let isListening = false;
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRecognition();
+    recognition.lang = 'ko-KR';
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript.trim();
+      $("voice-status").textContent = `인식된 명령: "${transcript}"`;
+      if(transcript.includes("계산") || transcript.includes("경로")) {
+        updateAll();
+        speak("경로 계산이 완료되었습니다.");
+      } else if(transcript.includes("브리핑") || transcript.includes("안내")) {
+        speakCurrentStatus();
+      }
+    };
+    recognition.onend = () => {
+      isListening = false;
+      $("voice-start-btn").classList.remove("listening");
+      $("voice-start-btn").textContent = "🎤 음성 명령 시작하기";
+    };
+  }
+
+  function toggleVoiceRecognition() {
+    if (!recognition) return alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+    if (isListening) {
+      recognition.stop();
+    } else {
+      recognition.start();
+      isListening = true;
+      $("voice-start-btn").classList.add("listening");
+      $("voice-start-btn").textContent = "🎙️ 음성 듣는 중...";
+    }
+  }
+
+  function toggleAutoBriefing(checkbox) {
+    if (checkbox.checked) {
+      speak("5분 주기 자동 음성 브리핑을 시작합니다.");
+      briefTimer = setInterval(speakCurrentStatus, 300000);
+    } else {
+      if (briefTimer) clearInterval(briefTimer);
+      speak("자동 음성 브리핑을 종료합니다.");
+    }
+  }
+
+  // --- 6. 나침반 기능 & 장소 검색 ---
+  function requestCompassPermission() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(response => {
+        if (response === 'granted') window.addEventListener('deviceorientation', handleOrientation, true);
+      });
+    } else {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+  }
+
+  function handleOrientation(event) {
+    let heading = event.alpha;
+    if (event.webkitCompassHeading) heading = event.webkitCompassHeading;
+    if (heading !== null) {
+      $("heading-val").textContent = `${Math.round(heading)}°`;
+      $("compass-needle").style.transform = `rotate(${heading}deg)`;
+    }
+  }
+
+  async function searchCity(index) {
+    const query = $(`city${index}-input`).value.trim();
+    if (!query) return;
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        $(`lat${index}-input`).value = parseFloat(data[0].lat).toFixed(5);
+        $(`lon${index}-input`).value = parseFloat(data[0].lon).toFixed(5);
+        updateAll();
+      }
+    } catch (e) {}
+  }
+
+  function shareLocation(){
+    if(!currentPosition) return;
+    const c = currentPosition.coords;
+    const text = `📍 현재 내 위치\n위도: ${c.latitude.toFixed(6)}\n경도: ${c.longitude.toFixed(6)}\n지도: https://www.google.com/maps?q=${c.latitude},${c.longitude}`;
+    if(navigator.share){
+      navigator.share({ title: "현재 위치 공유", text: text });
+    } else {
+      navigator.clipboard.writeText(text);
+      alert("위치 공유 텍스트가 클립보드에 복사되었습니다.");
+    }
+  }
+
+  function openSMS(){
+    if(!currentPosition) return;
+    const c = currentPosition.coords;
+    const text = encodeURIComponent(`📍 현재 내 위치: https://www.google.com/maps?q=${c.latitude},${c.longitude}`);
+    window.location.href = `sms:?body=${text}`;
+  }
+
+  window.addEventListener('load', () => updateAll());
+</script>
+</body>
+</html>
