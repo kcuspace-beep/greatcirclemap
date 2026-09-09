@@ -68,6 +68,7 @@
         <label for="fileName">저장할 파일 이름:</label>
         <input type="text" id="fileName" placeholder="예: my_location.json">
         <button class="btn-green" onclick="saveLocationToFile()">휴대폰에 파일로 저장</button>
+        <div id="saveCopyNotice" class="copy-alert" style="display: none; margin-top: 10px;"></div>
     </div>
 
     <!-- 3. 파일 불러오기 영역 -->
@@ -139,7 +140,7 @@
             return "Other";
         }
 
-        // 파일로 위치 데이터 저장
+        // 파일 저장 및 GPS 자동 복사 기능
         function saveLocationToFile() {
             if (!currentLat || !currentLng) {
                 alert("먼저 '현재 위치 확인하기' 버튼을 누르거나 파일을 불러와 좌표를 지정하세요.");
@@ -161,6 +162,7 @@
                 savedAt: new Date().toLocaleString('ko-KR')
             };
 
+            // 1. 파일 내려받기 진행
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -168,7 +170,11 @@
             link.click();
             URL.revokeObjectURL(link.href);
 
-            // 불러오기 영역에 최신 파일 경로 힌트 표시
+            // 2. 저장 시 GPS 좌표 자동 복사 실행
+            const gpsString = `${currentLat}, ${currentLng}`;
+            copyToClipboard(gpsString, 'saveCopyNotice');
+
+            // 3. 불러오기 영역에 최신 파일 경로 힌트 표시
             const os = getOS();
             const hintBox = document.getElementById('lastSavedInfo');
             let pathText = os === "Android" ? "내장 메모리 > Download 폴더" : (os === "iOS" ? "파일 앱 > 다운로드" : "다운로드 폴더");
@@ -196,10 +202,9 @@
                     processFileContent(file);
                     return;
                 } catch (err) {
-                    if (err.name === 'AbortError') return; // 취소 클릭
+                    if (err.name === 'AbortError') return;
                 }
             }
-            // API 미지원 브라우저는 기본 input click
             document.getElementById('fileLoader').click();
         }
 
@@ -228,7 +233,7 @@
                         initMap(currentLat, currentLng);
 
                         const gpsString = `${currentLat}, ${currentLng}`;
-                        copyToClipboard(gpsString);
+                        copyToClipboard(gpsString, 'copyNotice');
                     } else {
                         alert("올바른 위치 데이터 형식(JSON)이 아닙니다.");
                     }
@@ -239,20 +244,20 @@
             reader.readAsText(file);
         }
 
-        // 클립보드 복사 함수
-        function copyToClipboard(text) {
+        // 클립보드 복사 함수 (targetId를 통해 알림 위치 지정 가능)
+        function copyToClipboard(text, targetId = 'copyNotice') {
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
-                    showNotice(`📋 GPS 좌표가 클립보드에 자동 복사되었습니다!\n(${text})`);
+                    showNotice(`📋 GPS 좌표가 클립보드에 자동 복사되었습니다!\n(${text})`, targetId);
                 }).catch(() => {
-                    fallbackCopyTextToClipboard(text);
+                    fallbackCopyTextToClipboard(text, targetId);
                 });
             } else {
-                fallbackCopyTextToClipboard(text);
+                fallbackCopyTextToClipboard(text, targetId);
             }
         }
 
-        function fallbackCopyTextToClipboard(text) {
+        function fallbackCopyTextToClipboard(text, targetId) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
             textArea.style.position = "fixed";
@@ -261,17 +266,19 @@
             textArea.select();
             try {
                 document.execCommand('copy');
-                showNotice(`📋 GPS 좌표가 클립보드에 자동 복사되었습니다!\n(${text})`);
+                showNotice(`📋 GPS 좌표가 클립보드에 자동 복사되었습니다!\n(${text})`, targetId);
             } catch (err) {
-                showNotice("자동 복사에 실패했습니다. 좌표를 수동으로 복사해주세요.");
+                showNotice("자동 복사에 실패했습니다. 좌표를 수동으로 복사해주세요.", targetId);
             }
             document.body.removeChild(textArea);
         }
 
-        function showNotice(msg) {
-            const noticeEl = document.getElementById('copyNotice');
-            noticeEl.innerText = msg;
-            noticeEl.style.display = 'block';
+        function showNotice(msg, targetId) {
+            const noticeEl = document.getElementById(targetId);
+            if (noticeEl) {
+                noticeEl.innerText = msg;
+                noticeEl.style.display = 'block';
+            }
         }
     </script>
 </body>
