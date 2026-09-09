@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>휴대폰 로컬 위치 저장소</title>
+    <title>휴대폰 파일 매니저 위치 저장소</title>
     <!-- Leaflet 지도 라이브러리 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -42,11 +42,15 @@
             background-color: #e3f2fd; color: #0d47a1; padding: 10px;
             border-radius: 6px; font-size: 13px; margin-top: 8px; text-align: center;
         }
+        .guide-box {
+            background-color: #fff9e6; border: 1px solid #ffe0b2; padding: 10px;
+            border-radius: 8px; font-size: 13px; color: #8c6d1f; margin-top: 8px;
+        }
     </style>
 </head>
 <body>
 
-    <h2>📍 내 위치 로컬 DB 저장소</h2>
+    <h2>📍 휴대폰 위치 저장소 (File Manager)</h2>
 
     <!-- 1. 위치 측정 영역 -->
     <div class="card">
@@ -60,17 +64,20 @@
 
     <!-- 2. 파일 저장 영역 -->
     <div class="card">
-        <h3>2. 휴대폰 경로 지정 저장하기</h3>
+        <h3>2. 파일 매니저 폴더 선택 저장</h3>
         <label for="fileName">저장할 파일 이름:</label>
         <input type="text" id="fileName" placeholder="예: my_location.json">
-        <button class="btn-green" onclick="saveLocationWithPicker()">원하는 위치/폴더 선택하여 저장</button>
+        <button class="btn-green" onclick="saveToFileManager()">원하는 파일 매니저 폴더 선택 및 저장</button>
+        <div class="guide-box">
+            💡 버튼을 누르면 휴대폰의 <b>파일 매니저(내 파일/파일 앱)</b> 창이 열립니다. 내장 메모리의 원하는 폴더를 선택하여 저장해 주세요.
+        </div>
     </div>
 
     <!-- 3. 파일 불러오기 영역 -->
     <div class="card">
         <h3>3. 저장된 위치 파일 불러오기</h3>
         <div class="file-input-wrapper">
-            <button class="btn-orange">기기에서 파일 선택 및 불러오기</button>
+            <button class="btn-orange">기기 파일 매니저에서 불러오기</button>
             <input type="file" id="fileLoader" accept=".json, .txt" onchange="loadLocationFromFile(event)">
         </div>
         <div id="loadedData" style="margin-top: 12px; font-size: 14px; color: #1d1d1f;"></div>
@@ -83,7 +90,7 @@
         let map = null;
         let marker = null;
 
-        // Leaflet 지도 초기화 및 마커 표시
+        // Leaflet 지도 초기화
         function initMap(lat, lng) {
             if (!map) {
                 map = L.map('map').setView([lat, lng], 15);
@@ -125,8 +132,8 @@
             );
         }
 
-        // 경로/폴더 지정하여 저장 (File System Access API)
-        async function saveLocationWithPicker() {
+        // 파일 매니저 호출 저장 함수
+        async function saveToFileManager() {
             if (!currentLat || !currentLng) {
                 alert("먼저 '현재 위치 확인하기' 버튼을 누르거나 파일을 불러와 좌표를 지정하세요.");
                 return;
@@ -147,7 +154,7 @@
 
             const jsonContent = JSON.stringify(data, null, 2);
 
-            // 1. 최신 브라우저: 파일 저장 위치 선택 창(Save Picker) 띄우기
+            // Chrome/Edge/Samsung Internet 등 File System Access API 지원 환경
             if ('showSaveFilePicker' in window) {
                 try {
                     const handle = await window.showSaveFilePicker({
@@ -162,18 +169,15 @@
                     await writable.write(jsonContent);
                     await writable.close();
 
-                    alert(`선택한 위치에 '${fileName}' 파일이 성공적으로 저장되었습니다.`);
+                    alert(`선택하신 파일 매니저 폴더에 '${fileName}' 파일이 저장되었습니다.`);
                     return;
                 } catch (err) {
-                    if (err.name === 'AbortError') {
-                        // 사용자가 파일 저장 창을 취소한 경우
-                        return;
-                    }
-                    console.warn("Save File Picker 사용 중 오류, 일반 다운로드로 대체합니다.", err);
+                    if (err.name === 'AbortError') return; // 취소한 경우
+                    console.warn("API 미지원 또는 오류로 인한 기본 다운로드 동작", err);
                 }
             }
 
-            // 2. 구형 브라우저 또는 미지원 모바일 브라우저 예비 로직 (기본 다운로드)
+            // iOS Safari 등 미지원 브라우저 대체 다운로드 방식
             const blob = new Blob([jsonContent], { type: "application/json" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -181,10 +185,10 @@
             link.click();
             URL.revokeObjectURL(link.href);
 
-            alert(`'${fileName}' 파일 저장 명령을 실행했습니다.\n(스마트폰 다운로드 설정에 따라 경로 지정 창이 열리거나 다운로드 폴더로 저장됩니다.)`);
+            alert(`파일 저장 요청을 완료했습니다.\n(휴대폰 브라우저 설정에 따라 다운로드 폴더에 자동 저장되거나 저장 위치를 선택하는 창이 나타납니다.)`);
         }
 
-        // 불러온 파일 처리 및 좌표 자동 복사 기능
+        // 파일 매니저에서 파일 읽기 및 좌표 복사
         function loadLocationFromFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -197,17 +201,14 @@
                         currentLat = data.latitude;
                         currentLng = data.longitude;
 
-                        // 화면 텍스트 업데이트
                         document.getElementById('latitude').innerText = currentLat;
                         document.getElementById('longitude').innerText = currentLng;
                         document.getElementById('loadedData').innerHTML = 
                             `<b>불러온 파일:</b> ${file.name}<br>` +
                             `<b>저장 시각:</b> ${data.savedAt || '기록 없음'}`;
 
-                        // 지도 이동
                         initMap(currentLat, currentLng);
 
-                        // 좌표 클립보드 자동 복사
                         const gpsString = `${currentLat}, ${currentLng}`;
                         copyToClipboard(gpsString);
 
@@ -221,7 +222,7 @@
             reader.readAsText(file);
         }
 
-        // 클립보드 복사 함수
+        // 클립보드 복사
         function copyToClipboard(text) {
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
@@ -234,7 +235,6 @@
             }
         }
 
-        // 구형 브라우저 호환 복사 로직
         function fallbackCopyTextToClipboard(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -251,7 +251,6 @@
             document.body.removeChild(textArea);
         }
 
-        // 알림 메시지 출력
         function showNotice(msg) {
             const noticeEl = document.getElementById('copyNotice');
             noticeEl.innerText = msg;
