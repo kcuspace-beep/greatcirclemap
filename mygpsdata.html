@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>휴대폰 파일 매니저 위치 저장소</title>
+    <title>휴대폰 위치 파일 저장소</title>
     <!-- Leaflet 지도 라이브러리 -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -42,15 +42,15 @@
             background-color: #e3f2fd; color: #0d47a1; padding: 10px;
             border-radius: 6px; font-size: 13px; margin-top: 8px; text-align: center;
         }
-        .guide-box {
-            background-color: #fff9e6; border: 1px solid #ffe0b2; padding: 10px;
-            border-radius: 8px; font-size: 13px; color: #8c6d1f; margin-top: 8px;
+        .status-box {
+            background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px;
+            border-radius: 8px; font-size: 13px; margin-top: 8px; color: #495057;
         }
     </style>
 </head>
 <body>
 
-    <h2>📍 휴대폰 위치 저장소 (File Manager)</h2>
+    <h2>📍 내 위치 저장소 (File Manager 연동)</h2>
 
     <!-- 1. 위치 측정 영역 -->
     <div class="card">
@@ -64,20 +64,18 @@
 
     <!-- 2. 파일 저장 영역 -->
     <div class="card">
-        <h3>2. 파일 매니저 폴더 선택 저장</h3>
+        <h3>2. 원하는 폴더에 파일 저장하기</h3>
         <label for="fileName">저장할 파일 이름:</label>
         <input type="text" id="fileName" placeholder="예: my_location.json">
-        <button class="btn-green" onclick="saveToFileManager()">원하는 파일 매니저 폴더 선택 및 저장</button>
-        <div class="guide-box">
-            💡 버튼을 누르면 휴대폰의 <b>파일 매니저(내 파일/파일 앱)</b> 창이 열립니다. 내장 메모리의 원하는 폴더를 선택하여 저장해 주세요.
-        </div>
+        <button class="btn-green" onclick="saveToFileManager()">📁 저장 위치 선택 및 실제 저장</button>
+        <div id="saveResult" class="status-box" style="display: none;"></div>
     </div>
 
     <!-- 3. 파일 불러오기 영역 -->
     <div class="card">
         <h3>3. 저장된 위치 파일 불러오기</h3>
         <div class="file-input-wrapper">
-            <button class="btn-orange">기기 파일 매니저에서 불러오기</button>
+            <button class="btn-orange">기기에서 파일 선택 및 불러오기</button>
             <input type="file" id="fileLoader" accept=".json, .txt" onchange="loadLocationFromFile(event)">
         </div>
         <div id="loadedData" style="margin-top: 12px; font-size: 14px; color: #1d1d1f;"></div>
@@ -132,10 +130,14 @@
             );
         }
 
-        // 파일 매니저 호출 저장 함수
+        // File System Access API를 활용한 실제 위치 선택 및 저장 로직
         async function saveToFileManager() {
+            const saveResult = document.getElementById('saveResult');
+            saveResult.style.display = 'block';
+
             if (!currentLat || !currentLng) {
-                alert("먼저 '현재 위치 확인하기' 버튼을 누르거나 파일을 불러와 좌표를 지정하세요.");
+                alert("먼저 '현재 위치 확인하기' 버튼을 누르거나 위치 파일을 불러오세요.");
+                saveResult.innerHTML = "❌ 위치 좌표 정보가 없습니다.";
                 return;
             }
 
@@ -146,49 +148,65 @@
                 fileName += ".json";
             }
 
-            const data = {
+            const locationData = {
                 latitude: currentLat,
                 longitude: currentLng,
                 savedAt: new Date().toLocaleString('ko-KR')
             };
 
-            const jsonContent = JSON.stringify(data, null, 2);
+            const jsonString = JSON.stringify(locationData, null, 2);
 
-            // Chrome/Edge/Samsung Internet 등 File System Access API 지원 환경
+            // 1단계: File System Access API 지원 환경 (Android Chrome, Edge, PC 등)
             if ('showSaveFilePicker' in window) {
                 try {
-                    const handle = await window.showSaveFilePicker({
+                    // 파일 탐색기 저장 창 호출
+                    const fileHandle = await window.showSaveFilePicker({
                         suggestedName: fileName,
                         types: [{
-                            description: 'JSON 위치 파일',
-                            accept: { 'application/json': ['.json'] },
-                        }],
+                            description: 'JSON 위치 파일 (*.json)',
+                            accept: { 'application/json': ['.json'] }
+                        }]
                     });
 
-                    const writable = await handle.createWritable();
-                    await writable.write(jsonContent);
-                    await writable.close();
+                    // 선택한 위치 파일 쓰기 스트림 오픈
+                    const writableStream = await fileHandle.createWritable();
+                    await writableStream.write(jsonString);
+                    await writableStream.close(); // 실제 저장 완료
 
-                    alert(`선택하신 파일 매니저 폴더에 '${fileName}' 파일이 저장되었습니다.`);
+                    saveResult.innerHTML = `✅ <b>저장 완료!</b><br>선택한 폴더에 <b>${fileHandle.name}</b> 파일이 저장되었습니다.`;
                     return;
+
                 } catch (err) {
-                    if (err.name === 'AbortError') return; // 취소한 경우
-                    console.warn("API 미지원 또는 오류로 인한 기본 다운로드 동작", err);
+                    // 사용자가 파일 선택을 취소(Cancel)한 경우
+                    if (err.name === 'AbortError') {
+                        saveResult.innerHTML = "⚠️ 파일 저장이 취소되었습니다.";
+                        return;
+                    }
+                    console.warn("File System Access API 저장 실패, Fallback 저장으로 전환합니다.", err);
                 }
             }
 
-            // iOS Safari 등 미지원 브라우저 대체 다운로드 방식
-            const blob = new Blob([jsonContent], { type: "application/json" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fileName;
-            link.click();
-            URL.revokeObjectURL(link.href);
+            // 2단계: 모바일 Safari 및 API 미지원 브라우저용 대체 저장 로직
+            try {
+                const blob = new Blob([jsonString], { type: "application/json;charset=utf-8" });
+                const blobUrl = URL.createObjectURL(blob);
+                
+                const link = document.createElement("a");
+                link.href = blobUrl;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
 
-            alert(`파일 저장 요청을 완료했습니다.\n(휴대폰 브라우저 설정에 따라 다운로드 폴더에 자동 저장되거나 저장 위치를 선택하는 창이 나타납니다.)`);
+                saveResult.innerHTML = `✅ <b>파일 생성 완료!</b><br><b>${fileName}</b> 파일 저장 요청이 실행되었습니다.<br>(휴대폰 설정 창이 열리거나 다운로드 폴더에 보관됩니다.)`;
+            } catch (err) {
+                saveResult.innerHTML = "❌ 파일 저장 도중 오류가 발생했습니다: " + err.message;
+            }
         }
 
-        // 파일 매니저에서 파일 읽기 및 좌표 복사
+        // 파일 불러오기 및 좌표 클립보드 복사
         function loadLocationFromFile(event) {
             const file = event.target.files[0];
             if (!file) return;
