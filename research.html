@@ -3,383 +3,532 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>국가 중심 세계지도 — 대원 수학 모델</title>
+<title>지구 구면직각삼각형 8개 중심점 모니터링</title>
 <style>
-:root{
-  --bg:#071426; --panel:#0d2138; --panel2:#102b47; --line:#1c557a;
-  --cyan:#4dd8ff; --blue:#168ee8; --gold:#ffd45a; --red:#ff6675;
-  --text:#eef7ff; --muted:#9db8cd; --green:#5fe0a2;
+:root {
+  --bg: #050d1a;
+  --panel: #0a192f;
+  --panel-border: #17385c;
+  --cyan: #4dd8ff;
+  --gold: #ffd45a;
+  --red: #ff6675;
+  --green: #5fe0a2;
+  --text: #eef7ff;
+  --muted: #8aa4be;
 }
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(135deg,#06111f,#0a1d32);color:var(--text);
-font-family:system-ui,-apple-system,"Segoe UI",sans-serif;height:100vh;overflow:hidden}
-header{height:76px;padding:12px 20px;display:flex;align-items:center;gap:18px;
-background:rgba(8,25,43,.96);border-bottom:1px solid var(--line);box-shadow:0 4px 20px #0008}
-.brand{flex:1;min-width:250px}.brand h1{margin:0;font-size:22px;color:var(--cyan)}
-.brand small{color:var(--muted)}
-.badge{padding:8px 12px;border:1px solid #2877a8;border-radius:10px;color:var(--gold);font-size:12px}
-main{height:calc(100vh - 76px);display:grid;grid-template-columns:330px 1fr 370px;gap:10px;padding:10px}
-.panel{background:rgba(13,33,56,.96);border:1px solid var(--line);border-radius:12px;overflow:auto}
-.section{padding:13px;border-bottom:1px solid #173c59}.section:last-child{border:0}
-.section h2{font-size:14px;margin:0 0 10px;color:var(--cyan)}
-label{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-input,select,button{width:100%;border-radius:7px;border:1px solid #34627d;background:#071827;color:white;padding:9px}
-button{cursor:pointer;font-weight:700;background:#1179be;border-color:#3eb8ef}
-button:hover{filter:brightness(1.15)}
-button.secondary{background:#193650}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.math{font-family:Georgia,"Times New Roman",serif;font-size:16px;line-height:1.65;color:#fff}
-.math .eq{padding:7px 9px;background:#081b2c;border:1px solid #214d69;border-radius:8px;margin:6px 0}
-.note{font-size:11px;line-height:1.55;color:var(--muted)}
-#mapPanel{position:relative;display:flex;flex-direction:column;min-width:0}
-.mapTitle{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
-#mapCanvas{width:100%;height:100%;display:block;background:#03101d}
-.mapWrap{position:relative;flex:1;min-height:0}
-.overlay{position:absolute;left:12px;bottom:12px;background:#071827dd;border:1px solid #2a6385;border-radius:9px;
-padding:9px 12px;font-size:11px;line-height:1.55;backdrop-filter:blur(5px)}
-#globeCanvas{width:100%;height:220px;background:#061320;border-radius:8px;border:1px solid #24516b}
-table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:6px;border-bottom:1px solid #1b4058;text-align:left}th{color:var(--cyan)}
-.value{color:var(--gold);font-weight:700}
-.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
-.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
-@media(max-width:1100px){main{grid-template-columns:280px 1fr}.right{display:none}}
-@media(max-width:720px){body{overflow:auto;height:auto}header{height:auto;flex-wrap:wrap}main{height:auto;grid-template-columns:1fr}.left,.right{display:block}.mapWrap{height:60vh}}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+header {
+  padding: 16px 24px;
+  background: rgba(10, 25, 47, 0.95);
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.brand h1 { margin: 0; font-size: 20px; color: var(--cyan); }
+.brand p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+select.lang-select {
+  background: #071827;
+  color: var(--cyan);
+  border: 1px solid var(--panel-border);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+select.lang-select:hover {
+  border-color: var(--cyan);
+}
+
+.status-badge {
+  background: rgba(77, 216, 255, 0.1);
+  border: 1px solid var(--cyan);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--green);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 16px;
+  padding: 16px;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.map-container {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.map-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  background: rgba(0,0,0,0.2);
+}
+#mapCanvas {
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
+  display: block;
+  background: #020914;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 16px;
+}
+.card h2 {
+  font-size: 14px;
+  margin: 0 0 12px;
+  color: var(--cyan);
+  display: flex;
+  justify-content: space-between;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+th, td {
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(23, 56, 92, 0.6);
+  text-align: center;
+}
+th {
+  color: var(--muted);
+  font-weight: 500;
+  background: rgba(0,0,0,0.2);
+}
+.center-name {
+  font-weight: bold;
+  color: var(--gold);
+}
+.coord-val {
+  font-family: monospace;
+}
+
+.math-info {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.math-info strong { color: var(--text); }
+.math-eq {
+  background: #051324;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #143556;
+  font-family: "Georgia", serif;
+  margin: 6px 0;
+  color: #d1e8ff;
+}
+
+@media (max-width: 1024px) {
+  main { grid-template-columns: 1fr; }
+  .side-panel { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+
 <header>
   <div class="brand">
-    <h1>국가 중심 세계지도와 대원의 수학적 원리</h1>
-    <small>GPS → 3D 벡터 → 좌표 회전 → 새로운 위·경도 → 지도 투영</small>
+    <h1 id="t-title">지구 구면직각삼각형 8대 중심점 모니터링</h1>
+    <p id="t-subtitle">북위/남위 35.26° & 동경/서경 45°, 135° 기준 회전 변환 및 평면 투영 모델</p>
   </div>
-  <div class="badge">Great Circle • Vertex • Rotation • Projection</div>
+  <div class="header-controls">
+    <select id="langSelect" class="lang-select" onchange="changeLanguage(this.value)">
+      <option value="ko" selected>한국어 (Korean)</option>
+      <option value="en">English</option>
+      <option value="vi">Tiếng Việt (Vietnamese)</option>
+    </select>
+    <div class="status-badge">
+      <div class="pulse-dot"></div>
+      <span id="t-live-label">실시간 추적 중:</span> <strong id="liveTimer">00:00:00</strong>
+    </div>
+  </div>
 </header>
 
 <main>
-<aside class="panel left">
-  <div class="section">
-    <h2>① 최고점 / 중심 GPS</h2>
-    <div class="row">
-      <div><label>위도 φ (°)</label><input id="lat" type="number" step="0.000001" value="36.78"></div>
-      <div><label>경도 λ (°)</label><input id="lon" type="number" step="0.000001" value="126.15"></div>
+  <!-- 지도 화면 영역 -->
+  <div class="map-container">
+    <div class="map-header">
+      <span id="t-map-title"><strong>세계 지도 투영</strong> (북위 35°, 동경 45° 회전 관점)</span>
+      <span style="color:var(--gold);" id="t-points-count">● 8개 중심점 표시 중</span>
     </div>
-    <label>좌표계 모드</label>
-    <select id="mode">
-      <option value="center">선택점을 새 지도 원점 (0°,0°)으로</option>
-      <option value="pole">선택점을 새 북극 (90°,0°)으로</option>
-    </select>
-    <div class="buttons" style="margin-top:8px">
-      <button onclick="setTaean()">태안/만리포</button>
-      <button class="secondary" onclick="setPole()">북극</button>
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>② 경도 기준 이동</h2>
-    <label>Δλ — X축/경도 오프셋 (°)</label>
-    <input id="offset" type="number" step="1" value="0">
-    <div class="buttons" style="margin-top:8px">
-      <button class="secondary" onclick="offset(-30)">−30°</button>
-      <button class="secondary" onclick="offset(30)">+30°</button>
-    </div>
-    <p class="note">새 경도는 λ″ = λ′ − Δλ 로 정규화합니다. 단순 원통형 좌표에서는 X″ = X − kΔλ가 됩니다.</p>
-  </div>
-
-  <div class="section">
-    <h2>③ 지도 투영법</h2>
-    <select id="projection">
-      <option value="craster">Craster Parabolic (등면적 포물선)</option>
-      <option value="equirect">등거리 원통도법</option>
-      <option value="mercator">Mercator</option>
-      <option value="ortho">정사영 (Orthographic)</option>
-    </select>
-    <p class="note">회전된 구면좌표는 동일하지만 투영법에 따라 평면 X,Y의 왜곡과 경계가 달라집니다.</p>
-  </div>
-
-  <div class="section">
-    <h2>④ 대원 계산</h2>
-    <div class="row">
-      <div><label>출발 φ₁</label><input id="aLat" type="number" value="37.5665"></div>
-      <div><label>출발 λ₁</label><input id="aLon" type="number" value="126.9780"></div>
-      <div><label>도착 φ₂</label><input id="bLat" type="number" value="35.6762"></div>
-      <div><label>도착 λ₂</label><input id="bLon" type="number" value="139.6503"></div>
-    </div>
-    <button style="margin-top:8px" onclick="calculateGreatCircle()">대원 / 최고점 계산</button>
-    <div id="gcResult" class="note" style="margin-top:8px">대원 결과가 여기에 표시됩니다.</div>
-  </div>
-
-  <div class="section">
-    <h2>⑤ 수학적 핵심</h2>
-    <div class="math">
-      <div class="eq">x = cosφ cosλ<br>y = cosφ sinλ<br>z = sinφ</div>
-      <div class="eq">p′ = R p</div>
-      <div class="eq">φ′ = asin(z′)<br>λ′ = atan2(y′, x′)</div>
-      <div class="eq">λ″ = λ′ − Δλ</div>
-    </div>
-  </div>
-</aside>
-
-<section class="panel" id="mapPanel">
-  <div class="mapTitle">
-    <b id="mapTitle">국가 중심 세계지도</b>
-    <span class="value" id="centerReadout"></span>
-  </div>
-  <div class="mapWrap">
     <canvas id="mapCanvas"></canvas>
-    <div class="overlay">
-      <b>해석</b><br>
-      <span id="modeText"></span><br>
-      빨강: 기준점 · 주황: 대원 · 청록: 위·경선
+  </div>
+
+  <!-- 우측 정보 패널 -->
+  <div class="side-panel">
+    <!-- 8곳 좌표 테이블 -->
+    <div class="card">
+      <h2 id="t-table-title">구면직각삼각형 중심점 8곳 GPS</h2>
+      <table>
+        <thead>
+          <tr>
+            <th id="th-zone">구역</th>
+            <th id="th-lat">위도(Lat)</th>
+            <th id="th-lon">경도(Lon)</th>
+            <th id="th-status">상태</th>
+          </tr>
+        </thead>
+        <tbody id="coordsTable">
+          <!-- 스크립트에서 자동 생성 -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 수학적 원리 정보 -->
+    <div class="card">
+      <h2 id="t-math-title">수학적 원리 및 투영 공식</h2>
+      <div class="math-info" id="t-math-content">
+        <!-- 언어별 동적 렌더링 -->
+      </div>
     </div>
   </div>
-</section>
-
-<aside class="panel right">
-  <div class="section">
-    <h2>⑥ 3D 구면 좌표와 회전</h2>
-    <canvas id="globeCanvas"></canvas>
-    <div class="note" style="margin-top:8px">
-      선택점 벡터를 새 기준축으로 삼고, 모든 GPS 벡터에 동일한 직교 회전을 적용합니다.
-      <br><b>중심 모드:</b> 선택점 → (1,0,0) → 새 위도 0°, 경도 0°
-      <br><b>북극 모드:</b> 선택점 → (0,0,1) → 새 위도 90°, 경도 0°
-    </div>
-  </div>
-
-  <div class="section">
-    <h2>⑦ 변환 결과</h2>
-    <table>
-      <tr><th>항목</th><th>값</th></tr>
-      <tr><td>원래 GPS</td><td id="orig">—</td></tr>
-      <tr><td>3D 벡터</td><td id="vec">—</td></tr>
-      <tr><td>회전 후</td><td id="rot">—</td></tr>
-      <tr><td>새 위도</td><td id="newLat" class="value">—</td></tr>
-      <tr><td>새 경도</td><td id="newLon" class="value">—</td></tr>
-    </table>
-  </div>
-
-  <div class="section">
-    <h2>⑧ 대원 방정식</h2>
-    <div class="math">
-      <div class="eq">n = (a × b) / |a × b|</div>
-      <div class="eq">n · p = 0</div>
-      <div class="eq">q = k − (k · n)n</div>
-      <div class="eq">v = q / |q|</div>
-    </div>
-    <p class="note">n은 두 점이 만드는 대원 평면의 법선벡터이며, v는 북쪽 방향을 기준으로 한 대원의 최고점 후보입니다.</p>
-  </div>
-
-  <div class="section">
-    <h2>⑨ 프로젝트 단계</h2>
-    <ol class="note" style="padding-left:20px;line-height:1.8">
-      <li>GPS 입력 및 3D 벡터화</li>
-      <li>최고점/중심 기준 좌표계 설정</li>
-      <li>직교 회전행렬 생성</li>
-      <li>모든 위치의 새 위·경도 계산</li>
-      <li>대원 및 웨이포인트 계산</li>
-      <li>Δλ 경도 이동</li>
-      <li>다양한 지도투영 적용</li>
-      <li>GitHub 웹앱으로 공개</li>
-    </ol>
-  </div>
-</aside>
 </main>
 
 <script>
-const $=id=>document.getElementById(id), D=Math.PI/180, R2D=180/Math.PI;
-const canvas=$("mapCanvas"), ctx=canvas.getContext("2d"), globe=$("globeCanvas"), gctx=globe.getContext("2d");
+// 다국어 번역 딕셔너리
+const i18n = {
+  ko: {
+    title: "지구 구면직각삼각형 8대 중심점 모니터링",
+    subtitle: "북위/남위 35.26° & 동경/서경 45°, 135° 기준 회전 변환 및 평면 투영 모델",
+    liveLabel: "실시간 추적 중:",
+    mapTitle: "세계 지도 투영 (북위 35°, 동경 45° 회전 관점)",
+    pointsCount: "● 8개 중심점 표시 중",
+    tableTitle: "구면직각삼각형 중심점 8곳 GPS",
+    thZone: "구역",
+    thLat: "위도(Lat)",
+    thLon: "경도(Lon)",
+    thStatus: "상태",
+    statusNormal: "정상",
+    centerLabel: "지도 중심 (35°N, 45°E)",
+    mathTitle: "수학적 원리 및 투영 공식",
+    mathContent: `
+      <strong>1. 3D 공간 회전 변환 (Rotation Matrix)</strong>
+      <div class="math-eq">
+        r = [cosφ cosλ, cosφ sinλ, sinφ]ᵀ<br>
+        p′ = R · p
+      </div>
+      지구 표면의 위치를 3차원 직교 좌표계 벡터로 변환 후, 기준 중심점(35°N, 45°E)을 지도의 중심축으로 회전시킵니다.
+      <br><br><strong>2. 기존 위도선의 평면 곡선 방정식</strong>
+      <div class="math-eq">
+        cos(35°)Y + sin(35°)√(1 - X² - Y²) = sin(φ)
+      </div>
+      직교 투영 시 기존 위도선은 멀어질수록 양 끝이 위로 휘어지는 포물선($Y \\approx aX² + b$) 형태를 띱니다.
+      <br><br><strong>3. 경도선 대원 구조 유지</strong>
+      <p style="margin:4px 0 0;">
+        동경 135°와 서경 45°($135°E \\leftrightarrow 45°W$) 축은 회전 후에도 휘어지지 않고 완전한 대원(Great Circle) 구조를 유지합니다.
+      </p>
+    `,
+    centers: [
+      { name: "C1 (북동1)" }, { name: "C2 (북동2)" },
+      { name: "C3 (북서1)" }, { name: "C4 (북서2)" },
+      { name: "C5 (남동1)" }, { name: "C6 (남동2)" },
+      { name: "C7 (남서1)" }, { name: "C8 (남서2)" }
+    ]
+  },
+  en: {
+    title: "Spherical Right Triangle 8 Centers Monitoring",
+    subtitle: "Rotation Matrix & Planar Projection based on 35.26° N/S & 45°/135° E/W",
+    liveLabel: "Live Tracking:",
+    mapTitle: "World Map Projection (Rotated View: 35°N, 45°E)",
+    pointsCount: "● Displaying 8 Centers",
+    tableTitle: "GPS Coordinates of 8 Center Points",
+    thZone: "Zone",
+    thLat: "Latitude",
+    thLon: "Longitude",
+    thStatus: "Status",
+    statusNormal: "Active",
+    centerLabel: "Map Center (35°N, 45°E)",
+    mathTitle: "Mathematical Principles & Projection",
+    mathContent: `
+      <strong>1. 3D Spatial Rotation Matrix</strong>
+      <div class="math-eq">
+        r = [cosφ cosλ, cosφ sinλ, sinφ]ᵀ<br>
+        p′ = R · p
+      </div>
+      Converts surface coordinates into 3D Cartesian vectors and rotates the center point (35°N, 45°E) to the map axis.
+      <br><br><strong>2. Planar Curve Equation of Latitude Lines</strong>
+      <div class="math-eq">
+        cos(35°)Y + sin(35°)√(1 - X² - Y²) = sin(φ)
+      </div>
+      In orthographic projection, latitude lines curve upward as parabolic shapes ($Y \\approx aX² + b$).
+      <br><br><strong>3. Preservation of Great Circles</strong>
+      <p style="margin:4px 0 0;">
+        Longitudes $135°E \\leftrightarrow 45°W$ maintain an uncurved Great Circle structure after rotation.
+      </p>
+    `,
+    centers: [
+      { name: "C1 (NE1)" }, { name: "C2 (NE2)" },
+      { name: "C3 (NW1)" }, { name: "C4 (NW2)" },
+      { name: "C5 (SE1)" }, { name: "C6 (SE2)" },
+      { name: "C7 (SW1)" }, { name: "C8 (SW2)" }
+    ]
+  },
+  vi: {
+    title: "Giám Sát 8 Tâm Tam Giác Vuông Cầu Của Trái Đất",
+    subtitle: "Mô hình biến đổi quay & phép chiếu phẳng dựa trên 35.26° B/N & 45°/135° Đ/T",
+    liveLabel: "Theo dõi trực tiếp:",
+    mapTitle: "Phép Chiếu Bản Đồ Thế Giới (Góc quay: 35°B, 45°Đ)",
+    pointsCount: "● Đang hiển thị 8 điểm tâm",
+    tableTitle: "Tọa Độ GPS 8 Điểm Tâm Tam Giác Cầu",
+    thZone: "Khu vực",
+    thLat: "Vĩ độ (Lat)",
+    thLon: "Kinh độ (Lon)",
+    thStatus: "Trạng thái",
+    statusNormal: "Hoạt động",
+    centerLabel: "Tâm bản đồ (35°B, 45°Đ)",
+    mathTitle: "Nguyên Lý Toán Học & Phép Chiếu",
+    mathContent: `
+      <strong>1. Ma Trận Quay Không Gian 3D</strong>
+      <div class="math-eq">
+        r = [cosφ cosλ, cosφ sinλ, sinφ]ᵀ<br>
+        p′ = R · p
+      </div>
+      Chuyển đổi tọa độ bề mặt thành vectơ Cartesian 3D và xoay điểm trung tâm (35°B, 45°Đ) làm trục bản đồ.
+      <br><br><strong>2. Phương Trình Đường Cong Vĩ Độ</strong>
+      <div class="math-eq">
+        cos(35°)Y + sin(35°)√(1 - X² - Y²) = sin(φ)
+      </div>
+      Trong phép chiếu chính vuông, các đường vĩ độ cong lên phía trên theo dạng parabol ($Y \\approx aX² + b$).
+      <br><br><strong>3. Duy Trì Cấu Trúc Vòng Tròn Lớn</strong>
+      <p style="margin:4px 0 0;">
+        Các kinh tuyến $135°Đ \\leftrightarrow 45°T$ giữ nguyên cấu trúc Vòng Tròn Lớn (Great Circle) không bị uốn cong sau khi quay.
+      </p>
+    `,
+    centers: [
+      { name: "C1 (ĐB1)" }, { name: "C2 (ĐB2)" },
+      { name: "C3 (TB1)" }, { name: "C4 (TB2)" },
+      { name: "C5 (ĐN1)" }, { name: "C6 (ĐN2)" },
+      { name: "C7 (TN1)" }, { name: "C8 (TN2)" }
+    ]
+  }
+};
 
-const land=[
-[[35,140],[60,170],[70,100],[70,40],[40,30],[30,35],[15,45],[10,75],[20,80],[25,120],[35,140]],
-[[35,10],[10,14],[0,9],[-30,18],[-34,26],[5,48],[30,32],[36,5],[35,10]],
-[[60,5],[50,30],[40,25],[40,0],[50,-10],[60,5]],
-[[65,-168],[70,-100],[50,-55],[30,-80],[25,-98],[55,-130],[65,-168]],
-[[10,-75],[-10,-40],[-35,-55],[-53,-70],[-18,-70],[0,-80],[10,-75]],
-[[-12,130],[-15,145],[-35,150],[-35,115],[-22,114],[-12,130]],
-[[-70,0],[-70,90],[-70,180],[-70,-90],[-70,0]]
+let currentLang = "ko";
+
+const LAT_VAL = 35.2644;
+const baseCenters = [
+  { id: 1, lat:  LAT_VAL, lon:  45.0 },
+  { id: 2, lat:  LAT_VAL, lon: 135.0 },
+  { id: 3, lat:  LAT_VAL, lon: -45.0 },
+  { id: 4, lat:  LAT_VAL, lon:-135.0 },
+  { id: 5, lat: -LAT_VAL, lon:  45.0 },
+  { id: 6, lat: -LAT_VAL, lon: 135.0 },
+  { id: 7, lat: -LAT_VAL, lon: -45.0 },
+  { id: 8, lat: -LAT_VAL, lon:-135.0 }
 ];
 
-function v(lat,lon){
-  lat*=D; lon*=D;
-  return [Math.cos(lat)*Math.cos(lon),Math.cos(lat)*Math.sin(lon),Math.sin(lat)];
-}
-function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
-function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
-function norm(a){let n=Math.hypot(...a);return a.map(x=>x/n)}
-function sub(a,b){return a.map((x,i)=>x-b[i])}
-function scale(a,k){return a.map(x=>x*k)}
-function clamp(x){return Math.max(-1,Math.min(1,x))}
-function sph(p){return {lat:Math.asin(clamp(p[2]))*R2D,lon:Math.atan2(p[1],p[0])*R2D}}
-function fmt(x){return Number(x).toFixed(5)}
+const canvas = document.getElementById("mapCanvas");
+const ctx = canvas.getContext("2d");
+const D2R = Math.PI / 180;
 
-function makeBasis(lat0,lon0,mode){
-  const c=v(lat0,lon0), k=[0,0,1];
-  if(mode==="pole"){
-    // Columns are new axes expressed in old coordinates.
-    // New z-axis = c. New y-axis is chosen from the global north tangent.
-    let ey=norm(sub(k,scale(c,dot(k,c))));
-    let ex=norm(cross(ey,c));
-    return {ex,ey,ez:c};
-  }else{
-    // New x-axis points toward selected center; selected point becomes (1,0,0).
-    let ez=norm(sub(k,scale(c,dot(k,c))));
-    // At exact pole the local north direction is undefined; choose a stable axis.
-    if(Math.hypot(...ez)<1e-9) ez=[1,0,0];
-    let ey=norm(cross(ez,c));
-    return {ex:c,ey:ey,ez:ez};
-  }
-}
-function rotatePoint(lat,lon,b){
-  const p=v(lat,lon);
-  return [dot(p,b.ex),dot(p,b.ey),dot(p,b.ez)];
-}
-function rotateSph(lat,lon,b){
-  return sph(rotatePoint(lat,lon,b));
+function changeLanguage(langKey) {
+  currentLang = langKey;
+  const dict = i18n[langKey];
+
+  document.getElementById("t-title").textContent = dict.title;
+  document.getElementById("t-subtitle").textContent = dict.subtitle;
+  document.getElementById("t-live-label").textContent = dict.liveLabel;
+  document.getElementById("t-map-title").innerHTML = `<strong>${dict.mapTitle}</strong>`;
+  document.getElementById("t-points-count").textContent = dict.pointsCount;
+  document.getElementById("t-table-title").textContent = dict.tableTitle;
+  document.getElementById("th-zone").textContent = dict.thZone;
+  document.getElementById("th-lat").textContent = dict.thLat;
+  document.getElementById("th-lon").textContent = dict.thLon;
+  document.getElementById("th-status").textContent = dict.thStatus;
+  document.getElementById("t-math-title").textContent = dict.mathTitle;
+  document.getElementById("t-math-content").innerHTML = dict.mathContent;
+
+  initTable();
 }
 
-function normalizeLon(x){return ((x+180)%360+360)%360-180}
+function initTable() {
+  const tbody = document.getElementById("coordsTable");
+  const dict = i18n[currentLang];
+  tbody.innerHTML = "";
 
-function project(lat,lon,w,h,type){
-  let p=lat*D, l=normalizeLon(lon)*D;
-  if(type==="ortho"){
-    // Orthographic centered at rotated (0,0)
-    return {x:w/2+(w*.47)*Math.cos(p)*Math.sin(l),
-            y:h/2-(h*.47)*(Math.sin(p))};
-  }
-  if(type==="mercator"){
-    const y=Math.log(Math.tan(Math.PI/4+Math.max(-85.05,Math.min(85.05,lat))*D/2));
-    const yy=Math.max(-4.5,Math.min(4.5,y));
-    return {x:w/2+(w/(2*Math.PI))*l,y:h/2-(h/(2*4.5))*yy};
-  }
-  if(type==="equirect"){
-    return {x:w/2+(w/(2*Math.PI))*l,y:h/2-(h/Math.PI)*p};
-  }
-  // Craster Parabolic
-  const RR=h/3.06;
-  const x=3*RR*l*Math.sqrt(1/(3*Math.PI))*(2*Math.cos(2*p/3)-1);
-  const y=RR*Math.sqrt(3*Math.PI)*Math.sin(p/3);
-  return {x:w/2+x,y:h/2-y};
-}
+  baseCenters.forEach((c, idx) => {
+    const latPrefix = c.lat >= 0 ? "N" : "S";
+    const lonPrefix = c.lon >= 0 ? "E" : "W";
+    const latStr = `${latPrefix} ${Math.abs(c.lat).toFixed(2)}°`;
+    const lonStr = `${lonPrefix} ${Math.abs(c.lon).toFixed(2)}°`;
+    const name = dict.centers[idx].name;
 
-function resize(){
-  const r=canvas.getBoundingClientRect(), d=devicePixelRatio||1;
-  canvas.width=r.width*d; canvas.height=r.height*d; ctx.setTransform(d,0,0,d,0,0);
-  const gr=globe.getBoundingClientRect(); globe.width=gr.width*d; globe.height=gr.height*d; gctx.setTransform(d,0,0,d,0,0);
-  render();
-}
-function getState(){
-  return {
-    lat:parseFloat($("lat").value)||0, lon:parseFloat($("lon").value)||0,
-    mode:$("mode").value, offset:parseFloat($("offset").value)||0,
-    proj:$("projection").value
-  };
-}
-function drawPath(points,stroke,width=1,fill=null){
-  if(!points.length)return;
-  ctx.beginPath(); points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-  if(fill){ctx.fillStyle=fill;ctx.fill()} ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();
-}
-function render(){
-  const s=getState(), w=canvas.clientWidth, h=canvas.clientHeight;
-  ctx.clearRect(0,0,w,h);
-  const b=makeBasis(s.lat,s.lon,s.mode);
-
-  // background grid
-  ctx.strokeStyle="#12344c";ctx.lineWidth=1;
-  for(let lo=-180;lo<=180;lo+=30){
-    let pts=[]; for(let la=-90;la<=90;la+=3){let q=rotateSph(la,lo,b);q.lon=normalizeLon(q.lon-s.offset);pts.push(project(q.lat,q.lon,w,h,s.proj))}
-    drawPath(pts,"#12384f");
-  }
-  for(let la=-75;la<=75;la+=15){
-    let pts=[]; for(let lo=-180;lo<=180;lo+=3){let q=rotateSph(la,lo,b);q.lon=normalizeLon(q.lon-s.offset);pts.push(project(q.lat,q.lon,w,h,s.proj))}
-    drawPath(pts,"#12384f");
-  }
-
-  // land
-  land.forEach(poly=>{
-    let pts=[];
-    poly.forEach(c=>{let q=rotateSph(c[0],c[1],b);q.lon=normalizeLon(q.lon-s.offset);pts.push(project(q.lat,q.lon,w,h,s.proj))});
-    drawPath(pts,"#2e91bd",1.1,"#183e55");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="center-name">${name}</td>
+      <td class="coord-val">${latStr}</td>
+      <td class="coord-val">${lonStr}</td>
+      <td><span style="color:var(--green)">● ${dict.statusNormal}</span></td>
+    `;
+    tbody.appendChild(row);
   });
+}
 
-  // great circle route
-  const a=v(parseFloat($("aLat").value)||0,parseFloat($("aLon").value)||0);
-  const bb=v(parseFloat($("bLat").value)||0,parseFloat($("bLon").value)||0);
-  const ang=Math.acos(clamp(dot(a,bb)));
-  if(ang>1e-8 && Math.abs(Math.PI-ang)>1e-8){
-    let pts=[];
-    for(let i=0;i<=180;i++){
-      const t=i/180, sinA=Math.sin(ang);
-      const p=add(scale(a,Math.sin((1-t)*ang)/sinA),scale(bb,Math.sin(t*ang)/sinA));
-      const q=sph(p); const rq=rotateSph(q.lat,q.lon,b); rq.lon=normalizeLon(rq.lon-s.offset);
-      pts.push(project(rq.lat,rq.lon,w,h,s.proj));
+const centerLat = 35.0 * D2R;
+const centerLon = 45.0 * D2R;
+
+function projectPoint(latDeg, lonDeg, width, height) {
+  let phi = latDeg * D2R;
+  let lam = lonDeg * D2R;
+
+  let x = Math.cos(phi) * Math.cos(lam);
+  let y = Math.cos(phi) * Math.sin(lam);
+  let z = Math.sin(phi);
+
+  let x1 = x * Math.cos(-centerLon) - y * Math.sin(-centerLon);
+  let y1 = x * Math.sin(-centerLon) + y * Math.cos(-centerLon);
+  let z1 = z;
+
+  let x2 = x1 * Math.cos(-centerLat) + z1 * Math.sin(-centerLat);
+  let y2 = y1;
+  let z2 = -x1 * Math.sin(-centerLat) + z1 * Math.cos(-centerLat);
+
+  let newLat = Math.asin(Math.max(-1, Math.min(1, z2)));
+  let newLon = Math.atan2(y2, x2);
+
+  let px = (width / 2) + (newLon / Math.PI) * (width * 0.42);
+  let py = (height / 2) - (newLat / (Math.PI / 2)) * (height * 0.42);
+
+  return { x: px, y: py };
+}
+
+function renderMap() {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const w = rect.width;
+  const h = rect.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.strokeStyle = "#13314d";
+  ctx.lineWidth = 1;
+
+  for (let lat = -60; lat <= 60; lat += 30) {
+    ctx.beginPath();
+    for (let lon = -180; lon <= 180; lon += 5) {
+      let p = projectPoint(lat, lon, w, h);
+      if (lon === -180) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
     }
-    drawPath(pts,"#ff9d4d",2.5);
+    ctx.stroke();
   }
 
-  // chosen center marker
-  const c=project(0,0,w,h,s.proj);
-  ctx.strokeStyle="#ff6675";ctx.lineWidth=2;
-  ctx.beginPath();ctx.moveTo(c.x-13,c.y);ctx.lineTo(c.x+13,c.y);ctx.moveTo(c.x,c.y-13);ctx.lineTo(c.x,c.y+13);ctx.stroke();
-  ctx.fillStyle="#ff6675";ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
-
-  $("centerReadout").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;
-  $("mapTitle").textContent=`국가 중심 세계지도 · ${$("projection").selectedOptions[0].text}`;
-  $("modeText").textContent=s.mode==="center"?"선택 GPS가 새 좌표계의 (0°, 0°)":"선택 GPS가 새 좌표계의 북극 (90°, 0°)";
-  updateReadout(b,s);
-  drawGlobe(b,s);
-}
-function add(a,b){return a.map((x,i)=>x+b[i])}
-
-function updateReadout(b,s){
-  const p=v(s.lat,s.lon);
-  const rp=rotatePoint(s.lat,s.lon,b), sp=sph(rp);
-  $("orig").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;
-  $("vec").textContent=`(${fmt(p[0])}, ${fmt(p[1])}, ${fmt(p[2])})`;
-  $("rot").textContent=`(${fmt(rp[0])}, ${fmt(rp[1])}, ${fmt(rp[2])})`;
-  $("newLat").textContent=fmt(sp.lat)+"°";
-  $("newLon").textContent=fmt(normalizeLon(sp.lon-s.offset))+"°";
-}
-
-function drawGlobe(b,s){
-  const w=globe.clientWidth,h=globe.clientHeight;gctx.clearRect(0,0,w,h);
-  const cx=w/2,cy=h/2,r=Math.min(w,h)*.38;
-  gctx.fillStyle="#0b3850";gctx.beginPath();gctx.arc(cx,cy,r,0,Math.PI*2);gctx.fill();
-  gctx.strokeStyle="#4dd8ff";gctx.lineWidth=1;
-  for(let lat=-60;lat<=60;lat+=30){
-    let pts=[];for(let lo=-180;lo<=180;lo+=4){let q=rotateSph(lat,lo,b);let x=cx+r*Math.cos(q.lat*D)*Math.sin(q.lon*D);let y=cy-r*Math.sin(q.lat*D);pts.push({x,y})}
-    gctx.beginPath();pts.forEach((p,i)=>i?gctx.lineTo(p.x,p.y):gctx.moveTo(p.x,p.y));gctx.stroke();
+  for (let lon = -180; lon < 180; lon += 45) {
+    ctx.beginPath();
+    for (let lat = -90; lat <= 90; lat += 5) {
+      let p = projectPoint(lat, lon, w, h);
+      if (lat === -90) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
   }
-  for(let lo=-150;lo<=150;lo+=30){
-    let pts=[];for(let la=-90;la<=90;la+=4){let q=rotateSph(la,lo,b);let x=cx+r*Math.cos(q.lat*D)*Math.sin(q.lon*D);let y=cy-r*Math.sin(q.lat*D);pts.push({x,y})}
-    gctx.beginPath();pts.forEach((p,i)=>i?gctx.lineTo(p.x,p.y):gctx.moveTo(p.x,p.y));gctx.stroke();
-  }
-  // chosen point
-  gctx.fillStyle="#ff6675";gctx.beginPath();gctx.arc(cx,cy,6,0,Math.PI*2);gctx.fill();
-  gctx.fillStyle="#eef7ff";gctx.font="11px system-ui";gctx.fillText(s.mode==="center"?"새 원점":"새 북극",cx+9,cy-9);
+
+  let centerP = projectPoint(35, 45, w, h);
+  ctx.fillStyle = "#ff6675";
+  ctx.beginPath();
+  ctx.arc(centerP.x, centerP.y, 7, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "12px sans-serif";
+  ctx.fillText(i18n[currentLang].centerLabel, centerP.x + 10, centerP.y + 4);
+
+  const now = Date.now() * 0.003;
+  baseCenters.forEach((c, i) => {
+    let p = projectPoint(c.lat, c.lon, w, h);
+    let pulseSize = 6 + Math.sin(now + i) * 3;
+
+    ctx.strokeStyle = "#ffd45a";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, pulseSize + 4, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = "#ffd45a";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#4dd8ff";
+    ctx.font = "bold 11px sans-serif";
+    ctx.fillText(i18n[currentLang].centers[i].name, p.x + 10, p.y - 6);
+  });
 }
 
-function calculateGreatCircle(){
-  const a=v(parseFloat($("aLat").value)||0,parseFloat($("aLon").value)||0);
-  const b=v(parseFloat($("bLat").value)||0,parseFloat($("bLon").value)||0);
-  const n0=cross(a,b), nn=Math.hypot(...n0);
-  if(nn<1e-10){$("gcResult").textContent="두 점이 같거나 대원이 정의되지 않는 경우입니다.";return}
-  const n=n0.map(x=>x/nn), k=[0,0,1];
-  const q=sub(k,scale(n,dot(k,n)));
-  const qn=Math.hypot(...q);
-  if(qn<1e-10){$("gcResult").textContent="이 대원은 극점을 포함하므로 최고점 방향 계산이 특수한 경우입니다.";return}
-  const vv=q.map(x=>x/qn), top=sph(vv);
-  const angle=Math.acos(clamp(dot(a,b))), km=angle*6371.0088;
-  $("gcResult").innerHTML=`대원 중심각: <b>${fmt(angle*R2D)}°</b><br>대원 거리: <b>${fmt(km)} km</b><br>북쪽 최고점 후보 Vertex: <b>${fmt(top.lat)}°, ${fmt(top.lon)}°</b>`;
-  render();
+function loop() {
+  const d = new Date();
+  document.getElementById("liveTimer").textContent = d.toTimeString().split(" ")[0];
+  renderMap();
+  requestAnimationFrame(loop);
 }
-function setTaean(){$("lat").value=36.78;$("lon").value=126.15;render()}
-function setPole(){$("lat").value=90;$("lon").value=0;$("mode").value="pole";render()}
-function offset(x){$("offset").value=(parseFloat($("offset").value)||0)+x;render()}
 
-["lat","lon","mode","offset","projection"].forEach(id=>$(id).addEventListener("input",render));
-["aLat","aLon","bLat","bLon"].forEach(id=>$(id).addEventListener("input",render));
-window.addEventListener("resize",resize);
-resize();calculateGreatCircle();
+window.addEventListener("resize", renderMap);
+changeLanguage("ko");
+loop();
 </script>
 </body>
 </html>
