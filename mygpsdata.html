@@ -60,10 +60,10 @@
 
     <!-- 2. 파일 저장 영역 -->
     <div class="card">
-        <h3>2. 휴대폰에 좌표 저장하기</h3>
+        <h3>2. 휴대폰 경로 지정 저장하기</h3>
         <label for="fileName">저장할 파일 이름:</label>
         <input type="text" id="fileName" placeholder="예: my_location.json">
-        <button class="btn-green" onclick="saveLocationToFile()">휴대폰에 파일로 저장</button>
+        <button class="btn-green" onclick="saveLocationWithPicker()">원하는 위치/폴더 선택하여 저장</button>
     </div>
 
     <!-- 3. 파일 불러오기 영역 -->
@@ -125,8 +125,8 @@
             );
         }
 
-        // 파일로 위치 데이터 저장
-        function saveLocationToFile() {
+        // 경로/폴더 지정하여 저장 (File System Access API)
+        async function saveLocationWithPicker() {
             if (!currentLat || !currentLng) {
                 alert("먼저 '현재 위치 확인하기' 버튼을 누르거나 파일을 불러와 좌표를 지정하세요.");
                 return;
@@ -145,14 +145,43 @@
                 savedAt: new Date().toLocaleString('ko-KR')
             };
 
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+            const jsonContent = JSON.stringify(data, null, 2);
+
+            // 1. 최신 브라우저: 파일 저장 위치 선택 창(Save Picker) 띄우기
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{
+                            description: 'JSON 위치 파일',
+                            accept: { 'application/json': ['.json'] },
+                        }],
+                    });
+
+                    const writable = await handle.createWritable();
+                    await writable.write(jsonContent);
+                    await writable.close();
+
+                    alert(`선택한 위치에 '${fileName}' 파일이 성공적으로 저장되었습니다.`);
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') {
+                        // 사용자가 파일 저장 창을 취소한 경우
+                        return;
+                    }
+                    console.warn("Save File Picker 사용 중 오류, 일반 다운로드로 대체합니다.", err);
+                }
+            }
+
+            // 2. 구형 브라우저 또는 미지원 모바일 브라우저 예비 로직 (기본 다운로드)
+            const blob = new Blob([jsonContent], { type: "application/json" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.download = fileName;
             link.click();
             URL.revokeObjectURL(link.href);
 
-            alert(`'${fileName}' 파일이 휴대폰에 저장되었습니다.`);
+            alert(`'${fileName}' 파일 저장 명령을 실행했습니다.\n(스마트폰 다운로드 설정에 따라 경로 지정 창이 열리거나 다운로드 폴더로 저장됩니다.)`);
         }
 
         // 불러온 파일 처리 및 좌표 자동 복사 기능
@@ -192,10 +221,8 @@
             reader.readAsText(file);
         }
 
-        // 클립보드 복사 함수 (최신 API + 구형 호환)
+        // 클립보드 복사 함수
         function copyToClipboard(text) {
-            const noticeEl = document.getElementById('copyNotice');
-            
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
                     showNotice(`📋 GPS 좌표가 클립보드에 자동 복사되었습니다!\n(${text})`);
@@ -207,7 +234,7 @@
             }
         }
 
-        // 구형 브라우저/비보안 환경용 복사 호환 로직
+        // 구형 브라우저 호환 복사 로직
         function fallbackCopyTextToClipboard(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
