@@ -42,6 +42,10 @@
             background-color: #e3f2fd; color: #0d47a1; padding: 10px;
             border-radius: 6px; font-size: 13px; margin-top: 8px; text-align: center;
         }
+        .path-hint {
+            background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;
+            padding: 10px; border-radius: 8px; font-size: 13px; margin-top: 8px; line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -69,8 +73,9 @@
     <!-- 3. 파일 불러오기 영역 -->
     <div class="card">
         <h3>3. 저장된 위치 파일 불러오기</h3>
-        <div class="file-input-wrapper">
-            <button class="btn-orange">기기에서 파일 선택 및 불러오기</button>
+        <div id="lastSavedInfo" class="path-hint" style="display: none;"></div>
+        <div class="file-input-wrapper" style="margin-top: 8px;">
+            <button class="btn-orange" onclick="triggerFileLoad()">기기에서 파일 선택 및 불러오기</button>
             <input type="file" id="fileLoader" accept=".json, .txt" onchange="loadLocationFromFile(event)">
         </div>
         <div id="loadedData" style="margin-top: 12px; font-size: 14px; color: #1d1d1f;"></div>
@@ -82,6 +87,7 @@
         let currentLng = null;
         let map = null;
         let marker = null;
+        let lastSavedFileName = "";
 
         // Leaflet 지도 초기화 및 마커 표시
         function initMap(lat, lng) {
@@ -125,6 +131,14 @@
             );
         }
 
+        // OS 판단 함수
+        function getOS() {
+            const ua = navigator.userAgent || navigator.vendor;
+            if (/android/i.test(ua)) return "Android";
+            if (/iPad|iPhone|iPod/.test(ua)) return "iOS";
+            return "Other";
+        }
+
         // 파일로 위치 데이터 저장
         function saveLocationToFile() {
             if (!currentLat || !currentLng) {
@@ -139,6 +153,8 @@
                 fileName += ".json";
             }
 
+            lastSavedFileName = fileName;
+
             const data = {
                 latitude: currentLat,
                 longitude: currentLng,
@@ -152,14 +168,49 @@
             link.click();
             URL.revokeObjectURL(link.href);
 
-            alert(`'${fileName}' 파일이 휴대폰에 저장되었습니다.`);
+            // 불러오기 영역에 최신 파일 경로 힌트 표시
+            const os = getOS();
+            const hintBox = document.getElementById('lastSavedInfo');
+            let pathText = os === "Android" ? "내장 메모리 > Download 폴더" : (os === "iOS" ? "파일 앱 > 다운로드" : "다운로드 폴더");
+
+            hintBox.innerHTML = `💡 최근 저장한 파일: <b>${fileName}</b><br>📁 저장 예상 위치: <b>${pathText}</b>`;
+            hintBox.style.display = 'block';
+
+            alert(`'${fileName}' 파일이 저장되었습니다.`);
         }
 
-        // 불러온 파일 처리 및 좌표 자동 복사 기능
+        // 최신 File System Access API 시도 또는 기본 선택창 트리거
+        async function triggerFileLoad() {
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'JSON/TXT Location Files',
+                            accept: {
+                                'application/json': ['.json'],
+                                'text/plain': ['.txt']
+                            }
+                        }]
+                    });
+                    const file = await fileHandle.getFile();
+                    processFileContent(file);
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return; // 취소 클릭
+                }
+            }
+            // API 미지원 브라우저는 기본 input click
+            document.getElementById('fileLoader').click();
+        }
+
+        // 불러온 파일 처리 함수
         function loadLocationFromFile(event) {
             const file = event.target.files[0];
-            if (!file) return;
+            if (file) processFileContent(file);
+        }
 
+        // 파일 내용 파싱 및 마커/클립보드 적용
+        function processFileContent(file) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
@@ -168,20 +219,16 @@
                         currentLat = data.latitude;
                         currentLng = data.longitude;
 
-                        // 화면 텍스트 업데이트
                         document.getElementById('latitude').innerText = currentLat;
                         document.getElementById('longitude').innerText = currentLng;
                         document.getElementById('loadedData').innerHTML = 
                             `<b>불러온 파일:</b> ${file.name}<br>` +
                             `<b>저장 시각:</b> ${data.savedAt || '기록 없음'}`;
 
-                        // 지도 이동
                         initMap(currentLat, currentLng);
 
-                        // 좌표 클립보드 자동 복사
                         const gpsString = `${currentLat}, ${currentLng}`;
                         copyToClipboard(gpsString);
-
                     } else {
                         alert("올바른 위치 데이터 형식(JSON)이 아닙니다.");
                     }
@@ -192,10 +239,8 @@
             reader.readAsText(file);
         }
 
-        // 클립보드 복사 함수 (최신 API + 구형 호환)
+        // 클립보드 복사 함수
         function copyToClipboard(text) {
-            const noticeEl = document.getElementById('copyNotice');
-            
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(text).then(() => {
                     showNotice(`📋 GPS 좌표가 클립보드에 자동 복사되었습니다!\n(${text})`);
@@ -207,7 +252,6 @@
             }
         }
 
-        // 구형 브라우저/비보안 환경용 복사 호환 로직
         function fallbackCopyTextToClipboard(text) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
@@ -224,7 +268,6 @@
             document.body.removeChild(textArea);
         }
 
-        // 알림 메시지 출력
         function showNotice(msg) {
             const noticeEl = document.getElementById('copyNotice');
             noticeEl.innerText = msg;
