@@ -4,13 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0b5cff">
-<title>내 GPS 위치 전송</title>
+<title id="title-text">내 GPS 위치 전송</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f7fb;color:#172033}
-header{background:#0b5cff;color:#fff;padding:22px 18px;text-align:center}
+header{background:#0b5cff;color:#fff;padding:22px 18px;text-align:center;position:relative}
 header h1{margin:0 0 6px;font-size:24px}
 header p{margin:0;opacity:.9;font-size:14px}
+.lang-selector{position:absolute;top:15px;right:15px}
+.lang-selector select{background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);padding:6px 10px;border-radius:8px;font-size:13px;font-weight:600;outline:none;cursor:pointer}
+.lang-selector select option{background:#fff;color:#172033}
 main{max-width:720px;margin:auto;padding:16px}
 .card{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 5px 20px rgba(20,40,80,.08)}
 .status{display:flex;align-items:center;gap:10px;font-weight:700}
@@ -28,13 +31,22 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .note{font-size:13px;color:#667085;line-height:1.55}
 pre{white-space:pre-wrap;word-break:break-all;background:#f5f7fa;border-radius:12px;padding:12px;font-size:13px}
 footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
-@media(max-width:420px){.coords{font-size:22px}.row{grid-template-columns:1fr}}
+@media(max-width:420px){.coords{font-size:22px}.row{grid-template-columns:1fr}.lang-selector{position:static;margin-top:10px;text-align:right}}
 </style>
 </head>
 <body>
 <header>
-  <h1>📍 내 GPS 위치 전송</h1>
-  <p>스마트폰의 현재 위치를 확인하고 바로 공유하세요.</p>
+  <div class="lang-selector">
+    <select id="langSelect" onchange="changeLanguage(this.value)">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="ja">日本語</option>
+      <option value="zh">中文</option>
+    </select>
+  </div>
+  <h1 id="header-title">📍 내 GPS 위치 전송</h1>
+  <p id="header-desc">스마트폰의 현재 위치를 확인하고 바로 공유하세요.</p>
 </header>
 
 <main>
@@ -42,39 +54,39 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
     <div class="status"><span id="dot" class="dot wait"></span><span id="status">GPS 위치를 기다리는 중...</span></div>
     <div id="coords" class="coords">위도 -- / 경도 --</div>
     <div class="row">
-      <div class="item"><div class="label">위도 (Latitude)</div><div id="lat" class="value">--</div></div>
-      <div class="item"><div class="label">경도 (Longitude)</div><div id="lon" class="value">--</div></div>
-      <div class="item"><div class="label">정확도</div><div id="accuracy" class="value">--</div></div>
-      <div class="item"><div class="label">고도</div><div id="altitude" class="value">--</div></div>
-      <div class="item"><div class="label">속도</div><div id="speed" class="value">--</div></div>
-      <div class="item"><div class="label">마지막 측정</div><div id="time" class="value">--</div></div>
+      <div class="item"><div class="label" id="label-lat">위도 (Latitude)</div><div id="lat" class="value">--</div></div>
+      <div class="item"><div class="label" id="label-lon">경도 (Longitude)</div><div id="lon" class="value">--</div></div>
+      <div class="item"><div class="label" id="label-accuracy">정확도</div><div id="accuracy" class="value">--</div></div>
+      <div class="item"><div class="label" id="label-altitude">고도</div><div id="altitude" class="value">--</div></div>
+      <div class="item"><div class="label" id="label-speed">속도</div><div id="speed" class="value">--</div></div>
+      <div class="item"><div class="label" id="label-time">마지막 측정</div><div id="time" class="value">--</div></div>
     </div>
     <button id="startBtn" class="primary" onclick="startGPS()">📡 현재 위치 측정 시작</button>
     <button id="stopBtn" class="light" onclick="stopGPS()" disabled>⏹ GPS 측정 중지</button>
   </section>
 
   <section class="card">
-    <h2>📤 위치 전송</h2>
+    <h2 id="title-share">📤 위치 전송</h2>
     <button id="shareBtn" class="green" onclick="shareLocation()" disabled>📲 내 위치 공유하기</button>
     <button id="copyBtn" class="secondary" onclick="copyCoordinates()" disabled>📋 GPS 좌표 복사</button>
     <button id="smsBtn" class="dark" onclick="openSMS()" disabled>💬 문자로 위치 보내기</button>
-    <p class="note">공유 버튼은 스마트폰의 기본 공유 메뉴를 엽니다. 카카오톡, 문자, 메신저 등이 설치되어 있으면 해당 앱으로 위치 링크를 보낼 수 있습니다.</p>
+    <p class="note" id="note-share">공유 버튼은 스마트폰의 기본 공유 메뉴를 엽니다. 카카오톡, 문자, 메신저 등이 설치되어 있으면 해당 앱으로 위치 링크를 보낼 수 있습니다.</p>
   </section>
 
   <section class="card">
-    <h2>🗺️ 현재 위치 지도</h2>
+    <h2 id="title-map">🗺️ 현재 위치 지도</h2>
     <iframe id="map" title="현재 GPS 위치 지도" srcdoc="<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>GPS 측정 후 지도가 표시됩니다.</div>"></iframe>
     <button id="mapBtn" class="secondary" onclick="openGoogleMaps()" disabled>🌐 Google Maps에서 열기</button>
   </section>
 
   <section class="card">
-    <h2>🔗 전송용 위치 정보</h2>
+    <h2 id="title-info">🔗 전송용 위치 정보</h2>
     <pre id="message">아직 GPS 위치가 측정되지 않았습니다.</pre>
   </section>
 
   <section class="card">
-    <h2>⚠️ 스마트폰에서 GPS가 작동하지 않을 때</h2>
-    <p class="note">
+    <h2 id="title-guide">⚠️ 스마트폰에서 GPS가 작동하지 않을 때</h2>
+    <p class="note" id="note-guide">
       1. 스마트폰의 위치 서비스를 켜세요.<br>
       2. 브라우저의 위치 권한을 허용하세요.<br>
       3. 가능하면 HTTPS로 접속하세요. 대부분의 모바일 브라우저는 보안 연결에서 위치 기능을 정상적으로 제공합니다.<br>
@@ -83,11 +95,225 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
   </section>
 </main>
 
-<footer>GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.</footer>
+<footer id="footer-text">GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.</footer>
 
 <script>
 let watchId = null;
 let currentPosition = null;
+let currentLang = 'ko';
+
+const translations = {
+  ko: {
+    title: "내 GPS 위치 전송",
+    headerTitle: "📍 내 GPS 위치 전송",
+    headerDesc: "스마트폰의 현재 위치를 확인하고 바로 공유하세요.",
+    statusWait: "GPS 위치를 기다리는 중...",
+    statusMeasuring: "GPS 위치를 측정하는 중...",
+    statusStopped: "GPS 측정을 중지했습니다.",
+    statusOk: "GPS 위치가 정상적으로 측정되었습니다.",
+    coordsFormat: "위도 {lat} / 경도 {lon}",
+    labelLat: "위도 (Latitude)",
+    labelLon: "경도 (Longitude)",
+    labelAccuracy: "정확도",
+    labelAltitude: "고도",
+    labelSpeed: "속도",
+    labelTime: "마지막 측정",
+    notSupported: "지원 안 됨",
+    startBtn: "📡 현재 위치 측정 시작",
+    stopBtn: "⏹ GPS 측정 중지",
+    titleShare: "📤 위치 전송",
+    shareBtn: "📲 내 위치 공유하기",
+    copyBtn: "📋 GPS 좌표 복사",
+    smsBtn: "💬 문자로 위치 보내기",
+    noteShare: "공유 버튼은 스마트폰의 기본 공유 메뉴를 엽니다. 카카오톡, 문자, 메신저 등이 설치되어 있으면 해당 앱으로 위치 링크를 보낼 수 있습니다.",
+    titleMap: "🗺️ 현재 위치 지도",
+    mapBtn: "🌐 Google Maps에서 열기",
+    titleInfo: "🔗 전송용 위치 정보",
+    messageDefault: "아직 GPS 위치가 측정되지 않았습니다.",
+    titleGuide: "⚠️ 스마트폰에서 GPS가 작동하지 않을 때",
+    noteGuide: "1. 스마트폰의 위치 서비스를 켜세요.<br>2. 브라우저의 위치 권한을 허용하세요.<br>3. 가능하면 HTTPS로 접속하세요. 대부분의 모바일 브라우저는 보안 연결에서 위치 기능을 정상적으로 제공합니다.<br>4. 실외에서 잠시 기다리면 GPS 정확도가 좋아질 수 있습니다.",
+    footerText: "GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.",
+    errNotSupported: "이 브라우저는 GPS 위치 기능을 지원하지 않습니다.",
+    errDenied: "위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용하세요.",
+    errUnavailable: "현재 위치를 확인할 수 없습니다. GPS/위치 서비스를 확인하세요.",
+    errTimeout: "GPS 응답 시간이 초과되었습니다. 실외에서 다시 시도하세요.",
+    errGeneric: "GPS 위치를 가져오지 못했습니다.",
+    errHttps: "주의: HTTPS가 아니면 스마트폰에서 GPS가 차단될 수 있습니다.",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>GPS 측정 후 지도가 표시됩니다.</div>",
+    msgTemplate: "📍 현재 내 위치\n위도: {lat}\n경도: {lon}\n정확도: 약 {accuracy} m\n시간: {time}\n\n🗺️ 지도:\n{url}",
+    shareTitle: "내 현재 GPS 위치",
+    copyAlert: "GPS 좌표를 복사했습니다.",
+    shareFallbackAlert: "공유 기능을 지원하지 않아 위치 정보를 클립보드에 복사했습니다."
+  },
+  en: {
+    title: "Send My GPS Location",
+    headerTitle: "📍 Send My GPS Location",
+    headerDesc: "Check your smartphone's location and share it easily.",
+    statusWait: "Waiting for GPS location...",
+    statusMeasuring: "Measuring GPS location...",
+    statusStopped: "GPS measurement stopped.",
+    statusOk: "GPS location measured successfully.",
+    coordsFormat: "Lat {lat} / Lon {lon}",
+    labelLat: "Latitude",
+    labelLon: "Longitude",
+    labelAccuracy: "Accuracy",
+    labelAltitude: "Altitude",
+    labelSpeed: "Speed",
+    labelTime: "Last Updated",
+    notSupported: "Not Supported",
+    startBtn: "📡 Start GPS Measurement",
+    stopBtn: "⏹ Stop GPS",
+    titleShare: "📤 Send Location",
+    shareBtn: "📲 Share My Location",
+    copyBtn: "📋 Copy GPS Coordinates",
+    smsBtn: "💬 Send via SMS",
+    noteShare: "The share button opens your smartphone's default share menu. You can send location links via text, messenger, etc.",
+    titleMap: "🗺️ Current Location Map",
+    mapBtn: "🌐 Open in Google Maps",
+    titleInfo: "🔗 Location Data for Sharing",
+    messageDefault: "GPS location has not been measured yet.",
+    titleGuide: "⚠️ When GPS Is Not Working",
+    noteGuide: "1. Turn on Location Services on your phone.<br>2. Allow location permissions in your browser.<br>3. Use HTTPS connection if possible.<br>4. Wait outdoors for better accuracy.",
+    footerText: "GPS data is measured locally in your browser and is not sent to any server.",
+    errNotSupported: "This browser does not support GPS geolocation.",
+    errDenied: "Location permission denied. Please allow location access in your browser settings.",
+    errUnavailable: "Cannot determine current location. Please check your GPS/Location services.",
+    errTimeout: "GPS request timed out. Please try again outdoors.",
+    errGeneric: "Failed to retrieve GPS location.",
+    errHttps: "Warning: GPS might be blocked if not using HTTPS.",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>Map will be displayed after GPS measurement.</div>",
+    msgTemplate: "📍 My Current Location\nLatitude: {lat}\nLongitude: {lon}\nAccuracy: ~{accuracy} m\nTime: {time}\n\n🗺️ Map:\n{url}",
+    shareTitle: "My Current GPS Location",
+    copyAlert: "GPS coordinates copied to clipboard.",
+    shareFallbackAlert: "Sharing not supported. Location copied to clipboard instead."
+  },
+  vi: {
+    title: "Gửi Vị Trí GPS Của Tôi",
+    headerTitle: "📍 Gửi Vị Trí GPS Của Tôi",
+    headerDesc: "Kiểm tra vị trí hiện tại và chia sẻ dễ dàng.",
+    statusWait: "Đang chờ vị trí GPS...",
+    statusMeasuring: "Đang đo vị trí GPS...",
+    statusStopped: "Đã dừng đo GPS.",
+    statusOk: "Đã xác định vị trí GPS thành công.",
+    coordsFormat: "Vĩ độ {lat} / Kinh độ {lon}",
+    labelLat: "Vĩ độ (Latitude)",
+    labelLon: "Kinh độ (Longitude)",
+    labelAccuracy: "Độ chính xác",
+    labelAltitude: "Độ cao",
+    labelSpeed: "Tốc độ",
+    labelTime: "Lần cập nhật cuối",
+    notSupported: "Không hỗ trợ",
+    startBtn: "📡 Bắt đầu đo GPS",
+    stopBtn: "⏹ Dừng đo GPS",
+    titleShare: "📤 Chia Sẻ Vị Trí",
+    shareBtn: "📲 Chia sẻ vị trí của tôi",
+    copyBtn: "📋 Sao chép tọa độ GPS",
+    smsBtn: "💬 Gửi qua tin nhắn SMS",
+    noteShare: "Nút chia sẻ sẽ mở menu chia sẻ mặc định trên điện thoại của bạn.",
+    titleMap: "🗺️ Bản Đồ Vị Trí Hiện Tại",
+    mapBtn: "🌐 Mở trong Google Maps",
+    titleInfo: "🔗 Thông Tin Vị Trí Để Gửi",
+    messageDefault: "Chưa đo được vị trí GPS.",
+    titleGuide: "⚠️ Khi GPS Không Hoạt Động",
+    noteGuide: "1. Bật Dịch vụ vị trí trên điện thoại.<br>2. Cho phép truy cập vị trí trong trình duyệt.<br>3. Sử dụng kết nối HTTPS nếu có thể.<br>4. Ra ngoài trời để có độ chính xác tốt hơn.",
+    footerText: "Dữ liệu GPS được xử lý trực tiếp trên trình duyệt và không tự động gửi đến máy chủ.",
+    errNotSupported: "Trình duyệt không hỗ trợ tính năng định vị GPS.",
+    errDenied: "Quyền truy cập vị trí bị từ chối.",
+    errUnavailable: "Không thể xác định vị trí. Vui lòng kiểm tra GPS.",
+    errTimeout: "Hết thời gian phản hồi GPS. Hãy thử lại ở ngoài trời.",
+    errGeneric: "Không thể lấy vị trí GPS.",
+    errHttps: "Cảnh báo: GPS có thể bị chặn nếu không dùng HTTPS.",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>Bản đồ sẽ hiển thị sau khi đo GPS.</div>",
+    msgTemplate: "📍 Vị trí hiện tại của tôi\nVĩ độ: {lat}\nKinh độ: {lon}\nĐộ chính xác: Khoảng {accuracy} m\nThời gian: {time}\n\n🗺️ Bản đồ:\n{url}",
+    shareTitle: "Vị trí GPS hiện tại của tôi",
+    copyAlert: "Đã sao chép tọa độ GPS.",
+    shareFallbackAlert: "Không hỗ trợ chia sẻ trực tiếp. Đã sao chép vào bộ nhớ tạm."
+  },
+  ja: {
+    title: "GPS位置情報の送信",
+    headerTitle: "📍 GPS位置情報の送信",
+    headerDesc: "スマホの現在地を確認し、すぐに共有できます。",
+    statusWait: "GPS位置情報を待機中...",
+    statusMeasuring: "GPS位置情報を測定中...",
+    statusStopped: "GPS測定を停止しました。",
+    statusOk: "GPS位置情報が正常に測定されました。",
+    coordsFormat: "緯度 {lat} / 経度 {lon}",
+    labelLat: "緯度 (Latitude)",
+    labelLon: "経度 (Longitude)",
+    labelAccuracy: "精度",
+    labelAltitude: "高度",
+    labelSpeed: "速度",
+    labelTime: "最終更新",
+    notSupported: "非対応",
+    startBtn: "📡 現在地の測定を開始",
+    stopBtn: "⏹ GPS測定を停止",
+    titleShare: "📤 位置情報の送信",
+    shareBtn: "📲 現在地を共有する",
+    copyBtn: "📋 GPS座標をコピー",
+    smsBtn: "💬 SMSで送信",
+    noteShare: "共有ボタンを押すとスマートフォンの共有メニューが開きます。",
+    titleMap: "🗺️ 現在地の地図",
+    mapBtn: "🌐 Google Mapsで開く",
+    titleInfo: "🔗 送信用位置情報",
+    messageDefault: "まだGPS位置情報が測定されていません。",
+    titleGuide: "⚠️ GPSが動作しない場合",
+    noteGuide: "1. スマートフォンの位置情報サービスをオンにしてください。<br>2. ブラウザの位置情報権한を許可してください。<br>3. 可能な限りHTTPSで接続してください。<br>4. 屋外に移動すると精度が向上します。",
+    footerText: "GPSデータはブラウザ上で測定され、外部サーバーへ自動送信されることはありません。",
+    errNotSupported: "お使いのブラウザはGPS機能をサポートしていません。",
+    errDenied: "位置情報の権限が拒否されました。",
+    errUnavailable: "現在地を確認できません。GPS設定を確認してください。",
+    errTimeout: "GPS応答がタイムアウトしました。屋外で再試行してください。",
+    errGeneric: "GPS位置情報の取得に失敗しました。",
+    errHttps: "注意: HTTPS接続でない場合、GPSがブロックされる可能性があります。",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>GPS測定後に地図が表示されます。</div>",
+    msgTemplate: "📍 私の現在地\n緯度: {lat}\n経度: {lon}\n精度: 約 {accuracy} m\n時間: {time}\n\n🗺️ 地図:\n{url}",
+    shareTitle: "私の現在のGPS位置情報",
+    copyAlert: "GPS座標をコピーしました。",
+    shareFallbackAlert: "共有機能が非対応のためクリップボードにコピーしました。"
+  },
+  zh: {
+    title: "发送我的GPS位置",
+    headerTitle: "📍 发送我的GPS位置",
+    headerDesc: "查看手机当前位置并快速分享。",
+    statusWait: "正在等待GPS位置...",
+    statusMeasuring: "正在测量GPS位置...",
+    statusStopped: "已停止GPS测量。",
+    statusOk: "GPS位置测量成功。",
+    coordsFormat: "纬度 {lat} / 经度 {lon}",
+    labelLat: "纬度 (Latitude)",
+    labelLon: "经度 (Longitude)",
+    labelAccuracy: "精确度",
+    labelAltitude: "高度",
+    labelSpeed: "速度",
+    labelTime: "最后更新",
+    notSupported: "不支持",
+    startBtn: "📡 开始测量当前位置",
+    stopBtn: "⏹ 停止测量GPS",
+    titleShare: "📤 位置发送",
+    shareBtn: "📲 分享我的位置",
+    copyBtn: "📋 复制GPS坐标",
+    smsBtn: "💬 发送短信",
+    noteShare: "分享按钮将打开手机的默认分享菜单，可以通过微信、短信等发送位置链接。",
+    titleMap: "🗺️ 当前位置地图",
+    mapBtn: "🌐 在 Google Maps 中打开",
+    titleInfo: "🔗 发送用位置信息",
+    messageDefault: "尚未测量GPS位置。",
+    titleGuide: "⚠️ 当GPS无法正常工作时",
+    noteGuide: "1. 请开启手机定位服务。<br>2. 允许浏览器的定位权限。<br>3. 尽量使用 HTTPS 访问。<br>4. 在室外稍作等待可提高精确度。",
+    footerText: "GPS数据仅在浏览器本地测量，不会自动发送至服务器。",
+    errNotSupported: "此浏览器不支持GPS定位功能。",
+    errDenied: "定位权限被拒绝，请在浏览器设置中允许定位权限。",
+    errUnavailable: "无法获取当前位置，请检查GPS服务。",
+    errTimeout: "GPS响应超时，请在室外重试。",
+    errGeneric: "无法获取GPS位置。",
+    errHttps: "注意：非 HTTPS 连接可能会导致 GPS 被禁用。",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>GPS测量后将显示地图。</div>",
+    msgTemplate: "📍 我的当前位置\n纬度: {lat}\n经度: {lon}\n精确度: 约 {accuracy} m\n时间: {time}\n\n🗺️ 地图:\n{url}",
+    shareTitle: "我的当前GPS位置",
+    copyAlert: "已复制GPS坐标。",
+    shareFallbackAlert: "由于不支持直接分享，已复制位置信息到剪贴板。"
+  }
+};
 
 const $ = id => document.getElementById(id);
 
@@ -96,15 +322,60 @@ function setStatus(text, type){
   $("dot").className = "dot " + type;
 }
 
+function changeLanguage(lang){
+  if(!translations[lang]) return;
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  const t = translations[lang];
+
+  $("title-text").textContent = t.title;
+  $("header-title").textContent = t.headerTitle;
+  $("header-desc").textContent = t.headerDesc;
+  
+  $("label-lat").textContent = t.labelLat;
+  $("label-lon").textContent = t.labelLon;
+  $("label-accuracy").textContent = t.labelAccuracy;
+  $("label-altitude").textContent = t.labelAltitude;
+  $("label-speed").textContent = t.labelSpeed;
+  $("label-time").textContent = t.labelTime;
+
+  $("startBtn").textContent = t.startBtn;
+  $("stopBtn").textContent = t.stopBtn;
+
+  $("title-share").textContent = t.titleShare;
+  $("shareBtn").textContent = t.shareBtn;
+  $("copyBtn").textContent = t.copyBtn;
+  $("smsBtn").textContent = t.smsBtn;
+  $("note-share").textContent = t.noteShare;
+
+  $("title-map").textContent = t.titleMap;
+  $("mapBtn").textContent = t.mapBtn;
+
+  $("title-info").textContent = t.titleInfo;
+  $("title-guide").textContent = t.titleGuide;
+  $("note-guide").innerHTML = t.noteGuide;
+  $("footer-text").textContent = t.footerText;
+
+  if(!currentPosition){
+    setStatus(t.statusWait, "wait");
+    $("message").textContent = t.messageDefault;
+    $("map").srcdoc = t.mapPlaceholder;
+    $("coords").textContent = t.coordsFormat.replace("{lat}", "--").replace("{lon}", "--");
+  } else {
+    updatePosition(currentPosition);
+  }
+}
+
 function startGPS(){
+  const t = translations[currentLang];
   if(!navigator.geolocation){
-    setStatus("이 브라우저는 GPS 위치 기능을 지원하지 않습니다.", "err");
+    setStatus(t.errNotSupported, "err");
     return;
   }
 
   if(watchId !== null) navigator.geolocation.clearWatch(watchId);
 
-  setStatus("GPS 위치를 측정하는 중...", "wait");
+  setStatus(t.statusMeasuring, "wait");
   $("startBtn").disabled = true;
   $("stopBtn").disabled = false;
 
@@ -120,11 +391,12 @@ function startGPS(){
 }
 
 function stopGPS(){
+  const t = translations[currentLang];
   if(watchId !== null){
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
-  setStatus("GPS 측정을 중지했습니다.", "");
+  setStatus(t.statusStopped, "");
   $("startBtn").disabled = false;
   $("stopBtn").disabled = true;
 }
@@ -132,43 +404,46 @@ function stopGPS(){
 function updatePosition(position){
   currentPosition = position;
   const c = position.coords;
+  const t = translations[currentLang];
 
   const lat = c.latitude;
   const lon = c.longitude;
 
   $("lat").textContent = lat.toFixed(7) + "°";
   $("lon").textContent = lon.toFixed(7) + "°";
-  $("coords").textContent = `${lat.toFixed(6)}°, ${lon.toFixed(6)}°`;
+  $("coords").textContent = t.coordsFormat.replace("{lat}", lat.toFixed(6) + "°").replace("{lon}", lon.toFixed(6) + "°");
 
   $("accuracy").textContent = c.accuracy != null ? `±${Math.round(c.accuracy)} m` : "--";
-  $("altitude").textContent = c.altitude != null ? `${c.altitude.toFixed(1)} m` : "지원 안 됨";
+  $("altitude").textContent = c.altitude != null ? `${c.altitude.toFixed(1)} m` : t.notSupported;
   $("speed").textContent = c.speed != null && c.speed >= 0 ? `${(c.speed * 3.6).toFixed(1)} km/h` : "--";
 
   const d = new Date(position.timestamp);
-  $("time").textContent = d.toLocaleTimeString("ko-KR");
+  const langLocaleMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN', ja: 'ja-JP', zh: 'zh-CN' };
+  const locale = langLocaleMap[currentLang] || 'en-US';
+  
+  $("time").textContent = d.toLocaleTimeString(locale);
 
-  setStatus("GPS 위치가 정상적으로 측정되었습니다.", "ok");
+  setStatus(t.statusOk, "ok");
 
   const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-  $("message").textContent =
-`📍 현재 내 위치
-위도: ${lat.toFixed(7)}
-경도: ${lon.toFixed(7)}
-정확도: ${c.accuracy != null ? "약 " + Math.round(c.accuracy) + " m" : "알 수 없음"}
-시간: ${d.toLocaleString("ko-KR")}
-
-🗺️ 지도:
-${mapsUrl}`;
+  
+  $("message").textContent = t.msgTemplate
+    .replace("{lat}", lat.toFixed(7))
+    .replace("{lon}", lon.toFixed(7))
+    .replace("{accuracy}", c.accuracy != null ? Math.round(c.accuracy) : "--")
+    .replace("{time}", d.toLocaleString(locale))
+    .replace("{url}", mapsUrl);
 
   ["shareBtn","copyBtn","smsBtn","mapBtn"].forEach(id => $(id).disabled = false);
   updateMap(lat, lon);
 }
 
 function handleError(error){
-  let msg = "GPS 위치를 가져오지 못했습니다.";
-  if(error.code === 1) msg = "위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용하세요.";
-  if(error.code === 2) msg = "현재 위치를 확인할 수 없습니다. GPS/위치 서비스를 확인하세요.";
-  if(error.code === 3) msg = "GPS 응답 시간이 초과되었습니다. 실외에서 다시 시도하세요.";
+  const t = translations[currentLang];
+  let msg = t.errGeneric;
+  if(error.code === 1) msg = t.errDenied;
+  if(error.code === 2) msg = t.errUnavailable;
+  if(error.code === 3) msg = t.errTimeout;
   setStatus(msg, "err");
   $("startBtn").disabled = false;
   $("stopBtn").disabled = true;
@@ -178,23 +453,34 @@ function getShareText(){
   if(!currentPosition) return "";
   const c = currentPosition.coords;
   const d = new Date(currentPosition.timestamp);
-  return `📍 내 현재 위치\n위도: ${c.latitude.toFixed(7)}\n경도: ${c.longitude.toFixed(7)}\n정확도: 약 ${Math.round(c.accuracy)}m\n시간: ${d.toLocaleString("ko-KR")}\n\n🗺️ Google Maps\nhttps://www.google.com/maps?q=${c.latitude},${c.longitude}`;
+  const t = translations[currentLang];
+  const langLocaleMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN', ja: 'ja-JP', zh: 'zh-CN' };
+  const locale = langLocaleMap[currentLang] || 'en-US';
+
+  const mapsUrl = `https://www.google.com/maps?q=${c.latitude},${c.longitude}`;
+  return t.msgTemplate
+    .replace("{lat}", c.latitude.toFixed(7))
+    .replace("{lon}", c.longitude.toFixed(7))
+    .replace("{accuracy}", c.accuracy != null ? Math.round(c.accuracy) : "--")
+    .replace("{time}", d.toLocaleString(locale))
+    .replace("{url}", mapsUrl);
 }
 
 async function shareLocation(){
+  const t = translations[currentLang];
   const text = getShareText();
   if(!text) return;
 
   if(navigator.share){
     try{
       await navigator.share({
-        title: "내 현재 GPS 위치",
+        title: t.shareTitle,
         text: text
       });
     }catch(e){}
   }else{
     await copyText(text);
-    alert("공유 기능을 지원하지 않아 위치 정보를 클립보드에 복사했습니다.");
+    alert(t.shareFallbackAlert);
   }
 }
 
@@ -215,10 +501,11 @@ async function copyText(text){
 
 async function copyCoordinates(){
   if(!currentPosition) return;
+  const t = translations[currentLang];
   const c = currentPosition.coords;
   const text = `${c.latitude.toFixed(7)}, ${c.longitude.toFixed(7)}`;
   await copyText(text);
-  alert("GPS 좌표를 복사했습니다.");
+  alert(t.copyAlert);
 }
 
 function openSMS(){
@@ -237,13 +524,21 @@ function updateMap(lat, lon){
   const map = $("map");
   const delta = 0.01;
   const bbox = `${lon-delta},${lat-delta},${lon+delta},${lat+delta}`;
-  const marker = encodeURIComponent(`https://www.google.com/maps?q=${lat},${lon}`);
   map.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
 }
 
 window.addEventListener("load", ()=>{
+  const userLang = navigator.language.slice(0, 2);
+  if(translations[userLang]){
+    $("langSelect").value = userLang;
+    changeLanguage(userLang);
+  } else {
+    changeLanguage('ko');
+  }
+
   if(!window.isSecureContext && location.hostname !== "localhost"){
-    setStatus("주의: HTTPS가 아니면 스마트폰에서 GPS가 차단될 수 있습니다.", "err");
+    const t = translations[currentLang];
+    setStatus(t.errHttps, "err");
   }
 });
 </script>

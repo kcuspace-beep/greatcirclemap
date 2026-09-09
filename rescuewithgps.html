@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0b5cff">
-  <title>통합 해양/야외 조난구조 & 웨이포인트 네비게이터</title>
+  <title data-i18n="appTitle">통합 해양/야외 조난구조 & 웨이포인트 네비게이터</title>
 
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -39,9 +39,33 @@
       padding: 24px 18px;
       text-align: center;
       box-shadow: 0 4px 12px rgba(11, 92, 255, 0.15);
+      position: relative;
     }
     header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
     header p { margin: 0; opacity: 0.9; font-size: 14px; }
+
+    /* 언어 선택 셀렉트 박스 */
+    .lang-selector-wrapper {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+    }
+    .lang-selector {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      outline: none;
+      backdrop-filter: blur(4px);
+    }
+    .lang-selector option {
+      background: #ffffff;
+      color: #172033;
+    }
 
     main {
       max-width: 1100px;
@@ -195,78 +219,86 @@
 
     @media(max-width: 768px) {
       .grid-2 { grid-template-columns: 1fr; }
+      .lang-selector-wrapper { position: relative; top: 0; right: 0; margin-bottom: 10px; text-align: right; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>📍 통합 조난자 구조 & 네비게이터</h1>
-  <p>내 위치 측정, 조난자 GPS 좌표 연동, 방위각 및 웨이포인트 경로 안내</p>
+  <div class="lang-selector-wrapper">
+    <select id="langSelect" class="lang-selector" onchange="changeLanguage(this.value)">
+      <option value="ko" selected>한국어</option>
+      <option value="en">English</option>
+      <option value="vi">Tiếng Việt</option>
+    </select>
+  </div>
+  <h1 data-i18n="headerTitle">📍 통합 조난자 구조 & 네비게이터</h1>
+  <p data-i18n="headerSub">내 위치 측정, 조난자 GPS 좌표 연동, 방위각 및 웨이포인트 경로 안내</p>
 </header>
 
 <main>
   <!-- 1. GPS 및 내 위치 확인 카드 -->
   <section class="card">
-    <h2>📡 출발점: 내 현재 GPS 위치</h2>
+    <h2 data-i18n="sec1Title">📡 출발점: 내 현재 GPS 위치</h2>
     <div class="status-bar">
       <span id="dot" class="dot wait"></span>
-      <span id="status">GPS 위치 측정이 준비되었습니다.</span>
+      <span id="status" data-i18n="statusReady">GPS 위치 측정이 준비되었습니다.</span>
     </div>
 
     <div class="input-row" style="margin-bottom: 12px;">
-      <button id="startBtn" class="btn-primary" onclick="startGPS()">📡 실시간 GPS 측정 시작</button>
-      <button id="stopBtn" class="btn-light" onclick="stopGPS()" disabled>⏹ 중지</button>
-      <button id="shareBtn" class="btn-success" onclick="shareLocation()" disabled>📲 내 위치 공유</button>
-      <button id="smsBtn" class="btn-dark" onclick="openSMS()" disabled>💬 SMS 전송</button>
+      <button id="startBtn" class="btn-primary" onclick="startGPS()" data-i18n="btnStartGps">📡 실시간 GPS 측정 시작</button>
+      <button id="stopBtn" class="btn-light" onclick="stopGPS()" disabled data-i18n="btnStopGps">⏹ 중지</button>
+      <button id="shareBtn" class="btn-success" onclick="shareLocation()" disabled data-i18n="btnShareLoc">📲 내 위치 공유</button>
+      <button id="smsBtn" class="btn-dark" onclick="openSMS()" disabled data-i18n="btnSms">💬 SMS 전송</button>
     </div>
 
     <div class="grid-4" style="margin-top: 12px;">
-      <div class="res-card"><b>내 위도</b><span id="lat-val">--</span></div>
-      <div class="res-card"><b>내 경도</b><span id="lon-val">--</span></div>
-      <div class="res-card"><b>정확도</b><span id="acc-val">--</span></div>
-      <div class="res-card"><b>측정 시간</b><span id="time-val">--</span></div>
+      <div class="res-card"><b data-i18n="lblMyLat">내 위도</b><span id="lat-val">--</span></div>
+      <div class="res-card"><b data-i18n="lblMyLon">내 경도</b><span id="lon-val">--</span></div>
+      <div class="res-card"><b data-i18n="lblAccuracy">정확도</b><span id="acc-val">--</span></div>
+      <div class="res-card"><b data-i18n="lblTime">측정 시간</b><span id="time-val">--</span></div>
     </div>
   </section>
 
   <!-- 2. 조난자 GPS 좌표 입력 & 복사 붙여넣기 파싱 카드 -->
   <section class="card">
-    <h2>🆘 도착점: 조난자 GPS 좌표 파싱 및 입력</h2>
+    <h2 data-i18n="sec2Title">🆘 도착점: 조난자 GPS 좌표 파싱 및 입력</h2>
     <div class="parse-box">
-      <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;">
+      <label style="font-weight: 700; font-size: 14px; display: block; margin-bottom: 6px;" data-i18n="lblParseMsg">
         📋 조난자에게서 수신된 문자/메시지 전체를 아래에 붙여넣으세요:
       </label>
-      <textarea id="gps-paste-input" placeholder="예: [조난자 위치] 위도: 36.7821, 경도: 126.1423 또는 36.7821, 126.1423 또는 구글맵 링크 등"></textarea>
+      <textarea id="gps-paste-input" data-i18n-ph="phPasteText" placeholder="예: [조난자 위치] 위도: 36.7821, 경도: 126.1423 또는 36.7821, 126.1423 또는 구글맵 링크 등"></textarea>
       <div style="margin-top: 8px; display: flex; gap: 8px;">
-        <button class="btn-primary" onclick="parsePastedGPS()">🔍 좌표 추출하여 조난자 위치 지정</button>
-        <button class="btn-light" onclick="document.getElementById('gps-paste-input').value=''">초기화</button>
+        <button class="btn-primary" onclick="parsePastedGPS()" data-i18n="btnParse">🔍 좌표 추출하여 조난자 위치 지정</button>
+        <button class="btn-light" onclick="document.getElementById('gps-paste-input').value=''" data-i18n="btnReset">초기화</button>
       </div>
     </div>
 
     <div class="grid-2">
       <!-- 출발지 입력/검색 -->
       <div class="loc-card">
-        <h3>📍 출발지 (내 위치 / 구조대)</h3>
+        <h3 data-i18n="titleStartLoc">📍 출발지 (내 위치 / 구조대)</h3>
         <div class="input-row">
-          <input type="text" id="city1-input" placeholder="장소 검색 (예: 서울역)" value="현재 위치">
-          <button class="btn-secondary" onclick="searchCity(1)">검색</button>
+          <input type="text" id="city1-input" data-i18n-ph="phSearchCity1" placeholder="장소 검색 (예: 서울역)" value="현재 위치">
+          <button class="btn-secondary" onclick="searchCity(1)" data-i18n="btnSearch">검색</button>
         </div>
         <div class="input-row">
-          <input type="number" id="lat1-input" step="0.00001" placeholder="위도" value="37.55472">
-          <input type="number" id="lon1-input" step="0.00001" placeholder="경도" value="126.97083">
+          <input type="number" id="lat1-input" step="0.00001" data-i18n-ph="phLat" placeholder="위도" value="37.55472">
+          <input type="number" id="lon1-input" step="0.00001" data-i18n-ph="phLon" placeholder="경도" value="126.97083">
         </div>
       </div>
 
       <!-- 도착지 입력/검색 -->
       <div class="loc-card">
-        <h3>🚨 도착지 (조난자 위치)</h3>
+        <h3 data-i18n="titleDestLoc">🚨 도착지 (조난자 위치)</h3>
         <div class="input-row">
-          <input type="text" id="city2-input" placeholder="장소 검색 (예: 한강공원)" value="조난 지점">
-          <button class="btn-secondary" onclick="searchCity(2)">검색</button>
+          <input type="text" id="city2-input" data-i18n-ph="phSearchCity2" placeholder="장소 검색 (예: 한강공원)" value="조난 지점">
+          <button class="btn-secondary" onclick="searchCity(2)" data-i18n="btnSearch">검색</button>
         </div>
         <div class="input-row">
-          <input type="number" id="lat2-input" step="0.00001" placeholder="위도" value="37.52841">
-          <input type="number" id="lon2-input" step="0.00001" placeholder="경도" value="126.93308">
+          <input type="number" id="lat2-input" step="0.00001" data-i18n-ph="phLat" placeholder="위도" value="37.52841">
+          <input type="number" id="lon2-input" step="0.00001" data-i18n-ph="phLon" placeholder="경도" value="126.93308">
         </div>
       </div>
     </div>
@@ -274,30 +306,30 @@
 
   <!-- 3. 음성 브리핑 & 모바일 나침반 카드 -->
   <section class="card">
-    <h2>🧭 나침반 & 음성 브리핑 / 명령</h2>
+    <h2 data-i18n="sec3Title">🧭 나침반 & 음성 브리핑 / 명령</h2>
     <div class="grid-2">
       <!-- 모바일 나침반 -->
       <div style="text-align: center; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
-        <h4 style="margin: 0;">실시간 모바일 나침반</h4>
+        <h4 style="margin: 0;" data-i18n="titleCompass">실시간 모바일 나침반</h4>
         <div class="compass-dial">
           <div id="compass-needle" class="compass-needle"></div>
         </div>
-        <div style="font-size: 14px;">현재 진행 방위: <b id="heading-val" style="color:var(--danger)">0°</b></div>
-        <button class="btn-light" onclick="requestCompassPermission()" style="margin-top: 8px; font-size: 12px;">나침반 센서 활성화</button>
+        <div style="font-size: 14px;"><span data-i18n="lblHeading">현재 진행 방위:</span> <b id="heading-val" style="color:var(--danger)">0°</b></div>
+        <button class="btn-light" onclick="requestCompassPermission()" style="margin-top: 8px; font-size: 12px;" data-i18n="btnEnableCompass">나침반 센서 활성화</button>
       </div>
 
       <!-- 음성 명령 & 브리핑 -->
       <div style="display: flex; flex-direction: column; justify-content: space-between; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
         <div>
-          <h4 style="margin: 0 0 8px;">음성 제어 & 브리핑</h4>
-          <button id="voice-start-btn" class="btn-danger" style="width: 100%;" onclick="toggleVoiceRecognition()">🎤 음성 명령 시작하기</button>
-          <p id="voice-status" style="font-size: 12px; color: var(--text-muted); margin: 6px 0;">"경로 계산", "음성 브리핑" 등을 명령하세요.</p>
+          <h4 style="margin: 0 0 8px;" data-i18n="titleVoiceCtrl">음성 제어 & 브리핑</h4>
+          <button id="voice-start-btn" class="btn-danger" style="width: 100%;" onclick="toggleVoiceRecognition()" data-i18n="btnStartVoice">🎤 음성 명령 시작하기</button>
+          <p id="voice-status" style="font-size: 12px; color: var(--text-muted); margin: 6px 0;" data-i18n="txtVoiceHelp">"경로 계산", "음성 브리핑" 등을 명령하세요.</p>
         </div>
         <div>
           <label style="font-size: 13px; font-weight: 600;">
-            <input type="checkbox" id="auto-brief-toggle" onchange="toggleAutoBriefing(this)"> 5분 주기 음성 자동 브리핑
+            <input type="checkbox" id="auto-brief-toggle" onchange="toggleAutoBriefing(this)"> <span data-i18n="lblAutoBrief">5분 주기 음성 자동 브리핑</span>
           </label>
-          <button class="btn-success" style="width: 100%; margin-top: 6px;" onclick="speakCurrentStatus()">📢 현재 위치 브리핑 들기</button>
+          <button class="btn-success" style="width: 100%; margin-top: 6px;" onclick="speakCurrentStatus()" data-i18n="btnHearBrief">📢 현재 위치 브리핑 들기</button>
         </div>
       </div>
     </div>
@@ -305,19 +337,19 @@
 
   <!-- 4. 경로 계산 결과 및 지도 영역 -->
   <section class="card">
-    <h2>🗺️ 이동 경로 및 웨이포인트 산출</h2>
+    <h2 data-i18n="sec4Title">🗺️ 이동 경로 및 웨이포인트 산출</h2>
     
     <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-      <button class="btn-primary" onclick="updateAll()" style="padding: 10px 20px;">⚡ 경로 및 웨이포인트 계산</button>
-      <label style="font-size: 14px; font-weight: 600;">중간 웨이포인트 개수:</label>
+      <button class="btn-primary" onclick="updateAll()" style="padding: 10px 20px;" data-i18n="btnCalcRoute">⚡ 경로 및 웨이포인트 계산</button>
+      <label style="font-size: 14px; font-weight: 600;" data-i18n="lblWpCount">중간 웨이포인트 개수:</label>
       <input type="number" id="wpCountInput" value="5" min="1" max="50" style="width: 70px;" oninput="updateAll()">
     </div>
 
     <div class="grid-4" style="margin-bottom: 16px;">
-      <div class="res-card"><b>총 직선 거리</b><span id="resDist">—</span></div>
-      <div class="res-card"><b>조난자 방향각 (Bearing)</b><span id="resBearing" style="color:var(--danger);">—</span></div>
-      <div class="res-card"><b>구간별 간격 거리</b><span id="resStepDist">—</span></div>
-      <div class="res-card"><b>첫 번째 웨이포인트</b><span id="resNextWp" style="font-size: 14px;">—</span></div>
+      <div class="res-card"><b data-i18n="lblTotalDist">총 직선 거리</b><span id="resDist">—</span></div>
+      <div class="res-card"><b data-i18n="lblBearing">조난자 방향각 (Bearing)</b><span id="resBearing" style="color:var(--danger);">—</span></div>
+      <div class="res-card"><b data-i18n="lblStepDist">구간별 간격 거리</b><span id="resStepDist">—</span></div>
+      <div class="res-card"><b data-i18n="lblFirstWp">첫 번째 웨이포인트</b><span id="resNextWp" style="font-size: 14px;">—</span></div>
     </div>
 
     <!-- Leaflet 지도 -->
@@ -328,11 +360,11 @@
       <table>
         <thead>
           <tr>
-            <th>구분</th>
-            <th>지점명</th>
-            <th>위도</th>
-            <th>경도</th>
-            <th>방위각</th>
+            <th data-i18n="thCategory">구분</th>
+            <th data-i18n="thWpName">지점명</th>
+            <th data-i18n="thLat">위도</th>
+            <th data-i18n="thLon">경도</th>
+            <th data-i18n="thBearing">방위각</th>
           </tr>
         </thead>
         <tbody id="waypoint-table-body"></tbody>
@@ -342,6 +374,263 @@
 </main>
 
 <script>
+  // --- 다국어 i18n 텍스트 사전 ---
+  const i18n = {
+    ko: {
+      appTitle: "통합 해양/야외 조난구조 & 웨이포인트 네비게이터",
+      headerTitle: "📍 통합 조난자 구조 & 네비게이터",
+      headerSub: "내 위치 측정, 조난자 GPS 좌표 연동, 방위각 및 웨이포인트 경로 안내",
+      sec1Title: "📡 출발점: 내 현재 GPS 위치",
+      statusReady: "GPS 위치 측정이 준비되었습니다.",
+      statusSearching: "GPS 위치를 측정 중...",
+      statusStopped: "GPS 측정을 중지했습니다.",
+      statusSuccess: "GPS 위치가 정상 수신되었습니다.",
+      errNoSupport: "이 브라우저는 GPS 위치 기능을 지원하지 않습니다.",
+      errDenied: "위치 권한이 거부되었습니다.",
+      errUnavailable: "위치 정보를 이용할 수 없습니다.",
+      errTimeout: "GPS 측정 시간이 초과되었습니다.",
+      errFetchFail: "GPS 위치를 가져오지 못했습니다.",
+      btnStartGps: "📡 실시간 GPS 측정 시작",
+      btnStopGps: "⏹ 중지",
+      btnShareLoc: "📲 내 위치 공유",
+      btnSms: "💬 SMS 전송",
+      lblMyLat: "내 위도",
+      lblMyLon: "내 경도",
+      lblAccuracy: "정확도",
+      lblTime: "측정 시간",
+      sec2Title: "🆘 도착점: 조난자 GPS 좌표 파싱 및 입력",
+      lblParseMsg: "📋 조난자에게서 수신된 문자/메시지 전체를 아래에 붙여넣으세요:",
+      phPasteText: "예: [조난자 위치] 위도: 36.7821, 경도: 126.1423 또는 36.7821, 126.1423 또는 구글맵 링크 등",
+      btnParse: "🔍 좌표 추출하여 조난자 위치 지정",
+      btnReset: "초기화",
+      titleStartLoc: "📍 출발지 (내 위치 / 구조대)",
+      phSearchCity1: "장소 검색 (예: 서울역)",
+      titleDestLoc: "🚨 도착지 (조난자 위치)",
+      phSearchCity2: "장소 검색 (예: 한강공원)",
+      phLat: "위도",
+      phLon: "경도",
+      btnSearch: "검색",
+      sec3Title: "🧭 나침반 & 음성 브리핑 / 명령",
+      titleCompass: "실시간 모바일 나침반",
+      lblHeading: "현재 진행 방위:",
+      btnEnableCompass: "나침반 센서 활성화",
+      titleVoiceCtrl: "음성 제어 & 브리핑",
+      btnStartVoice: "🎤 음성 명령 시작하기",
+      btnListeningVoice: "🎙️ 음성 듣는 중...",
+      txtVoiceHelp: '"경로 계산", "음성 브리핑" 등을 명령하세요.',
+      lblAutoBrief: "5분 주기 음성 자동 브리핑",
+      btnHearBrief: "📢 현재 위치 브리핑 들기",
+      sec4Title: "🗺️ 이동 경로 및 웨이포인트 산출",
+      btnCalcRoute: "⚡ 경로 및 웨이포인트 계산",
+      lblWpCount: "중간 웨이포인트 개수:",
+      lblTotalDist: "총 직선 거리",
+      lblBearing: "조난자 방향각 (Bearing)",
+      lblStepDist: "구간별 간격 거리",
+      lblFirstWp: "첫 번째 웨이포인트",
+      thCategory: "구분",
+      thWpName: "지점명",
+      thLat: "위도",
+      thLon: "경도",
+      thBearing: "방위각",
+      wpStart: "출발지(내 위치)",
+      wpDest: "도착지(조난자)",
+      msgParseEmpty: "파싱할 텍스트를 입력해 주세요.",
+      msgParseSuccess: "조난자 위치 좌표 추출 성공:\n위도: {lat}, 경도: {lon}",
+      msgParseRangeErr: "유효한 위도/경도 범위를 찾지 못했습니다.",
+      msgParseNotFound: "텍스트에서 위도/경도 좌표 패턴을 추출할 수 없습니다.",
+      msgVoiceCalcDone: "경로 계산이 완료되었습니다.",
+      msgAutoStart: "5분 주기 자동 음성 브리핑을 시작합니다.",
+      msgAutoStop: "자동 음성 브리핑을 종료합니다.",
+      msgVoiceNoSupport: "이 브라우저는 음성 인식을 지원하지 않습니다.",
+      defaultStartName: "현재 위치",
+      defaultDestName: "조난 지점",
+      parsedDestName: "조난자 수신 위치"
+    },
+    en: {
+      appTitle: "Integrated Maritime/Outdoor Rescue & Waypoint Navigator",
+      headerTitle: "📍 Integrated Rescue & Navigator",
+      headerSub: "Measure location, sync distress GPS coordinates, bearing & waypoint route guidance",
+      sec1Title: "📡 Origin: My Current GPS Location",
+      statusReady: "GPS location measurement ready.",
+      statusSearching: "Measuring GPS location...",
+      statusStopped: "GPS measurement stopped.",
+      statusSuccess: "GPS position received successfully.",
+      errNoSupport: "Geolocation is not supported by this browser.",
+      errDenied: "Location permission denied.",
+      errUnavailable: "Location information is unavailable.",
+      errTimeout: "GPS measurement timed out.",
+      errFetchFail: "Failed to retrieve GPS location.",
+      btnStartGps: "📡 Start Live GPS",
+      btnStopGps: "⏹ Stop",
+      btnShareLoc: "📲 Share My Location",
+      btnSms: "💬 Send SMS",
+      lblMyLat: "My Lat",
+      lblMyLon: "My Lon",
+      lblAccuracy: "Accuracy",
+      lblTime: "Timestamp",
+      sec2Title: "🆘 Destination: Parse & Input Distress GPS Coordinates",
+      lblParseMsg: "📋 Paste the entire text/message received from the distress caller below:",
+      phPasteText: "e.g., Lat: 36.7821, Lon: 126.1423 or 36.7821, 126.1423 or Google Maps link",
+      btnParse: "🔍 Extract Coordinates & Set Destination",
+      btnReset: "Reset",
+      titleStartLoc: "📍 Origin (My Location / Rescue Team)",
+      phSearchCity1: "Search place (e.g., Seoul Station)",
+      titleDestLoc: "🚨 Destination (Distress Location)",
+      phSearchCity2: "Search place (e.g., Han River Park)",
+      phLat: "Latitude",
+      phLon: "Longitude",
+      btnSearch: "Search",
+      sec3Title: "🧭 Compass & Voice Briefing / Commands",
+      titleCompass: "Live Mobile Compass",
+      lblHeading: "Current Heading:",
+      btnEnableCompass: "Enable Compass Sensor",
+      titleVoiceCtrl: "Voice Control & Briefing",
+      btnStartVoice: "🎤 Start Voice Command",
+      btnListeningVoice: "🎙️ Listening...",
+      txtVoiceHelp: 'Say "Calculate route" or "Voice briefing".',
+      lblAutoBrief: "5-min Interval Auto Briefing",
+      btnHearBrief: "📢 Listen to Current Briefing",
+      sec4Title: "🗺️ Route & Waypoint Calculation",
+      btnCalcRoute: "⚡ Calculate Route & Waypoints",
+      lblWpCount: "Intermediate Waypoints Count:",
+      lblTotalDist: "Total Distance",
+      lblBearing: "Bearing to Victim",
+      lblStepDist: "Interval Distance",
+      lblFirstWp: "First Waypoint",
+      thCategory: "Category",
+      thWpName: "Point Name",
+      thLat: "Latitude",
+      thLon: "Longitude",
+      thBearing: "Bearing",
+      wpStart: "Start (My Location)",
+      wpDest: "Dest (Victim)",
+      msgParseEmpty: "Please enter text to parse.",
+      msgParseSuccess: "Distress coordinates extracted:\nLat: {lat}, Lon: {lon}",
+      msgParseRangeErr: "Valid latitude/longitude range not found.",
+      msgParseNotFound: "Could not extract latitude/longitude patterns from text.",
+      msgVoiceCalcDone: "Route calculation complete.",
+      msgAutoStart: "Starting 5-minute interval voice briefing.",
+      msgAutoStop: "Stopped automatic voice briefing.",
+      msgVoiceNoSupport: "Speech recognition is not supported by this browser.",
+      defaultStartName: "Current Location",
+      defaultDestName: "Distress Point",
+      parsedDestName: "Victim Received Location"
+    },
+    vi: {
+      appTitle: "Hệ thống Cứu hộ Bờ biển/Ngoại ô Integrated & Dẫn đường Waypoint",
+      headerTitle: "📍 Hệ thống Cứu hộ & Dẫn đường Dã ngoại",
+      headerSub: "Đo vị trí hiện tại, đồng bộ tọa độ GPS cứu hộ, hướng đi & chỉ đường Waypoint",
+      sec1Title: "📡 Điểm xuất phát: Vị trí GPS hiện tại của tôi",
+      statusReady: "Sẵn sàng đo vị trí GPS.",
+      statusSearching: "Đang đo vị trí GPS...",
+      statusStopped: "Đã dừng đo GPS.",
+      statusSuccess: "Đã nhận vị trí GPS thành công.",
+      errNoSupport: "Trình duyệt này không hỗ trợ vị trí GPS.",
+      errDenied: "Quyền truy cập vị trí bị từ chối.",
+      errUnavailable: "Thông tin vị trí không khả dụng.",
+      errTimeout: "Đã hết thời gian đo GPS.",
+      errFetchFail: "Không thể lấy vị trí GPS.",
+      btnStartGps: "📡 Bắt đầu đo GPS thời gian thực",
+      btnStopGps: "⏹ Dừng",
+      btnShareLoc: "📲 Chia sẻ vị trí",
+      btnSms: "💬 Gửi SMS",
+      lblMyLat: "Vĩ độ",
+      lblMyLon: "Kinh độ",
+      lblAccuracy: "Độ chính xác",
+      lblTime: "Thời gian",
+      sec2Title: "🆘 Điểm đến: Phân tích & Nhập tọa độ GPS bị nạn",
+      lblParseMsg: "📋 Dán toàn bộ tin nhắn/văn bản nhận được từ người gặp nạn vào 아래:",
+      phPasteText: "Ví dụ: Vĩ độ: 36.7821, Kinh độ: 126.1423 hoặc 36.7821, 126.1423 hoặc link Google Maps",
+      btnParse: "🔍 Trích xuất tọa độ & Đặt vị trí",
+      btnReset: "Đặt lại",
+      titleStartLoc: "📍 Điểm đi (Vị trí tôi / Đội cứu hộ)",
+      phSearchCity1: "Tìm địa điểm (Ví dụ: Ga Seoul)",
+      titleDestLoc: "🚨 Điểm đến (Vị trí bị nạn)",
+      phSearchCity2: "Tìm địa điểm (Ví dụ: Công viên Han River)",
+      phLat: "Vĩ độ",
+      phLon: "Kinh độ",
+      btnSearch: "Tìm kiếm",
+      sec3Title: "🧭 La bàn & Báo cáo / Lệnh giọng nói",
+      titleCompass: "La bàn di động trực tiếp",
+      lblHeading: "Hướng hiện tại:",
+      btnEnableCompass: "Kích hoạt cảm biến la bàn",
+      titleVoiceCtrl: "Điều khiển & Báo cáo giọng nói",
+      btnStartVoice: "🎤 Bắt đầu lệnh giọng nói",
+      btnListeningVoice: "🎙️ Đang nghe...",
+      txtVoiceHelp: 'Ra lệnh như "Tính tuyến đường", "Báo cáo giọng nói".',
+      lblAutoBrief: "Tự động báo cáo giọng nói mỗi 5 phút",
+      btnHearBrief: "📢 Nghe báo cáo vị trí hiện tại",
+      sec4Title: "🗺️ Tính toán Tuyến đường & Waypoint",
+      btnCalcRoute: "⚡ Tính tuyến đường & Waypoint",
+      lblWpCount: "Số lượng Waypoint trung gian:",
+      lblTotalDist: "Tổng khoảng cách thẳng",
+      lblBearing: "Góc hướng tới nạn nhân (Bearing)",
+      lblStepDist: "Khoảng cách từng đoạn",
+      lblFirstWp: "Waypoint đầu tiên",
+      thCategory: "Phân loại",
+      thWpName: "Tên điểm",
+      thLat: "Vĩ độ",
+      thLon: "Kinh độ",
+      thBearing: "Góc hướng",
+      wpStart: "Điểm đi (Vị trí tôi)",
+      wpDest: "Điểm đến (Nạn nhân)",
+      msgParseEmpty: "Vui lòng nhập văn bản để phân tích.",
+      msgParseSuccess: "Trích xuất tọa độ thành công:\nVĩ độ: {lat}, Kinh độ: {lon}",
+      msgParseRangeErr: "Không tìm thấy phạm vi Vĩ độ/Kinh độ hợp lệ.",
+      msgParseNotFound: "Không thể trích xuất định dạng tọa độ từ văn bản.",
+      msgVoiceCalcDone: "Đã tính toán xong tuyến đường.",
+      msgAutoStart: "Bắt đầu tự động báo cáo giọng nói mỗi 5 phút.",
+      msgAutoStop: "Đã dừng tự động báo cáo giọng nói.",
+      msgVoiceNoSupport: "Trình duyệt này không hỗ trợ nhận diện giọng nói.",
+      defaultStartName: "Vị trí hiện tại",
+      defaultDestName: "Điểm gặp nạn",
+      parsedDestName: "Vị trí nhận từ nạn nhân"
+    }
+  };
+
+  let currentLang = 'ko';
+
+  function changeLanguage(lang) {
+    if (!i18n[lang]) return;
+    currentLang = lang;
+    const dict = i18n[lang];
+
+    // document title
+    document.title = dict.appTitle;
+
+    // data-i18n 텍스트 변경
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict[key]) {
+        el.textContent = dict[key];
+      }
+    });
+
+    // data-i18n-ph placeholder 변경
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      const key = el.getAttribute('data-i18n-ph');
+      if (dict[key]) {
+        el.placeholder = dict[key];
+      }
+    });
+
+    // STT 언어 변경
+    if (recognition) {
+      const langCodes = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN' };
+      recognition.lang = langCodes[lang] || 'ko-KR';
+    }
+
+    // 기본 이름 텍스트 갱신
+    if ($("city1-input").value === i18n['ko'].defaultStartName || $("city1-input").value === i18n['en'].defaultStartName || $("city1-input").value === i18n['vi'].defaultStartName) {
+      $("city1-input").value = dict.defaultStartName;
+    }
+    if ($("city2-input").value === i18n['ko'].defaultDestName || $("city2-input").value === i18n['en'].defaultDestName || $("city2-input").value === i18n['vi'].defaultDestName) {
+      $("city2-input").value = dict.defaultDestName;
+    }
+
+    updateAll();
+  }
+
   const R = 6371; // 지구 반지름 (km)
   let watchId = null;
   let currentPosition = null;
@@ -360,12 +649,12 @@
 
   function startGPS(){
     if(!navigator.geolocation){
-      setStatus("이 브라우저는 GPS 위치 기능을 지원하지 않습니다.", "err");
+      setStatus(i18n[currentLang].errNoSupport, "err");
       return;
     }
     if(watchId !== null) navigator.geolocation.clearWatch(watchId);
 
-    setStatus("GPS 위치를 측정한 중...", "wait");
+    setStatus(i18n[currentLang].statusSearching, "wait");
     $("startBtn").disabled = true;
     $("stopBtn").disabled = false;
 
@@ -381,7 +670,7 @@
       navigator.geolocation.clearWatch(watchId);
       watchId = null;
     }
-    setStatus("GPS 측정을 중지했습니다.", "");
+    setStatus(i18n[currentLang].statusStopped, "");
     $("startBtn").disabled = false;
     $("stopBtn").disabled = true;
   }
@@ -393,9 +682,11 @@
     $("lat-val").textContent = c.latitude.toFixed(6) + "°";
     $("lon-val").textContent = c.longitude.toFixed(6) + "°";
     $("acc-val").textContent = c.accuracy != null ? `±${Math.round(c.accuracy)}m` : "--";
-    $("time-val").textContent = new Date(position.timestamp).toLocaleTimeString("ko-KR");
+    
+    const localeMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN' };
+    $("time-val").textContent = new Date(position.timestamp).toLocaleTimeString(localeMap[currentLang] || 'ko-KR');
 
-    setStatus("GPS 위치가 정상 수신되었습니다.", "ok");
+    setStatus(i18n[currentLang].statusSuccess, "ok");
     ["shareBtn", "smsBtn"].forEach(id => $(id).disabled = false);
 
     // 출발지에 GPS 좌표 자동 입력
@@ -406,10 +697,10 @@
   }
 
   function handleError(error){
-    let msg = "GPS 위치를 가져오지 못했습니다.";
-    if(error.code === 1) msg = "위치 권한이 거부되었습니다.";
-    if(error.code === 2) msg = "위치 정보를 이용할 수 없습니다.";
-    if(error.code === 3) msg = "GPS 측정 시간이 초과되었습니다.";
+    let msg = i18n[currentLang].errFetchFail;
+    if(error.code === 1) msg = i18n[currentLang].errDenied;
+    if(error.code === 2) msg = i18n[currentLang].errUnavailable;
+    if(error.code === 3) msg = i18n[currentLang].errTimeout;
     setStatus(msg, "err");
     $("startBtn").disabled = false;
     $("stopBtn").disabled = true;
@@ -419,7 +710,7 @@
   function parsePastedGPS() {
     const text = $("gps-paste-input").value;
     if(!text.trim()){
-      alert("파싱할 텍스트를 입력해 주세요.");
+      alert(i18n[currentLang].msgParseEmpty);
       return;
     }
 
@@ -434,14 +725,16 @@
       if(lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180){
         $("lat2-input").value = lat.toFixed(5);
         $("lon2-input").value = lon.toFixed(5);
-        $("city2-input").value = "조난자 수신 위치";
-        alert(`조난자 위치 좌표 추출 성공:\n위도: ${lat}, 경도: ${lon}`);
+        $("city2-input").value = i18n[currentLang].parsedDestName;
+        
+        let msg = i18n[currentLang].msgParseSuccess.replace('{lat}', lat).replace('{lon}', lon);
+        alert(msg);
         updateAll();
       } else {
-        alert("유효한 위도/경도 범위를 찾지 못했습니다.");
+        alert(i18n[currentLang].msgParseRangeErr);
       }
     } else {
-      alert("텍스트에서 위도/경도 좌표 패턴을 추출할 수 없습니다.");
+      alert(i18n[currentLang].msgParseNotFound);
     }
   }
 
@@ -502,7 +795,7 @@
 
       calculatedWaypoints.push({
         index: i,
-        name: i === 0 ? "출발지(내 위치)" : i === steps ? "도착지(조난자)" : `WP ${i}`,
+        name: i === 0 ? i18n[currentLang].wpStart : i === steps ? i18n[currentLang].wpDest : `WP ${i}`,
         lat: Number(curLat.toFixed(5)),
         lon: Number(curLon.toFixed(5)),
         bearing: nextBearing.toFixed(1)
@@ -510,7 +803,7 @@
     }
 
     if (calculatedWaypoints.length > 1) {
-      $("resNextWp").textContent = `${calculatedWaypoints[1].name} (${calculatedWaypoints[0].bearing}° 방향)`;
+      $("resNextWp").textContent = `${calculatedWaypoints[1].name} (${calculatedWaypoints[0].bearing}° ${currentLang === 'ko' ? '방향' : 'heading'})`;
     }
 
     renderTable();
@@ -543,7 +836,7 @@
 
     calculatedWaypoints.forEach(wp => {
       const marker = L.marker([wp.lat, wp.lon]).addTo(leafletMap)
-        .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat}<br>경도: ${wp.lon}`);
+        .bindPopup(`<b>${wp.name}</b><br>${i18n[currentLang].thLat}: ${wp.lat}<br>${i18n[currentLang].thLon}: ${wp.lon}`);
       leafletMarkers.push(marker);
     });
 
@@ -555,7 +848,8 @@
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
+      const voiceLangMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN' };
+      utterance.lang = voiceLangMap[currentLang] || 'ko-KR';
       window.speechSynthesis.speak(utterance);
     }
   }
@@ -566,7 +860,14 @@
     const dist = $("resDist").textContent;
     const bearing = $("resBearing").textContent;
 
-    const message = `현재 구조대 위치 위도 ${lat}, 경도 ${lon}입니다. 조난자까지의 거리는 ${dist} 이며, 이동 방위각은 ${bearing} 방향입니다.`;
+    let message = "";
+    if (currentLang === 'ko') {
+      message = `현재 구조대 위치 위도 ${lat}, 경도 ${lon}입니다. 조난자까지의 거리는 ${dist} 이며, 이동 방위각은 ${bearing} 방향입니다.`;
+    } else if (currentLang === 'en') {
+      message = `Current position latitude ${lat}, longitude ${lon}. Distance to victim is ${dist}, and bearing is ${bearing} degrees.`;
+    } else if (currentLang === 'vi') {
+      message = `Vị trí hiện tại vĩ độ ${lat}, kinh độ ${lon}. Khoảng cách tới nạn nhân là ${dist}, góc hướng là ${bearing} độ.`;
+    }
     speak(message);
   }
 
@@ -579,40 +880,42 @@
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript.trim();
-      $("voice-status").textContent = `인식된 명령: "${transcript}"`;
-      if(transcript.includes("계산") || transcript.includes("경로")) {
+      $("voice-status").textContent = `${currentLang === 'en' ? 'Command recognized' : currentLang === 'vi' ? 'Lệnh đã nhận' : '인식된 명령'}: "${transcript}"`;
+      
+      const textLower = transcript.toLowerCase();
+      if(textLower.includes("계산") || textLower.includes("경로") || textLower.includes("calculate") || textLower.includes("route") || textLower.includes("tính")) {
         updateAll();
-        speak("경로 계산이 완료되었습니다.");
-      } else if(transcript.includes("브리핑") || transcript.includes("안내")) {
+        speak(i18n[currentLang].msgVoiceCalcDone);
+      } else if(textLower.includes("브리핑") || textLower.includes("안내") || textLower.includes("briefing") || textLower.includes("report") || textLower.includes("báo cáo")) {
         speakCurrentStatus();
       }
     };
     recognition.onend = () => {
       isListening = false;
       $("voice-start-btn").classList.remove("listening");
-      $("voice-start-btn").textContent = "🎤 음성 명령 시작하기";
+      $("voice-start-btn").textContent = i18n[currentLang].btnStartVoice;
     };
   }
 
   function toggleVoiceRecognition() {
-    if (!recognition) return alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+    if (!recognition) return alert(i18n[currentLang].msgVoiceNoSupport);
     if (isListening) {
       recognition.stop();
     } else {
       recognition.start();
       isListening = true;
       $("voice-start-btn").classList.add("listening");
-      $("voice-start-btn").textContent = "🎙️ 음성 듣는 중...";
+      $("voice-start-btn").textContent = i18n[currentLang].btnListeningVoice;
     }
   }
 
   function toggleAutoBriefing(checkbox) {
     if (checkbox.checked) {
-      speak("5분 주기 자동 음성 브리핑을 시작합니다.");
+      speak(i18n[currentLang].msgAutoStart);
       briefTimer = setInterval(speakCurrentStatus, 300000);
     } else {
       if (briefTimer) clearInterval(briefTimer);
-      speak("자동 음성 브리핑을 종료합니다.");
+      speak(i18n[currentLang].msgAutoStop);
     }
   }
 
@@ -653,19 +956,19 @@
   function shareLocation(){
     if(!currentPosition) return;
     const c = currentPosition.coords;
-    const text = `📍 현재 내 위치\n위도: ${c.latitude.toFixed(6)}\n경도: ${c.longitude.toFixed(6)}\n지도: https://www.google.com/maps?q=${c.latitude},${c.longitude}`;
+    const text = `📍 ${i18n[currentLang].wpStart}\n${i18n[currentLang].thLat}: ${c.latitude.toFixed(6)}\n${i18n[currentLang].thLon}: ${c.longitude.toFixed(6)}\nMap: https://www.google.com/maps?q=${c.latitude},${c.longitude}`;
     if(navigator.share){
-      navigator.share({ title: "현재 위치 공유", text: text });
+      navigator.share({ title: i18n[currentLang].btnShareLoc, text: text });
     } else {
       navigator.clipboard.writeText(text);
-      alert("위치 공유 텍스트가 클립보드에 복사되었습니다.");
+      alert("Text copied to clipboard.");
     }
   }
 
   function openSMS(){
     if(!currentPosition) return;
     const c = currentPosition.coords;
-    const text = encodeURIComponent(`📍 현재 내 위치: https://www.google.com/maps?q=${c.latitude},${c.longitude}`);
+    const text = encodeURIComponent(`📍 ${i18n[currentLang].wpStart}: https://www.google.com/maps?q=${c.latitude},${c.longitude}`);
     window.location.href = `sms:?body=${text}`;
   }
 
