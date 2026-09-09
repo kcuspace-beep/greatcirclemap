@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>나의 웹페이지 프로젝트</title>
+<title data-i18n="doc_title">나의 웹페이지 프로젝트</title>
 
 <style>
     body {
@@ -19,6 +18,25 @@
         background: #1e3a5f;
         color: white;
         padding: 40px 20px;
+        position: relative;
+    }
+
+    /* 언어 선택기 스타일 */
+    .lang-selector {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+
+    .lang-selector select {
+        padding: 8px 12px;
+        font-size: 14px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        color: #333;
+        cursor: pointer;
+        outline: none;
     }
 
     h1 {
@@ -61,86 +79,303 @@
     .card a:hover {
         background: #1565c0;
     }
-
 </style>
-
 </head>
 
 <body>
 
 <header>
-    <h1>🌍 나의 웹 프로젝트</h1>
-    <p>국가 중심 세계지도 · 대원 · GPS · 낮과 밤 계산</p>
+    <!-- 언어 선택 드롭다운 -->
+    <div class="lang-selector">
+        <select id="languageSelect" onchange="changeLanguage(this.value)">
+            <option value="ko">한국어</option>
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="zh">中文</option>
+            <option value="vi">Tiếng Việt</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="header_title">🌍 나의 웹 프로젝트</h1>
+    <p data-i18n="header_desc">국가 중심 세계지도 · 대원 · GPS · 낮과 밤 계산</p>
 </header>
 
 <div class="container">
+    <div class="menu">
 
-<div class="menu">
+        <div class="card">
+            <h2 data-i18n="card1_title">🌍 위도수학</h2>
+            <p data-i18n="card1_desc">영상, 팟캐스트, 프리젠테이션 보기.</p>
+            <a href="https://youtube.com/playlist?list=PLrEnVHZb976rZHkVKXIZgpO9IGJHbh_lc&si=ivldUrZHBBMz_jLe" data-i18n="btn_playlist">Playlist 열기</a>
+        </div>
 
-<div class="card">
-    <h2>🌍 위도수학</h2>
-    <p>영상, 팟캐스트, 프리젠테이션 보기.</p>
-    <a href="https://youtube.com/playlist?list=PLrEnVHZb976rZHkVKXIZgpO9IGJHbh_lc&si=ivldUrZHBBMz_jLe">Playlist 열기</a>
-</div>
-<div class="card">
-    <h2>🌍 국가 중심 세계지도 연구자료</h2>
-    <p>수학으로 구현하는 국가중심 세계지도</p>
-    <a href="research.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>🌍 국가 중심 세계지도</h2>
-    <p>최고점 Vetex 사용 국가중심 세계지도 구현</p>
-    <a href="vertexworldmap.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>🌍 국가 중심 세계지도1</h2>
-    <p>같은 위도에서 최고점 Vetex 찾기</p>
-    <a href="samelatitude.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>🌍 국가 중심 세계지도2</h2>
-    <p>다른 위도에서 최고점 Vetex 찾기</p>
-    <a href="differentlatitude.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>🌍 Way Point 1</h2>
-    <p>거리각과 GPS</p>
-    <a href="waypoint.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>🌍 Way Point 2</h2>
-    <p>대원 항로를 찾아라 !</p>
-    <a href="gcroute.html">웹페이지 열기</a>
+        <div class="card">
+            <h2 data-i18n="card2_title">🌍 국가 중심 세계지도 연구자료</h2>
+            <p data-i18n="card2_desc">수학으로 구현하는 국가중심 세계지도</p>
+            <a href="research.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card3_title">🌍 국가 중심 세계지도</h2>
+            <p data-i18n="card3_desc">최고점 Vertex 사용 국가중심 세계지도 구현</p>
+            <a href="vertexworldmap.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card4_title">🌍 국가 중심 세계지도1</h2>
+            <p data-i18n="card4_desc">같은 위도에서 최고점 Vertex 찾기</p>
+            <a href="samelatitude.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card5_title">🌍 국가 중심 세계지도2</h2>
+            <p data-i18n="card5_desc">다른 위도에서 최고점 Vertex 찾기</p>
+            <a href="differentlatitude.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card6_title">🌍 Way Point 1</h2>
+            <p data-i18n="card6_desc">거리각과 GPS</p>
+            <a href="waypoint.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card7_title">🌍 Way Point 2</h2>
+            <p data-i18n="card7_desc">대원 항로를 찾아라 !</p>
+            <a href="gcroute.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card8_title">☀️ 낮·밤 계산</h2>
+            <p data-i18n="card8_desc">최고점 대원과 소원이 만나는 경도 차이로 위도별 낮과 밤의 시간 계산하기</p>
+            <a href="daylight2.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card9_title">☀️ 나 여기 있어요 !</h2>
+            <p data-i18n="card9_desc">해양활동 안전을 위한 위치 보내기 !</p>
+            <a href="myposition.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card10_title">☀️ 찾으러 오세요 !</h2>
+            <p data-i18n="card10_desc">시야를 확보할 수 있는 경로를 지정해서 조난자 찾아가기 !</p>
+            <a href="nearpoint.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card11_title">☀️ 바로 출동합니다 !</h2>
+            <p data-i18n="card11_desc">내 위치 확인, 조난자 GPS복사해서 붙이기 한 후 바로 출동 !</p>
+            <a href="rescuewithgps.html" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="card12_title">☀️ 참고자료, 지도를 보는 눈</h2>
+            <p data-i18n="card12_desc">대원지도를 시각화 할 수 있는 Jason Davies의 Map Projection Transitions !</p>
+            <a href="https://www.jasondavies.com/maps/transition" data-i18n="btn_open">웹페이지 열기</a>
+        </div>
+
+    </div>
 </div>
 
-<div class="card">
-    <h2>☀️ 낮·밤 계산</h2>
-    <p>최고점 대원과 소원이 만나는 경도 차이로 위도별 낮과 밤의 시간 계산하기</p>
-    <a href="daylight2.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>☀️ 나 여기 있어요 !</h2>
-    <p>해양활동 안전을 위한 위치 보내기 !</p>
-    <a href="myposition.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>☀️ 찾으러 오세요 !</h2>
-    <p>시야를 확보할 수 있는 경로를 지정해서 조난자 찾아가기 !</p>
-    <a href="nearpoint.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>☀️ 바로 출동합니다 !</h2>
-    <p>내 위치 확인, 조난자 GPS복사해서 붙이기 한 후 바로 출동 !</p>
-    <a href="rescuewithgps.html">웹페이지 열기</a>
-</div>
-<div class="card">
-    <h2>☀️ 참고자료, 지도를 보는 눈</h2>
-    <p>대원지도를 시각화 할 수 있는 Jason Davies의 Map Projection Transitions !</p>
-    <a href="https://www.jasondavies.com/maps/transition">웹페이지 열기</a>
-</div>
-</div>
+<script>
+    // 번역 데이터 정의 (한국어, 영어, 일본어, 중국어, 베트남어)
+    const translations = {
+        ko: {
+            doc_title: "나의 웹페이지 프로젝트",
+            header_title: "🌍 나의 웹 프로젝트",
+            header_desc: "국가 중심 세계지도 · 대원 · GPS · 낮과 밤 계산",
+            btn_playlist: "Playlist 열기",
+            btn_open: "웹페이지 열기",
+            card1_title: "🌍 위도수학",
+            card1_desc: "영상, 팟캐스트, 프리젠테이션 보기.",
+            card2_title: "🌍 국가 중심 세계지도 연구자료",
+            card2_desc: "수학으로 구현하는 국가중심 세계지도",
+            card3_title: "🌍 국가 중심 세계지도",
+            card3_desc: "최고점 Vertex 사용 국가중심 세계지도 구현",
+            card4_title: "🌍 국가 중심 세계지도1",
+            card4_desc: "같은 위도에서 최고점 Vertex 찾기",
+            card5_title: "🌍 국가 중심 세계지도2",
+            card5_desc: "다른 위도에서 최고점 Vertex 찾기",
+            card6_title: "🌍 Way Point 1",
+            card6_desc: "거리각과 GPS",
+            card7_title: "🌍 Way Point 2",
+            card7_desc: "대원 항로를 찾아라 !",
+            card8_title: "☀️ 낮·밤 계산",
+            card8_desc: "최고점 대원과 소원이 만나는 경도 차이로 위도별 낮과 밤의 시간 계산하기",
+            card9_title: "☀️ 나 여기 있어요 !",
+            card9_desc: "해양활동 안전을 위한 위치 보내기 !",
+            card10_title: "☀️ 찾으러 오세요 !",
+            card10_desc: "시야를 확보할 수 있는 경로를 지정해서 조난자 찾아가기 !",
+            card11_title: "☀️ 바로 출동합니다 !",
+            card11_desc: "내 위치 확인, 조난자 GPS복사해서 붙이기 한 후 바로 출동 !",
+            card12_title: "☀️ 참고자료, 지도를 보는 눈",
+            card12_desc: "대원지도를 시각화 할 수 있는 Jason Davies의 Map Projection Transitions !"
+        },
+        en: {
+            doc_title: "My Web Project",
+            header_title: "🌍 My Web Project",
+            header_desc: "Country-centered Map · Great Circle · GPS · Day & Night Calculation",
+            btn_playlist: "Open Playlist",
+            btn_open: "Open Webpage",
+            card1_title: "🌍 Latitude Math",
+            card1_desc: "Watch videos, podcasts, and presentations.",
+            card2_title: "🌍 Country-centered Map Research",
+            card2_desc: "Implementing country-centered world maps with mathematics.",
+            card3_title: "🌍 Country-centered Map",
+            card3_desc: "Implementation of map using highest point Vertex.",
+            card4_title: "🌍 Country-centered Map 1",
+            card4_desc: "Finding the highest Vertex at the same latitude.",
+            card5_title: "🌍 Country-centered Map 2",
+            card5_desc: "Finding the highest Vertex at different latitudes.",
+            card6_title: "🌍 Way Point 1",
+            card6_desc: "Distance angle and GPS.",
+            card7_title: "🌍 Way Point 2",
+            card7_desc: "Find the Great Circle Route!",
+            card8_title: "☀️ Day & Night Calculation",
+            card8_desc: "Calculate day and night hours by latitude using longitude difference.",
+            card9_title: "☀️ I'm Right Here!",
+            card9_desc: "Send location for maritime activity safety!",
+            card10_title: "☀️ Come Find Me!",
+            card10_desc: "Navigate to victims via a route ensuring clear line of sight!",
+            card11_title: "☀️ Dispatching Now!",
+            card11_desc: "Check my location, paste victim's GPS, and dispatch immediately!",
+            card12_title: "☀️ Reference: Eye for Maps",
+            card12_desc: "Jason Davies' Map Projection Transitions for visualizing Great Circle maps!"
+        },
+        ja: {
+            doc_title: "私のウェブプロジェクト",
+            header_title: "🌍 私のウェブプロジェクト",
+            header_desc: "国家中心の世界地図 · 大円 · GPS · 昼と夜の計算",
+            btn_playlist: "プレイリストを開く",
+            btn_open: "ページを開く",
+            card1_title: "🌍 緯度数学",
+            card1_desc: "動画、ポッドキャスト、プレゼンテーションを見る。",
+            card2_title: "🌍 国家中心世界地図 研究資料",
+            card2_desc: "数学で実現する国家中心世界地図。",
+            card3_title: "🌍 国家中心世界地図",
+            card3_desc: "最高点Vertexを使用した国家中心世界地図の実装。",
+            card4_title: "🌍 国家中心世界地図 1",
+            card4_desc: "同じ緯度で最高点Vertexを見つける。",
+            card5_title: "🌍 国家中心世界地図 2",
+            card5_desc: "異なる緯度で最高点Vertexを見つける。",
+            card6_title: "🌍 Way Point 1",
+            card6_desc: "距離角とGPS。",
+            card7_title: "🌍 Way Point 2",
+            card7_desc: "大円航路を見つけよう！",
+            card8_title: "☀️ 昼・夜の計算",
+            card8_desc: "経度差を利用して緯度ごとの昼と夜 me 時間を計算する。",
+            card9_title: "☀️ ここにいます！",
+            card9_desc: "海洋活動の安全のために位置を送信！",
+            card10_title: "☀️ 助けに来てください！",
+            card10_desc: "視界を確保できる経路を指定して遭難者の元へ！",
+            card11_title: "☀️ すぐ出動します！",
+            card11_desc: "現在地を確認し、遭難者のGPSを貼り付けてすぐ出動！",
+            card12_title: "☀️ 参考資料: 地図を見る目",
+            card12_desc: "大円地図を視覚化できる Jason Davies の Map Projection Transitions！"
+        },
+        zh: {
+            doc_title: "我的网页项目",
+            header_title: "🌍 我的网页项目",
+            header_desc: "以国家为中心的世界地图 · 大圆 · GPS · 昼夜计算",
+            btn_playlist: "打开播放列表",
+            btn_open: "打开网页",
+            card1_title: "🌍 纬度数学",
+            card1_desc: "查看视频、播客和演示文稿。",
+            card2_title: "🌍 国家中心地图研究资料",
+            card2_desc: "用数学实现以国家为中心的世界地图。",
+            card3_title: "🌍 国家中心世界地图",
+            card3_desc: "使用最高点 Vertex 实现以国家为中心的世界地图。",
+            card4_title: "🌍 国家中心世界地图 1",
+            card4_desc: "在相同纬度寻找最高点 Vertex。",
+            card5_title: "🌍 国家中心世界地图 2",
+            card5_desc: "在不同纬度寻找最高点 Vertex。",
+            card6_title: "🌍 Way Point 1",
+            card6_desc: "距离角与 GPS。",
+            card7_title: "🌍 Way Point 2",
+            card7_desc: "寻找大圆航线！",
+            card8_title: "☀️ 昼夜计算",
+            card8_desc: "通过经度差计算不同纬度的昼夜时长。",
+            card9_title: "☀️ 我在这里！",
+            card9_desc: "发送位置, 保障海上活动安全！",
+            card10_title: "☀️ 来搜救我！",
+            card10_desc: "指定可确保视野的路线以前往搜救！",
+            card11_title: "☀️ 立即出动！",
+            card11_desc: "确认我的位置，粘贴遇险者 GPS 后立即出动！",
+            card12_title: "☀️ 参考资料: 看地图的视角",
+            card12_desc: "Jason Davies 的 Map Projection Transitions，可视化大圆地图！"
+        },
+        vi: {
+            doc_title: "Dự án Web của tôi",
+            header_title: "🌍 Dự án Web của tôi",
+            header_desc: "Bản đồ thế giới lấy quốc gia làm trung tâm · Vòng tròn lớn · GPS · Tính toán ngày và đêm",
+            btn_playlist: "Mở Danh sách phát",
+            btn_open: "Mở Trang web",
+            card1_title: "🌍 Toán học Vĩ độ",
+            card1_desc: "Xem video, podcast và bài thuyết trình.",
+            card2_title: "🌍 Tài liệu nghiên cứu Bản đồ thế giới lấy quốc gia làm trung tâm",
+            card2_desc: "Tạo bản đồ thế giới lấy quốc gia làm trung tâm bằng toán học.",
+            card3_title: "🌍 Bản đồ thế giới lấy quốc gia làm trung tâm",
+            card3_desc: "Tạo bản đồ thế giới lấy quốc gia làm trung tâm bằng Vertex điểm cao nhất.",
+            card4_title: "🌍 Bản đồ thế giới lấy quốc gia làm trung tâm 1",
+            card4_desc: "Tìm Vertex điểm cao nhất ở cùng một vĩ độ.",
+            card5_title: "🌍 Bản đồ thế giới lấy quốc gia làm trung tâm 2",
+            card5_desc: "Tìm Vertex điểm cao nhất ở các vĩ độ khác nhau.",
+            card6_title: "🌍 Way Point 1",
+            card6_desc: "Góc khoảng cách và GPS.",
+            card7_title: "🌍 Way Point 2",
+            card7_desc: "Tìm tuyến đường Vòng tròn lớn!",
+            card8_title: "☀️ Tính toán Ngày & Đêm",
+            card8_desc: "Tính thời gian ngày và đêm theo vĩ độ dựa trên sự chênh lệch kinh độ.",
+            card9_title: "☀️ Tôi ở đây!",
+            card9_desc: "Gửi vị trí để an toàn cho các hoạt động trên biển!",
+            card10_title: "☀️ Đến tìm tôi đi!",
+            card10_desc: "Chỉ định tuyến đường đảm bảo tầm nhìn để tìm người gặp nạn!",
+            card11_title: "☀️ Xuất phát ngay lập tức!",
+            card11_desc: "Xác nhận vị trí của tôi, dán GPS của người gặp nạn và xuất phát ngay!",
+            card12_title: "☀️ Tài liệu tham khảo: Góc nhìn Bản đồ",
+            card12_desc: "Map Projection Transitions của Jason Davies để trực quan hóa bản đồ Vòng tròn lớn!"
+        }
+    };
 
-</div>
+    // 언어 변경 함수
+    function changeLanguage(lang) {
+        // html lang 속성 변경
+        document.documentElement.lang = lang;
+
+        // data-i18n 속성을 가진 모든 요소 변경
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (translations[lang] && translations[lang][key]) {
+                if (element.tagName === 'TITLE') {
+                    document.title = translations[lang][key];
+                } else {
+                    element.textContent = translations[lang][key];
+                }
+            }
+        });
+
+        // 사용자가 선택한 언어를 브라우저 로컬스토리지에 저장
+        localStorage.setItem('preferred_language', lang);
+    }
+
+    // 페이지 로드시 이전 선택 언어 또는 브라우저 기본 언어 설정
+    window.addEventListener('DOMContentLoaded', () => {
+        const savedLang = localStorage.getItem('preferred_language');
+        const browserLang = navigator.language.slice(0, 2);
+        
+        let initialLang = 'ko'; // 기본값
+        if (savedLang && translations[savedLang]) {
+            initialLang = savedLang;
+        } else if (translations[browserLang]) {
+            initialLang = browserLang;
+        }
+
+        document.getElementById('languageSelect').value = initialLang;
+        changeLanguage(initialLang);
+    });
+</script>
 
 </body>
 </html>
