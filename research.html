@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>국가 중심 세계지도 & G20 수도 GPS 모니터링</title>
+<title>국가 중심 세계지도 & G20/강/산/해구 GPS 모니터링</title>
 <style>
 :root{
   --bg:#071426; --panel:#0d2138; --panel2:#102b47; --line:#1c557a;
   --cyan:#4dd8ff; --blue:#168ee8; --gold:#ffd45a; --red:#ff6675;
   --text:#eef7ff; --muted:#9db8cd; --green:#5fe0a2; --purple:#c084fc;
+  --river:#38bdf8; --mountain:#f97316; --trench:#a855f7;
 }
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(135deg,#06111f,#0a1d32);color:var(--text);
@@ -37,6 +38,11 @@ button.secondary{background:#193650}.buttons{display:grid;grid-template-columns:
 .math .eq{padding:6px 8px;background:#081b2c;border:1px solid #214d69;border-radius:6px;margin:5px 0}
 .note{font-size:11px;line-height:1.5;color:var(--muted)}
 
+/* 필터 체크박스 그룹 */
+.filter-group{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--text)}
+.filter-item{display:flex;align-items:center;gap:6px;background:#071827;padding:5px 8px;border-radius:6px;border:1px solid #204b69;cursor:pointer}
+.filter-item input{width:auto;margin:0;cursor:pointer}
+
 #mapPanel{position:relative;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
 .mapTitle{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:13px;z-index:2;background:rgba(13,33,56,.95)}
 #mapCanvas{width:100%;height:100%;display:block;background:#03101d;cursor:grab}
@@ -51,7 +57,6 @@ button.secondary{background:#193650}.buttons{display:grid;grid-template-columns:
 .overlay{position:absolute;left:12px;bottom:12px;background:#071827dd;border:1px solid #2a6385;border-radius:9px;padding:8px 12px;font-size:11px;line-height:1.5;backdrop-filter:blur(5px);z-index:5;pointer-events:none}
 #globeCanvas{width:100%;height:180px;background:#061320;border-radius:8px;border:1px solid #24516b}
 
-/* 툴팁 스타일에 팝업 UI 추가 */
 .map-tooltip{position:absolute;display:none;background:rgba(7,24,39,0.95);border:1px solid var(--green);color:#fff;padding:8px 12px;border-radius:6px;font-size:11px;pointer-events:none;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
 
 table{width:100%;border-collapse:collapse;font-size:11px}
@@ -67,7 +72,7 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 <body>
 <header>
   <div class="brand">
-    <h1 id="t-head-title">국가 중심 세계지도 & G20 수도 GPS 지도</h1>
+    <h1 id="t-head-title">국가 중심 세계지도 & 주요 지형 GPS 모니터링</h1>
     <small id="t-head-sub">GPS → 3D 벡터 → 좌표 회전 → 새로운 위·경도 → 지도 투영</small>
   </div>
   <div class="header-right">
@@ -114,13 +119,22 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
   </div>
 
   <div class="section">
-    <h2 id="t-sec3-title">③ 지도 투영법</h2>
+    <h2 id="t-sec3-title">③ 지도 투영법 및 표시 항목</h2>
     <select id="projection">
+      <option value="equirectangular">Equirectangular (등거리 원통도법)</option>
       <option value="craster">Craster Parabolic (등면적 포물선)</option>
-      <option value="equirect">등거리 원통도법 (Equirectangular)</option>
+      <option value="equirect">등거리 원통도법 (기존)</option>
       <option value="mercator">Mercator</option>
       <option value="ortho">정사영 (Orthographic)</option>
     </select>
+    
+    <label style="margin-top:10px;" id="t-lbl-filter">지도 표시 마커 선택</label>
+    <div class="filter-group">
+      <label class="filter-item"><input type="checkbox" id="chk-g20" checked onchange="render()"> G20 수도</label>
+      <label class="filter-item"><input type="checkbox" id="chk-rivers" checked onchange="render()"> 10대 강</label>
+      <label class="filter-item"><input type="checkbox" id="chk-mountains" checked onchange="render()"> 10대 산</label>
+      <label class="filter-item"><input type="checkbox" id="chk-trenches" checked onchange="render()"> 10대 해구</label>
+    </div>
   </div>
 
   <div class="section">
@@ -154,20 +168,18 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
   <div class="mapWrap" id="mapWrap">
     <canvas id="mapCanvas"></canvas>
     
-    <!-- 확대 축소 조작 버튼 추가 -->
     <div class="zoom-controls">
       <div class="zoom-btn" onclick="zoomMap(1.2)" title="확대">+</div>
       <div class="zoom-btn" onclick="zoomMap(0.8)" title="축소">−</div>
       <div class="zoom-btn" onclick="resetZoomPan()" title="초기화">↺</div>
     </div>
 
-    <!-- 호버 툴팁 -->
     <div id="tooltip" class="map-tooltip"></div>
 
     <div class="overlay">
       <b id="t-ov-title">해석 안내</b><br>
       <span id="modeText"></span><br>
-      <span id="t-ov-legend">★ 초록: G20 수도 · 빨강: 기준점 · 노랑: 8개 중심점 · 주황: 대원 · 청록: 위·경선</span>
+      <span id="t-ov-legend">★ 초록: 수도 · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점</span>
     </div>
   </div>
 </section>
@@ -214,47 +226,89 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 </main>
 
 <script>
-// G20 국가 수도 데이터 세트 (21개 회원국 및 연합 기준)
+// 1. G20 수도 데이터 세트
 const g20Capitals = [
   { country: "대한민국", capital: "서울 (Seoul)", lat: 37.5665, lon: 126.9780 },
-  { country: "미국", capital: "워싱턴 D.C. (Washington, D.C.)", lat: 38.8951, lon: -77.0364 },
-  { country: "중국", capital: "베이징 (Beijing)", lat: 39.9042, lon: 116.4074 },
-  { country: "일본", capital: "도쿄 (Tokyo)", lat: 35.6762, lon: 139.6503 },
-  { country: "영국", capital: "런던 (London)", lat: 51.5074, lon: -0.1278 },
-  { country: "프랑스", capital: "파리 (Paris)", lat: 48.8566, lon: 2.3522 },
-  { country: "독일", capital: "베를린 (Berlin)", lat: 52.5200, lon: 13.4050 },
-  { country: "이탈리아", capital: "로마 (Rome)", lat: 41.9028, lon: 12.4964 },
-  { country: "캐나다", capital: "오타와 (Ottawa)", lat: 45.4215, lon: -75.6972 },
-  { country: "호주", capital: "캔버라 (Canberra)", lat: -35.2809, lon: 149.1300 },
-  { country: "러시아", capital: "모스크바 (Moscow)", lat: 55.7558, lon: 37.6173 },
-  { country: "인도", capital: "뉴델리 (New Delhi)", lat: 28.6139, lon: 77.2090 },
-  { country: "브라질", capital: "브라질리아 (Brasília)", lat: -15.7975, lon: -47.8919 },
-  { country: "멕시코", capital: "멕시코시티 (Mexico City)", lat: 19.4326, lon: -99.1332 },
-  { country: "아르헨티나", capital: "부에노스아이레스 (Buenos Aires)", lat: -34.6037, lon: -58.3816 },
-  { country: "인도네시아", capital: "자카르타 (Jakarta)", lat: -6.2088, lon: 106.8456 },
-  { country: "사우디아라비아", capital: "리야드 (Riyadh)", lat: 24.7136, lon: 46.6753 },
-  { country: "튀르키예", capital: "앙카라 (Ankara)", lat: 39.9334, lon: 32.8597 },
-  { country: "남아프리카 공화국", capital: "프리토리아 (Pretoria)", lat: -25.7479, lon: 28.2293 },
-  { country: "유럽연합 (EU)", capital: "브뤼셀 (Brussels, 본부)", lat: 50.8503, lon: 4.3517 },
-  { country: "아프리카연합 (AU)", capital: "아디스아바바 (Addis Ababa, 본부)", lat: 9.0320, lon: 38.7421 }
+  { country: "미국", capital: "워싱턴 D.C.", lat: 38.8951, lon: -77.0364 },
+  { country: "중국", capital: "베이징", lat: 39.9042, lon: 116.4074 },
+  { country: "일본", capital: "도쿄", lat: 35.6762, lon: 139.6503 },
+  { country: "영국", capital: "런던", lat: 51.5074, lon: -0.1278 },
+  { country: "프랑스", capital: "파리", lat: 48.8566, lon: 2.3522 },
+  { country: "독일", capital: "베를린", lat: 52.5200, lon: 13.4050 },
+  { country: "이탈리아", capital: "로마", lat: 41.9028, lon: 12.4964 },
+  { country: "캐나다", capital: "오타와", lat: 45.4215, lon: -75.6972 },
+  { country: "호주", capital: "캔버라", lat: -35.2809, lon: 149.1300 },
+  { country: "러시아", capital: "모스크바", lat: 55.7558, lon: 37.6173 },
+  { country: "인도", capital: "뉴델리", lat: 28.6139, lon: 77.2090 },
+  { country: "브라질", capital: "브라질리아", lat: -15.7975, lon: -47.8919 },
+  { country: "멕시코", capital: "멕시코시티", lat: 19.4326, lon: -99.1332 },
+  { country: "아르헨티나", capital: "부에노스아이레스", lat: -34.6037, lon: -58.3816 },
+  { country: "인도네시아", capital: "자카르타", lat: -6.2088, lon: 106.8456 },
+  { country: "사우디아라비아", capital: "리야드", lat: 24.7136, lon: 46.6753 },
+  { country: "튀르키예", capital: "앙카라", lat: 39.9334, lon: 32.8597 },
+  { country: "남아프리카 공화국", capital: "프리토리아", lat: -25.7479, lon: 28.2293 },
+  { country: "유럽연합 (EU)", capital: "브뤼셀", lat: 50.8503, lon: 4.3517 },
+  { country: "아프리카연합 (AU)", capital: "아디스아바바", lat: 9.0320, lon: 38.7421 }
+];
+
+// 2. 세계에서 가장 긴 강 10곳 (발원지 기준)
+const topRivers = [
+  { name: "나일강 (Nile)", len: "6,650 km", lat: -2.2822, lon: 29.3312 },
+  { name: "아마존강 (Amazon)", len: "6,400 km", lat: -15.5194, lon: -71.7611 },
+  { name: "양쯔강 (Yangtze)", len: "6,300 km", lat: 33.4289, lon: 91.1825 },
+  { name: "미시시피-미주리강", len: "6,275 km", lat: 47.1933, lon: -95.2308 },
+  { name: "예니세이강 (Yenisey)", len: "5,539 km", lat: 51.7275, lon: 94.4553 },
+  { name: "황하 (Yellow River)", len: "5,464 km", lat: 34.9167, lon: 97.5000 },
+  { name: "오브-이르티시강", len: "5,410 km", lat: 49.0000, lon: 87.9833 },
+  { name: "파라나강 (Paraná)", len: "4,880 km", lat: -20.0800, lon: -51.0000 },
+  { name: "콩고강 (Congo)", len: "4,700 km", lat: -8.9833, lon: 26.4167 },
+  { name: "아무르강 / 흑룡강", len: "4,444 km", lat: 53.3333, lon: 121.4667 }
+];
+
+// 3. 세계에서 가장 높은 산 10곳 (정상 기준)
+const topMountains = [
+  { name: "에베레스트산 (Mt. Everest)", alt: "8,848.86 m", lat: 27.9881, lon: 86.9253 },
+  { name: "K2 (갓윈오스틴)", alt: "8,611 m", lat: 35.8825, lon: 76.5133 },
+  { name: "칸첸중가 (Kangchenjunga)", alt: "8,586 m", lat: 27.7033, lon: 88.1475 },
+  { name: "로체 (Lhotse)", alt: "8,516 m", lat: 27.9619, lon: 86.9333 },
+  { name: "마칼루 (Makalu)", alt: "8,485 m", lat: 27.8903, lon: 87.0889 },
+  { name: "초오유 (Cho Oyu)", alt: "8,188 m", lat: 28.0942, lon: 86.6608 },
+  { name: "다울라기리 (Dhaulagiri I)", alt: "8,167 m", lat: 28.6967, lon: 83.4931 },
+  { name: "마나슬루 (Manaslu)", alt: "8,163 m", lat: 28.5500, lon: 84.5597 },
+  { name: "낭가파르바트 (Nanga Parbat)", alt: "8,126 m", lat: 35.2372, lon: 74.5892 },
+  { name: "안나푸르나 1봉", alt: "8,091 m", lat: 28.5961, lon: 83.8203 }
+];
+
+// 4. 세계에서 가장 깊은 해구 10곳 (최심부 기준)
+const topTrenches = [
+  { name: "마리아나 해구 (Mariana)", depth: "10,935 m", lat: 11.3733, lon: 142.5870 },
+  { name: "통가 해구 (Tonga)", depth: "10,882 m", lat: -23.2583, lon: -174.7267 },
+  { name: "필리핀 해구 (Philippine)", depth: "10,540 m", lat: 10.4539, lon: 126.6700 },
+  { name: "커마덱 해구 (Kermadec)", depth: "10,047 m", lat: -32.5000, lon: -177.2000 },
+  { name: "쿠릴-캄차카 해구", depth: "10,542 m", lat: 44.0000, lon: 150.0000 },
+  { name: "이즈-오가사와라 해구", depth: "9,780 m", lat: 29.6500, lon: 142.6833 },
+  { name: "일본 해구 (Japan Trench)", depth: "9,000 m", lat: 38.0000, lon: 144.0000 },
+  { name: "푸에르토리코 해구", depth: "8,376 m", lat: 19.7120, lon: -67.3110 },
+  { name: "사우스샌드위치 해구", depth: "8,266 m", lat: -60.4790, lon: -25.5420 },
+  { name: "페루-칠레 해구 (Atacama)", depth: "8,065 m", lat: -23.1800, lon: -71.3100 }
 ];
 
 // 다국어 번역 데이터
 const i18n = {
   ko: {
-    headTitle: "국가 중심 세계지도 & G20 수도 GPS 지도",
+    headTitle: "국가 중심 세계지도 & 주요 지형 GPS 모니터링",
     headSub: "GPS → 3D 벡터 → 좌표 회전 → 새로운 위·경도 → 지도 투영",
     sec1: "① 최고점 / 중심 GPS",
     lblLat: "위도 φ (°)", lblLon: "경도 λ (°)", lblMode: "좌표계 모드",
     optCenter: "선택점을 새 지도 원점 (0°,0°)으로", optPole: "선택점을 새 북극 (90°,0°)으로",
     btnTaean: "태안/만리포", btnPole: "북극",
     sec2: "② 경도 기준 이동", lblOffset: "Δλ — X축/경도 오프셋 (°)",
-    sec3: "③ 지도 투영법",
+    sec3: "③ 지도 투영법 및 표시 항목", lblFilter: "지도 표시 마커 선택",
     sec4: "④ 대원 계산", lblALat: "출발 φ₁", lblALon: "출발 λ₁", lblBLat: "도착 φ₂", lblBLon: "도착 λ₂", btnCalcGc: "대원 / 최고점 계산",
     sec5: "⑤ 수학적 핵심",
     mapTitle: "국가 중심 세계지도",
     ovTitle: "해석 안내",
-    ovLegend: "★ 초록: G20 수도 · 빨강: 기준점 · 노랑: 8개 중심점 · 주황: 대원 · 청록: 위·경선",
+    ovLegend: "★ 초록: 수도 · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점",
     centersTitle: "구면직각삼각형 중심점 8곳 GPS",
     thZone: "구역", thLat: "위도", thLon: "경도", thStatus: "상태", statusActive: "정상",
     sec6: "⑥ 3D 구면 좌표와 회전",
@@ -264,19 +318,19 @@ const i18n = {
     centers: ["C1 (북동1)", "C2 (북동2)", "C3 (북서1)", "C4 (북서2)", "C5 (남동1)", "C6 (남동2)", "C7 (남서1)", "C8 (남서2)"]
   },
   en: {
-    headTitle: "Center-Oriented World Map & G20 Capitals GPS",
+    headTitle: "Center-Oriented World Map & Features GPS",
     headSub: "GPS → 3D Vector → Coordinate Rotation → New Lat/Lon → Projection",
     sec1: "① Peak / Center GPS",
     lblLat: "Lat φ (°)", lblLon: "Lon λ (°)", lblMode: "Coordinate Mode",
     optCenter: "Set selected point as Map Origin (0°,0°)", optPole: "Set selected point as New Pole (90°,0°)",
     btnTaean: "Taean/Mallipo", btnPole: "North Pole",
     sec2: "② Longitude Shift", lblOffset: "Δλ — X-axis/Lon Offset (°)",
-    sec3: "③ Map Projection",
+    sec3: "③ Projection & Filters", lblFilter: "Select Markers to Display",
     sec4: "④ Great Circle Calc", lblALat: "Start φ₁", lblALon: "Start λ₁", lblBLat: "End φ₂", lblBLon: "End λ₂", btnCalcGc: "Calculate Great Circle",
     sec5: "⑤ Math Essentials",
     mapTitle: "Center-Oriented World Map",
     ovTitle: "Guide",
-    ovLegend: "★ Green: G20 Capitals · Red: Center · Yellow: 8 Centers · Orange: Great Circle",
+    ovLegend: "★ Green: Capital · Cyan: River · Orange: Mountain · Purple: Trench",
     centersTitle: "GPS Coordinates of 8 Triangle Centers",
     thZone: "Zone", thLat: "Latitude", thLon: "Longitude", thStatus: "Status", statusActive: "Active",
     sec6: "⑥ 3D Coordinates & Rotation",
@@ -286,20 +340,20 @@ const i18n = {
     centers: ["C1 (NE1)", "C2 (NE2)", "C3 (NW1)", "C4 (NW2)", "C5 (SE1)", "C6 (SE2)", "C7 (SW1)", "C8 (SW2)"]
   },
   vi: {
-    headTitle: "Bản Đồ Thế Giới Trung Tâm & GPS Thủ Đô G20",
+    headTitle: "Bản Đồ Thế Giới Trung Tâm & GPS Địa Hình",
     headSub: "GPS → Vectơ 3D → Quay Tọa Độ → Vĩ/Kinh Độ Mới → Phép Chiếu",
     sec1: "① GPS Trung Tâm / Điểm Đỉnh",
     lblLat: "Vĩ độ φ (°)", lblLon: "Kinh độ λ (°)", lblMode: "Chế độ tọa độ",
     optCenter: "Đặt điểm chọn làm Gốc bản đồ (0°,0°)", optPole: "Đặt điểm chọn làm Cực mới (90°,0°)",
     btnTaean: "Taean/Mallipo", btnPole: "Bắc Cực",
     sec2: "② Dịch Chuyển Kinh Độ", lblOffset: "Δλ — Độ lệch kinh độ (°)",
-    sec3: "③ Phép Chiếu Bản Đồ",
+    sec3: "③ Phép Chiếu & Bộ Lọc", lblFilter: "Chọn Dấu Mốc Hiển Thị",
     sec4: "④ Tính Vòng Tròn Lớn", lblALat: "Điểm đi φ₁", lblALon: "Điểm đi λ₁", lblBLat: "Điểm đến φ₂", lblBLon: "Điểm đến λ₂", btnCalcGc: "Tính Vòng Tròn Lớn",
     sec5: "⑤ Cốt Lõi Toán Học",
     mapTitle: "Bản Đồ Thế Giới Trung Tâm",
     ovTitle: "Hướng dẫn",
-    ovLegend: "★ Xanh: Thủ đô G20 · Đỏ: Trung tâm · Vàng: 8 Tâm · Cam: Vòng tròn lớn",
-    centersTitle: "Tọa Độ GPS 8 Điểm Tâm Tam Giác Cầu",
+    ovLegend: "★ Xanh: Thủ đô · Xanh dương: Sông · Cam: Núi · Tím: Rãnh biển",
+    centersTitle: "Tọa Độ GPS 8 Điểm Tam Giác Cầu",
     thZone: "Khu vực", thLat: "Vĩ độ", thLon: "Kinh độ", thStatus: "Trạng thái", statusActive: "Hoạt động",
     sec6: "⑥ Tọa Độ 3D & Phép Quay",
     sec7: "⑦ Kết Quả Biến Đổi", thItem: "Mục", thVal: "Giá trị", tdOrig: "GPS Ban đầu", tdVec: "Vectơ 3D", tdRot: "Sau khi quay", tdNlat: "Vĩ độ mới", tdNlon: "Kinh độ mới",
@@ -310,14 +364,11 @@ const i18n = {
 };
 
 let currentLang = "ko";
-
-// 줌 및 드래그 팬(Pan) 상태 관리 변수
 let zoomLevel = 1.0;
-let panX = 0;
-let panY = 0;
+let panX = 0, panY = 0;
 let isDragging = false;
 let startX, startY;
-let g20MarkerPositions = []; // 마우스 호버 감지용 마커 좌표 저장
+let activeMarkerPositions = []; // 마우스 호버 감지용 마커 좌표 저장 배열
 
 const LAT_VAL = 35.2644;
 const baseCenters = [
@@ -356,6 +407,7 @@ function changeLanguage(langKey) {
   $("t-sec2-title").textContent = t.sec2;
   $("t-lbl-offset").textContent = t.lblOffset;
   $("t-sec3-title").textContent = t.sec3;
+  if($("t-lbl-filter")) $("t-lbl-filter").textContent = t.lblFilter;
   $("t-sec4-title").textContent = t.sec4;
   $("t-lbl-alat").textContent = t.lblALat;
   $("t-lbl-alon").textContent = t.lblALon;
@@ -438,19 +490,20 @@ function rotateSph(lat,lon,b){
 }
 function normalizeLon(x){return ((x+180)%360+360)%360-180}
 
-// 줌 & 팬 적용을 포함한 2D 좌표 투영 함수
+// 2D 좌표 투영 함수 (Equirectangular 표준 지원)
 function project(lat,lon,w,h,type){
   let p=lat*D, l=normalizeLon(lon)*D;
   let res = {x:0, y:0};
 
-  if(type==="ortho"){
+  if(type==="equirectangular" || type==="equirect"){
+    // Standard Equirectangular Projection (Plate Carrée)
+    res = { x: w/2 + (w / (2 * Math.PI)) * l, y: h/2 - (h / Math.PI) * p };
+  } else if(type==="ortho"){
     res = {x:w/2+(w*.42)*Math.cos(p)*Math.sin(l), y:h/2-(h*.42)*(Math.sin(p))};
   } else if(type==="mercator"){
     const y=Math.log(Math.tan(Math.PI/4+Math.max(-85.05,Math.min(85.05,lat))*D/2));
     const yy=Math.max(-4.5,Math.min(4.5,y));
     res = {x:w/2+(w/(2*Math.PI))*l, y:h/2-(h/(2*4.5))*yy};
-  } else if(type==="equirect"){
-    res = {x:w/2+(w/(2*Math.PI))*l, y:h/2-(h/Math.PI)*p};
   } else {
     // Craster Parabolic
     const RR=h/3.06;
@@ -459,7 +512,6 @@ function project(lat,lon,w,h,type){
     res = {x:w/2+x, y:h/2-y};
   }
 
-  // 줌 및 이동 적용 (중심 기준 확대/축소)
   return {
     x: (res.x - w / 2) * zoomLevel + w / 2 + panX,
     y: (res.y - h / 2) * zoomLevel + h / 2 + panY
@@ -480,7 +532,6 @@ function drawPath(points,stroke,width=1,fill=null){
   if(fill){ctx.fillStyle=fill;ctx.fill()} ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();
 }
 
-// 별 형태 마커 그리기 함수
 function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   let rot = Math.PI / 2 * 3;
   let x = cx, y = cy;
@@ -505,6 +556,30 @@ function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   ctx.fill();
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+// 도형 마커 그리기 보조 함수 (산, 해구, 강 등)
+function drawShape(cx, cy, shapeType, color) {
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+
+  if (shapeType === "triangle") { // 산
+    ctx.moveTo(cx, cy - 7);
+    ctx.lineTo(cx + 6, cy + 5);
+    ctx.lineTo(cx - 6, cy + 5);
+    ctx.closePath();
+  } else if (shapeType === "invTriangle") { // 해구
+    ctx.moveTo(cx - 6, cy - 5);
+    ctx.lineTo(cx + 6, cy - 5);
+    ctx.lineTo(cx, cy + 7);
+    ctx.closePath();
+  } else if (shapeType === "circle") { // 강
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  }
+  ctx.fill();
   ctx.stroke();
 }
 
@@ -551,7 +626,7 @@ function render(){
   ctx.beginPath();ctx.moveTo(c.x-12,c.y);ctx.lineTo(c.x+12,c.y);ctx.moveTo(c.x,c.y-12);ctx.lineTo(c.x,c.y+12);ctx.stroke();
   ctx.fillStyle="#ff6675";ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
 
-  // 5. 구면직각삼각형 중심점 8곳 시각화
+  // 5. 구면직각삼각형 중심점 8곳
   const now = Date.now() * 0.003;
   baseCenters.forEach((center, idx) => {
     let q = rotateSph(center.lat, center.lon, b);
@@ -569,23 +644,64 @@ function render(){
     ctx.fillText(i18n[currentLang].centers[idx], p.x + 8, p.y - 4);
   });
 
-  // 6. G20 국가 수도 마커 및 라벨 렌더링
-  g20MarkerPositions = [];
-  g20Capitals.forEach((item) => {
-    let q = rotateSph(item.lat, item.lon, b);
-    q.lon = normalizeLon(q.lon - s.offset);
-    let p = project(q.lat, q.lon, w, h, s.proj);
+  // 6. 마커들 렌더링 (체크박스 활성화 여부에 따름)
+  activeMarkerPositions = [];
 
-    // 마커 호버 감지를 위한 좌표 저장
-    g20MarkerPositions.push({ x: p.x, y: p.y, data: item });
+  // A. G20 수도
+  if ($("chk-g20").checked) {
+    g20Capitals.forEach((item) => {
+      let q = rotateSph(item.lat, item.lon, b);
+      q.lon = normalizeLon(q.lon - s.offset);
+      let p = project(q.lat, q.lon, w, h, s.proj);
 
-    // 초록색 별 마커 및 명칭 표시
-    drawStar(p.x, p.y, 5, 7, 3.5, "#5fe0a2");
+      activeMarkerPositions.push({ x: p.x, y: p.y, data: item, type: 'G20 Capital', detail: item.capital });
+      drawStar(p.x, p.y, 5, 7, 3.5, "#5fe0a2");
+      ctx.fillStyle = "#ffffff"; ctx.font = "bold 10px sans-serif";
+      ctx.fillText(item.capital.split(" ")[0], p.x + 8, p.y + 3);
+    });
+  }
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 10px sans-serif";
-    ctx.fillText(item.capital.split(" ")[0], p.x + 8, p.y + 3);
-  });
+  // B. 10대 강
+  if ($("chk-rivers").checked) {
+    topRivers.forEach((item, idx) => {
+      let q = rotateSph(item.lat, item.lon, b);
+      q.lon = normalizeLon(q.lon - s.offset);
+      let p = project(q.lat, q.lon, w, h, s.proj);
+
+      activeMarkerPositions.push({ x: p.x, y: p.y, data: item, type: `River (Top ${idx+1})`, detail: item.len });
+      drawShape(p.x, p.y, "circle", "#38bdf8");
+      ctx.fillStyle = "#38bdf8"; ctx.font = "10px sans-serif";
+      ctx.fillText(item.name.split(" ")[0], p.x + 7, p.y + 3);
+    });
+  }
+
+  // C. 10대 산
+  if ($("chk-mountains").checked) {
+    topMountains.forEach((item, idx) => {
+      let q = rotateSph(item.lat, item.lon, b);
+      q.lon = normalizeLon(q.lon - s.offset);
+      let p = project(q.lat, q.lon, w, h, s.proj);
+
+      activeMarkerPositions.push({ x: p.x, y: p.y, data: item, type: `Mountain (Top ${idx+1})`, detail: item.alt });
+      drawShape(p.x, p.y, "triangle", "#f97316");
+      ctx.fillStyle = "#f97316"; ctx.font = "10px sans-serif";
+      ctx.fillText(item.name.split(" ")[0], p.x + 7, p.y + 3);
+    });
+  }
+
+  // D. 10대 해구
+  if ($("chk-trenches").checked) {
+    topTrenches.forEach((item, idx) => {
+      let q = rotateSph(item.lat, item.lon, b);
+      q.lon = normalizeLon(q.lon - s.offset);
+      let p = project(q.lat, q.lon, w, h, s.proj);
+
+      activeMarkerPositions.push({ x: p.x, y: p.y, data: item, type: `Trench (Top ${idx+1})`, detail: item.depth });
+      drawShape(p.x, p.y, "invTriangle", "#a855f7");
+      ctx.fillStyle = "#a855f7"; ctx.font = "10px sans-serif";
+      ctx.fillText(item.name.split(" ")[0], p.x + 7, p.y + 3);
+    });
+  }
 
   $("centerReadout").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;
   $("mapTitle").textContent=`${i18n[currentLang].mapTitle} · ${$("projection").selectedOptions[0].text}`;
@@ -618,7 +734,6 @@ function drawGlobe(b,s){
   gctx.fillStyle="#ff6675";gctx.beginPath();gctx.arc(cx,cy,5,0,Math.PI*2);gctx.fill();
 }
 
-// 줌 및 리셋 조작 함수
 function zoomMap(factor) {
   zoomLevel = Math.max(0.5, Math.min(5.0, zoomLevel * factor));
   render();
@@ -626,16 +741,13 @@ function zoomMap(factor) {
 
 function resetZoomPan() {
   zoomLevel = 1.0;
-  panX = 0;
-  panY = 0;
+  panX = 0; panY = 0;
   render();
 }
 
-// 마우스 드래그 및 휠 이벤트 처리 (Zoom & Pan)
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-  zoomMap(zoomFactor);
+  zoomMap(e.deltaY < 0 ? 1.1 : 0.9);
 }, { passive: false });
 
 canvas.addEventListener('mousedown', (e) => {
@@ -651,14 +763,13 @@ window.addEventListener('mousemove', (e) => {
     render();
   }
 
-  // G20 마커 호버 툴팁 감지 처리
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
   const tooltip = $("tooltip");
   let hovered = false;
 
-  for (let item of g20MarkerPositions) {
+  for (let item of activeMarkerPositions) {
     let dist = Math.hypot(item.x - mx, item.y - my);
     if (dist < 10) {
       const latStr = item.data.lat >= 0 ? `N ${item.data.lat.toFixed(4)}°` : `S ${Math.abs(item.data.lat).toFixed(4)}°`;
@@ -667,7 +778,7 @@ window.addEventListener('mousemove', (e) => {
       tooltip.style.display = "block";
       tooltip.style.left = (mx + 15) + "px";
       tooltip.style.top = (my - 15) + "px";
-      tooltip.innerHTML = `<strong style="color:var(--gold)">${item.data.country}</strong><br>${item.data.capital}<br><span style="color:var(--cyan)">${latStr}, ${lonStr}</span>`;
+      tooltip.innerHTML = `<strong style="color:var(--gold)">${item.data.name || item.data.country}</strong><br><span style="color:var(--cyan)">${item.type}</span>: ${item.detail}<br><span style="color:var(--muted)">${latStr}, ${lonStr}</span>`;
       hovered = true;
       break;
     }
