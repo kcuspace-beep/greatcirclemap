@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oblique Great Circle Centered Map with Zoom & Multilingual</title>
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent: #f59e0b;
+            --vertex: #ef4444;
+            --symmetric: #a855f7;
+            --equator: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--card-bg);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.25rem;
+            color: #38bdf8;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .lang-select-box select {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            flex-grow: 1;
+            height: calc(100vh - 65px);
+        }
+
+        .sidebar {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .input-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        input {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            padding: 0.6rem;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .card {
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .card h3 {
+            font-size: 0.95rem;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.4rem;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        #map-container {
+            width: 100%;
+            height: 100%;
+            background-color: #030712;
+            position: relative;
+            overflow: hidden;
+        }
+
+        svg#flat-map {
+            width: 100%;
+            height: 100%;
+            background-color: #0b1329;
+            cursor: grab;
+        }
+
+        svg#flat-map:active {
+            cursor: grabbing;
+        }
+
+        /* 줌 컨트롤 버튼 스타일 */
+        .zoom-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 10;
+        }
+
+        .zoom-btn {
+            background: rgba(30, 41, 59, 0.85);
+            color: #f8fafc;
+            border: 1px solid var(--border);
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            user-select: none;
+            margin-top: 0;
+            padding: 0;
+        }
+
+        .zoom-btn:hover {
+            background: var(--primary);
+        }
+
+        .land-polygon {
+            fill: #1e293b;
+            stroke: #334155;
+            stroke-width: 0.4;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 450px;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1 id="t-title">Oblique Great Circle Centered Map</h1>
+            <p id="t-subtitle">대원 및 왜곡된 위도선 바탕 세계 지도 시각화</p>
+        </div>
+        <div class="lang-select-box">
+            <select id="langSelect" onchange="changeLanguage(this.value)">
+                <option value="ko" selected>한국어 (Korean)</option>
+                <option value="en">English</option>
+                <option value="ja">日本語 (Japanese)</option>
+                <option value="zh">中文 (Chinese)</option>
+                <option value="vi">Tiếng Việt (Vietnamese)</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sidebar">
+            <form id="calcForm" onsubmit="event.preventDefault(); calculate();">
+                <div class="input-group">
+                    <label id="t-lbl-lat">동일 위도 (Shared Latitude θ)</label>
+                    <input type="number" id="lat" step="any" min="-89.9" max="89.9" value="37.5" required>
+                </div>
+
+                <div class="input-group" style="margin-top: 0.75rem;">
+                    <label id="t-lbl-lon1">경도 1 (Point A Longitude)</label>
+                    <input type="number" id="lon1" step="any" min="-180" max="180" value="-122.4" required>
+                </div>
+
+                <div class="input-group" style="margin-top: 0.75rem;">
+                    <label id="t-lbl-lon2">경도 2 (Point B Longitude)</label>
+                    <input type="number" id="lon2" step="any" min="-180" max="180" value="139.7" required>
+                </div>
+
+                <button type="submit" id="t-btn-calc">대원 및 지도 갱신</button>
+            </form>
+
+            <div class="card">
+                <h3 id="t-hdr-vertex">원래 대원 최고점 (Current Vertex)</h3>
+                <div class="stat-row">
+                    <span class="stat-label" id="t-lbl-vlat">최고점 위도 (+):</span>
+                    <span class="stat-value" style="color: var(--vertex);" id="resVertexLat">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label" id="t-lbl-vlon">최고점 경도:</span>
+                    <span class="stat-value" id="resVertexLon">-</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 id="t-hdr-symvertex">대칭 대원 최고점 (Symmetric Vertex)</h3>
+                <div class="stat-row">
+                    <span class="stat-label" id="t-lbl-svlat">대칭 최고점 위도 (-):</span>
+                    <span class="stat-value" style="color: var(--symmetric);" id="resSymVertexLat">-</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label" id="t-lbl-svlon">대칭 최고점 경도:</span>
+                    <span class="stat-value" id="resSymVertexLon">-</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 id="t-hdr-legend">범례 (Legend)</h3>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #38bdf8;"></div>
+                        <span id="t-leg-gc">중심 대원 (수평 직선)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent); border-top: 1px dashed var(--accent);"></div>
+                        <span id="t-leg-parallel">변화된 기존 위도선 (Parallel)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--equator); border-top: 1px dashed var(--equator);"></div>
+                        <span id="t-leg-equator">변화된 적도선 (Equator)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--symmetric);"></div>
+                        <span id="t-leg-symgc">남반구 대칭 대원</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoom(1.2)" title="Zoom In">+</button>
+                <button class="zoom-btn" onclick="zoom(0.8)" title="Zoom Out">-</button>
+                <button class="zoom-btn" onclick="resetZoom()" title="Reset Zoom" style="font-size: 0.75rem;">↺</button>
+            </div>
+            <svg id="flat-map" viewBox="-180 -90 360 180" preserveAspectRatio="xMidYMid meet">
+                <g id="zoom-group">
+                    <rect x="-1000" y="-1000" width="2000" height="2000" fill="#0b1329"/>
+                    <g id="land-layer"></g>
+                    <g id="map-layer"></g>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        // 1. 다국어 사전 (Translations)
+        const i18n = {
+            ko: {
+                title: "Oblique Great Circle Centered Map",
+                subtitle: "대원 및 왜곡된 위도선 바탕 세계 지도 시각화",
+                lblLat: "동일 위도 (Shared Latitude θ)",
+                lblLon1: "경도 1 (Point A Longitude)",
+                lblLon2: "경도 2 (Point B Longitude)",
+                btnCalc: "대원 및 지도 갱신",
+                hdrVertex: "원래 대원 최고점 (Current Vertex)",
+                lblVlat: "최고점 위도 (+):",
+                lblVlon: "최고점 경도:",
+                hdrSymvertex: "대칭 대원 최고점 (Symmetric Vertex)",
+                lblSvlat: "대칭 최고점 위도 (-):",
+                lblSvlon: "대칭 최고점 경도:",
+                hdrLegend: "범례 (Legend)",
+                legGc: "중심 대원 (수평 직선)",
+                legParallel: "변화된 기존 위도선 (Parallel)",
+                legEquator: "변화된 적도선 (Equator)",
+                legSymgc: "남반구 대칭 대원"
+            },
+            en: {
+                title: "Oblique Great Circle Centered Map",
+                subtitle: "World Map Visualizer for Great Circle & Parallel Distortion",
+                lblLat: "Shared Latitude (θ)",
+                lblLon1: "Longitude 1 (Point A)",
+                lblLon2: "Longitude 2 (Point B)",
+                btnCalc: "Calculate & Update Map",
+                hdrVertex: "North/Current Vertex",
+                lblVlat: "Vertex Lat (+):",
+                lblVlon: "Vertex Lon:",
+                hdrSymvertex: "Symmetric Vertex",
+                lblSvlat: "Symmetric Lat (-):",
+                lblSvlon: "Symmetric Lon:",
+                hdrLegend: "Legend",
+                legGc: "Main Great Circle (Horizontal)",
+                legParallel: "Distorted Parallel",
+                legEquator: "Distorted Equator",
+                legSymgc: "Symmetric Great Circle"
+            },
+            ja: {
+                title: "大円中心斜交投影世界地図",
+                subtitle: "大円と歪んだ緯도線の世界地図ビジュアライザー",
+                lblLat: " shared 緯度 (θ)",
+                lblLon1: "経度 1 (地点 A)",
+                lblLon2: "経度 2 (地点 B)",
+                btnCalc: "計算と地図の更新",
+                hdrVertex: "大円頂点 (Vertex)",
+                lblVlat: "頂点 緯度 (+):",
+                lblVlon: "頂点 経度:",
+                hdrSymvertex: "対称大円頂点 (Symmetric)",
+                lblSvlat: "対称頂点 緯度 (-):",
+                lblSvlon: "対称頂点 経度:",
+                hdrLegend: "凡例",
+                legGc: "中心大円 (水平直線)",
+                legParallel: "変形された既存緯度線",
+                legEquator: "変形された赤道線",
+                legSymgc: "南半球対称大円"
+            },
+            zh: {
+                title: "大圆中心斜交投影世界地图",
+                subtitle: "基于大圆与变形纬线的世界地图可视化",
+                lblLat: "共享纬度 (θ)",
+                lblLon1: "经度 1 (A点)",
+                lblLon2: "经度 2 (B点)",
+                btnCalc: "计算并更新地图",
+                hdrVertex: "大圆最高点 (Vertex)",
+                lblVlat: "顶点纬度 (+):",
+                lblVlon: "顶点经度:",
+                hdrSymvertex: "对称大圆顶点 (Symmetric)",
+                lblSvlat: "对称顶点纬度 (-):",
+                lblSvlon: "对称顶点经度:",
+                hdrLegend: "图例",
+                legGc: "中心大圆 (水平直线)",
+                legParallel: "变形的现有纬线",
+                legEquator: "变形的赤道线",
+                legSymgc: "南半球对称大圆"
+            },
+            vi: {
+                title: "Bản đồ Thế giới Căn theo Đại tròn",
+                subtitle: "Trực quan hóa Bản đồ Thế giới với Đại tròn & Vĩ tuyến Biến dạng",
+                lblLat: "Vĩ độ chung (θ)",
+                lblLon1: "Kinh độ 1 (Điểm A)",
+                lblLon2: "Kinh độ 2 (Điểm B)",
+                btnCalc: "Tính toán & Cập nhật Bản đồ",
+                hdrVertex: "Đỉnh Đại tròn (Vertex)",
+                lblVlat: "Vĩ độ đỉnh (+):",
+                lblVlon: "Kinh độ đỉnh:",
+                hdrSymvertex: "Đỉnh Đối xứng (Symmetric)",
+                lblSvlat: "Vĩ độ đối xứng (-):",
+                lblSvlon: "Kinh độ đối xứng:",
+                hdrLegend: "Chú giải",
+                legGc: "Đại tròn chính (Đường nằm ngang)",
+                legParallel: "Vĩ tuyến bị biến dạng",
+                legEquator: "Xích đạo bị biến dạng",
+                legSymgc: "Đại tròn đối xứng Nam bán cầu"
+            }
+        };
+
+        let currentLang = 'ko';
+
+        function changeLanguage(lang) {
+            currentLang = lang;
+            const t = i18n[lang];
+            document.getElementById('t-title').innerText = t.title;
+            document.getElementById('t-subtitle').innerText = t.subtitle;
+            document.getElementById('t-lbl-lat').innerText = t.lblLat;
+            document.getElementById('t-lbl-lon1').innerText = t.lblLon1;
+            document.getElementById('t-lbl-lon2').innerText = t.lblLon2;
+            document.getElementById('t-btn-calc').innerText = t.btnCalc;
+            document.getElementById('t-hdr-vertex').innerText = t.hdrVertex;
+            document.getElementById('t-lbl-vlat').innerText = t.lblVlat;
+            document.getElementById('t-lbl-vlon').innerText = t.lblVlon;
+            document.getElementById('t-hdr-symvertex').innerText = t.hdrSymvertex;
+            document.getElementById('t-lbl-svlat').innerText = t.lblSvlat;
+            document.getElementById('t-lbl-svlon').innerText = t.lblSvlon;
+            document.getElementById('t-hdr-legend').innerText = t.hdrLegend;
+            document.getElementById('t-leg-gc').innerText = t.legGc;
+            document.getElementById('t-leg-parallel').innerText = t.legParallel;
+            document.getElementById('t-leg-equator').innerText = t.legEquator;
+            document.getElementById('t-leg-symgc').innerText = t.legSymgc;
+
+            calculate();
+        }
+
+        // 2. 줌 및 팬(Pan & Zoom) 인터랙션 구현
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let startX, startY;
+
+        const svgMap = document.getElementById('flat-map');
+        const zoomGroup = document.getElementById('zoom-group');
+
+        function updateTransform() {
+            zoomGroup.setAttribute('transform', `translate(${translateX}, ${translateY}) scale(${scale})`);
+        }
+
+        function zoom(factor) {
+            scale *= factor;
+            scale = Math.min(Math.max(0.5, scale), 20); // Scale range constraint
+            updateTransform();
+        }
+
+        function resetZoom() {
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        }
+
+        svgMap.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+            zoom(zoomFactor);
+        });
+
+        svgMap.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            updateTransform();
+        });
+
+        window.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // 3. 지도 및 대원 계산 로직
+        let worldGeoJSON = null;
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        async function loadGeoData() {
+            try {
+                const res = await fetch('https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson');
+                worldGeoJSON = await res.json();
+            } catch (err) {
+                console.error("GeoJSON 로드 실패:", err);
+            }
+            calculate();
+        }
+
+        function calculate() {
+            const mapLayer = document.getElementById('map-layer');
+            const landLayer = document.getElementById('land-layer');
+            mapLayer.innerHTML = '';
+            landLayer.innerHTML = '';
+
+            const lat = parseFloat(document.getElementById('lat').value);
+            const lon1 = parseFloat(document.getElementById('lon1').value);
+            const lon2 = parseFloat(document.getElementById('lon2').value);
+
+            const phi = toRad(lat);
+            let dLon = toRad(lon2 - lon1);
+            while (dLon > Math.PI) dLon -= 2 * Math.PI;
+            while (dLon < -Math.PI) dLon += 2 * Math.PI;
+
+            // 방위각 및 최고점 계산
+            const y = Math.sin(dLon) * Math.cos(phi);
+            const x = Math.cos(phi) * Math.sin(phi) - Math.sin(phi) * Math.cos(phi) * Math.cos(dLon);
+            let initBearing = (toDeg(Math.atan2(y, x)) + 360) % 360;
+
+            let midLonRad = toRad(lon1) + dLon / 2;
+            let vertexLon = toDeg(midLonRad);
+            vertexLon = (vertexLon + 540) % 360 - 180;
+
+            const cosLatV = Math.cos(phi) * Math.sin(toRad(initBearing));
+            let vertexLat = Math.abs(toDeg(Math.acos(Math.abs(cosLatV))));
+            if (lat < 0) vertexLat = -vertexLat;
+
+            const symVertexLat = -vertexLat;
+            const symVertexLon = vertexLon;
+
+            document.getElementById('resVertexLat').innerText = `${vertexLat.toFixed(4)}°`;
+            document.getElementById('resVertexLon').innerText = `${vertexLon.toFixed(4)}°`;
+            document.getElementById('resSymVertexLat').innerText = `${symVertexLat.toFixed(4)}°`;
+            document.getElementById('resSymVertexLon').innerText = `${symVertexLon.toFixed(4)}°`;
+
+            // Oblique Coordinate Transformation
+            const poleLat = toRad(90 - Math.abs(vertexLat));
+            const poleLon = toRad(vertexLon);
+
+            function toOblique(lambda, phiVal) {
+                const lam = toRad(lambda);
+                const p = toRad(phiVal);
+                const dLam = lam - poleLon;
+
+                const sinY = Math.sin(p) * Math.cos(poleLat) - Math.cos(p) * Math.sin(poleLat) * Math.cos(dLam);
+                const obY = toDeg(Math.asin(Math.max(-1, Math.min(1, sinY))));
+
+                const yVal = Math.sin(dLam) * Math.cos(p);
+                const xVal = Math.sin(p) * Math.sin(poleLat) + Math.cos(p) * Math.cos(poleLat) * Math.cos(dLam);
+                const obX = toDeg(Math.atan2(yVal, xVal));
+
+                return [obX, -obY];
+            }
+
+            // [0] 세계 지도 배경 레이어
+            if (worldGeoJSON && worldGeoJSON.features) {
+                worldGeoJSON.features.forEach(feature => {
+                    const geom = feature.geometry;
+                    if (!geom) return;
+
+                    const renderPolygon = (coords) => {
+                        let pathD = "";
+                        coords.forEach((ring) => {
+                            ring.forEach((pt, pIdx) => {
+                                const [ox, oy] = toOblique(pt[0], pt[1]);
+                                if (pIdx === 0) pathD += `M ${ox} ${oy}`;
+                                else pathD += ` L ${ox} ${oy}`;
+                            });
+                            pathD += " Z";
+                        });
+                        if (pathD) {
+                            const poly = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                            poly.setAttribute("d", pathD);
+                            poly.setAttribute("class", "land-polygon");
+                            landLayer.appendChild(poly);
+                        }
+                    };
+
+                    if (geom.type === "Polygon") {
+                        renderPolygon(geom.coordinates);
+                    } else if (geom.type === "MultiPolygon") {
+                        geom.coordinates.forEach(polyCoords => renderPolygon(polyCoords));
+                    }
+                });
+            }
+
+            // [1] 수평 대원 직선 (Main Great Circle)
+            const mainGC = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            mainGC.setAttribute("x1", "-180");
+            mainGC.setAttribute("y1", "0");
+            mainGC.setAttribute("x2", "180");
+            mainGC.setAttribute("y2", "0");
+            mainGC.setAttribute("stroke", "#38bdf8");
+            mainGC.setAttribute("stroke-width", "1.5");
+            mapLayer.appendChild(mainGC);
+
+            // [2] 변화된 기존 위도선 (Parallel)
+            let pathParallel = "";
+            for (let l = -180; l <= 180; l += 2) {
+                const [ox, oy] = toOblique(l, lat);
+                pathParallel += (l === -180 ? `M ${ox} ${oy}` : ` L ${ox} ${oy}`);
+            }
+            const parallelCurve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            parallelCurve.setAttribute("d", pathParallel);
+            parallelCurve.setAttribute("stroke", "#f59e0b");
+            parallelCurve.setAttribute("stroke-width", "1.2");
+            parallelCurve.setAttribute("fill", "none");
+            parallelCurve.setAttribute("stroke-dasharray", "3,3");
+            mapLayer.appendChild(parallelCurve);
+
+            // [3] 변화된 적도선 (Equator)
+            let pathEquator = "";
+            for (let l = -180; l <= 180; l += 2) {
+                const [ox, oy] = toOblique(l, 0);
+                pathEquator += (l === -180 ? `M ${ox} ${oy}` : ` L ${ox} ${oy}`);
+            }
+            const equatorCurve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            equatorCurve.setAttribute("d", pathEquator);
+            equatorCurve.setAttribute("stroke", "#10b981");
+            equatorCurve.setAttribute("stroke-width", "1");
+            equatorCurve.setAttribute("fill", "none");
+            equatorCurve.setAttribute("stroke-dasharray", "2,2");
+            mapLayer.appendChild(equatorCurve);
+
+            // [4] 남반구 대칭 대원 (Symmetric Great Circle)
+            let pathSymGC = "";
+            for (let l = -180; l <= 180; l += 2) {
+                const [ox, oy] = toOblique(l, -lat);
+                pathSymGC += (l === -180 ? `M ${ox} ${oy}` : ` L ${ox} ${oy}`);
+            }
+            const symGCCurve = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            symGCCurve.setAttribute("d", pathSymGC);
+            symGCCurve.setAttribute("stroke", "#a855f7");
+            symGCCurve.setAttribute("stroke-width", "1.2");
+            symGCCurve.setAttribute("fill", "none");
+            mapLayer.appendChild(symGCCurve);
+
+            // [5] 마커 표시 함수
+            function addMarker(lonVal, latVal, color, label) {
+                const [ox, oy] = toOblique(lonVal, latVal);
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("cx", ox);
+                circle.setAttribute("cy", oy);
+                circle.setAttribute("r", "2.5");
+                circle.setAttribute("fill", color);
+                mapLayer.appendChild(circle);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", ox + 3);
+                text.setAttribute("y", oy - 3);
+                text.setAttribute("fill", color);
+                text.setAttribute("font-size", "4.5");
+                text.setAttribute("font-weight", "bold");
+                text.textContent = label;
+                mapLayer.appendChild(text);
+            }
+
+            addMarker(lon1, lat, "#38bdf8", "Point A");
+            addMarker(lon2, lat, "#38bdf8", "Point B");
+            addMarker(vertexLon, vertexLat, "#ef4444", `Vertex (+${vertexLat.toFixed(1)}°)`);
+            addMarker(symVertexLon, symVertexLat, "#a855f7", `Sym Vertex (${symVertexLat.toFixed(1)}°)`);
+        }
+
+        window.onload = loadGeoData;
+    </script>
+</body>
+</html>
