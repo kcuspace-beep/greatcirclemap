@@ -32,6 +32,51 @@ button:disabled{opacity:.45;cursor:not-allowed}
 pre{white-space:pre-wrap;word-break:break-all;background:#f5f7fa;border-radius:12px;padding:12px;font-size:13px}
 footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
 @media(max-width:420px){.coords{font-size:22px}.row{grid-template-columns:1fr}.lang-selector{position:static;margin-top:10px;text-align:right}}
+
+/* Mallipo Marine Sports Club membership promotion */
+.club-ad{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(135deg,#062b55 0%,#0b5cff 48%,#13a7c7 100%);
+  color:#fff;
+  border-radius:20px;
+  padding:0;
+}
+.club-ad .ad-content{padding:22px 20px 20px}
+.club-badge{
+  display:inline-block;background:#ffd43b;color:#14213d;font-weight:900;
+  border-radius:999px;padding:6px 10px;font-size:12px;margin-bottom:10px
+}
+.club-ad h2{margin:0 0 8px;font-size:25px;line-height:1.2}
+.club-ad .ad-sub{margin:0 0 14px;line-height:1.55;opacity:.96}
+.club-price{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 15px
+}
+.club-price strong{font-size:27px;color:#ffe45e}
+.club-price span{font-size:13px;background:rgba(255,255,255,.14);padding:6px 9px;border-radius:999px}
+.club-routes{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0 17px}
+.club-routes span{
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);
+  border-radius:999px;padding:7px 10px;font-size:13px;font-weight:700
+}
+.club-call{
+  display:block;text-align:center;text-decoration:none;background:#fff;color:#0649ad;
+  font-weight:900;border-radius:13px;padding:14px 12px;font-size:18px;
+  box-shadow:0 6px 18px rgba(0,0,0,.15)
+}
+.club-call small{display:block;font-size:11px;margin-top:3px;opacity:.75}
+.club-note{font-size:11px;opacity:.82;margin-top:10px;line-height:1.45}
+.club-gallery{display:grid;grid-template-columns:1.25fr 1fr;gap:5px;background:#031b35}
+.club-gallery img{width:100%;height:185px;object-fit:cover;display:block}
+.club-gallery .wide{height:185px}
+.club-caption{padding:7px 10px;font-size:10px;background:rgba(0,0,0,.45);margin-top:-28px;position:relative;color:#fff}
+.lang-promo{margin-top:8px;font-size:12px;opacity:.9}
+@media(max-width:520px){
+  .club-gallery{grid-template-columns:1fr}
+  .club-gallery img,.club-gallery .wide{height:165px}
+  .club-ad h2{font-size:22px}
+}
+
 </style>
 </head>
 <body>
@@ -43,6 +88,9 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
       <option value="vi">Tiếng Việt</option>
       <option value="ja">日本語</option>
       <option value="zh">中文</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="th">ไทย</option>
     </select>
   </div>
   <h1 id="header-title">📍 내 GPS 위치 전송</h1>
@@ -50,6 +98,47 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
 </header>
 
 <main>
+
+  <section class="card club-ad">
+    <div class="club-gallery">
+      <div>
+        <img src="https://xcrew-detail-images.s3.ap-northeast-2.amazonaws.com/361171d1-e56c-47eb-ad28-f33b64a15549.jpg"
+             alt="만리포 해변 패들보드 활동 참고사진" loading="lazy">
+        <div class="club-caption">만리포 SUP 활동 참고사진</div>
+      </div>
+      <div>
+        <img src="https://cdn.jalan.jp/jalan/img/5/spot/0205/KL/guide000000205435_1.jpg"
+             alt="바다 패들보드 투어 참고사진" loading="lazy">
+        <div class="club-caption">바다 패들보드 투어 참고사진</div>
+      </div>
+    </div>
+    <div class="ad-content">
+      <span class="club-badge" id="club-badge">SINCE 2018 · MEMBERSHIP</span>
+      <h2 id="club-title">🏄 만리포 해양스포츠 클럽 패들보드팀</h2>
+      <p class="ad-sub" id="club-desc">
+        만리포를 출발점으로 천리포 · 낭새섬 · 백리포 등 서해안 패들보드 투어를 함께 즐기는 패들보드팀입니다.
+      </p>
+      <div class="club-price">
+        <strong id="club-price">연회비 200,000원</strong>
+        <span id="club-since">Since 2018</span>
+      </div>
+      <div class="club-routes">
+        <span>📍 만리포</span><span>🌊 천리포</span><span>🏝️ 낭새섬</span><span>🛶 백리포</span>
+      </div>
+      <a class="club-call" href="tel:01032586747" id="club-call">
+        📞 010-3258-6747
+        <small id="club-call-small">회원가입 · 투어 문의</small>
+      </a>
+      <div class="lang-promo" id="club-lang-promo">
+        한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย
+      </div>
+      <div class="club-note" id="club-note">
+        ※ 투어 일정·코스·운영 여부는 기상, 파도, 조류 및 안전상황에 따라 달라질 수 있습니다.
+        실제 출항 전 현장 안전확인을 우선합니다.
+      </div>
+    </div>
+  </section>
+
   <section class="card">
     <div class="status"><span id="dot" class="dot wait"></span><span id="status">GPS 위치를 기다리는 중...</span></div>
     <div id="coords" class="coords">위도 -- / 경도 --</div>
@@ -133,6 +222,14 @@ const translations = {
     titleGuide: "⚠️ 스마트폰에서 GPS가 작동하지 않을 때",
     noteGuide: "1. 스마트폰의 위치 서비스를 켜세요.<br>2. 브라우저의 위치 권한을 허용하세요.<br>3. 가능하면 HTTPS로 접속하세요. 대부분의 모바일 브라우저는 보안 연결에서 위치 기능을 정상적으로 제공합니다.<br>4. 실외에서 잠시 기다리면 GPS 정확도가 좋아질 수 있습니다.",
     footerText: "GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.",
+    clubBadge: 'SINCE 2018 · MEMBERSHIP',
+    clubTitle: '🏄 만리포 해양스포츠 클럽 패들보드팀',
+    clubDesc: '만리포를 출발점으로 천리포 · 낭새섬 · 백리포 등 서해안 패들보드 투어를 함께 즐기는 패들보드팀입니다.',
+    clubPrice: '연회비 200,000원',
+    clubSince: 'Since 2018',
+    clubCallSmall: '회원가입 · 투어 문의',
+    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
+    clubNote: '※ 투어 일정·코스·운영 여부는 기상, 파도, 조류 및 안전상황에 따라 달라질 수 있습니다. 실제 출항 전 현장 안전확인을 우선합니다.',
     errNotSupported: "이 브라우저는 GPS 위치 기능을 지원하지 않습니다.",
     errDenied: "위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용하세요.",
     errUnavailable: "현재 위치를 확인할 수 없습니다. GPS/위치 서비스를 확인하세요.",
@@ -175,6 +272,14 @@ const translations = {
     titleGuide: "⚠️ When GPS Is Not Working",
     noteGuide: "1. Turn on Location Services on your phone.<br>2. Allow location permissions in your browser.<br>3. Use HTTPS connection if possible.<br>4. Wait outdoors for better accuracy.",
     footerText: "GPS data is measured locally in your browser and is not sent to any server.",
+    clubBadge: 'SINCE 2018 · MEMBERSHIP',
+    clubTitle: '🏄 Mallipo Marine Sports Club · SUP Team',
+    clubDesc: 'Join our SUP team for coastal paddleboard tours from Mallipo to Cheollipo, Nangsae Island and Baekripo.',
+    clubPrice: 'Annual membership: KRW 200,000',
+    clubSince: 'Since 2018',
+    clubCallSmall: 'Membership · Tour inquiries',
+    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
+    clubNote: 'Tour schedules and routes may change depending on weather, waves, currents and safety conditions. Final safety checks are made before departure.',
     errNotSupported: "This browser does not support GPS geolocation.",
     errDenied: "Location permission denied. Please allow location access in your browser settings.",
     errUnavailable: "Cannot determine current location. Please check your GPS/Location services.",
@@ -217,6 +322,14 @@ const translations = {
     titleGuide: "⚠️ Khi GPS Không Hoạt Động",
     noteGuide: "1. Bật Dịch vụ vị trí trên điện thoại.<br>2. Cho phép truy cập vị trí trong trình duyệt.<br>3. Sử dụng kết nối HTTPS nếu có thể.<br>4. Ra ngoài trời để có độ chính xác tốt hơn.",
     footerText: "Dữ liệu GPS được xử lý trực tiếp trên trình duyệt và không tự động gửi đến máy chủ.",
+    clubBadge: 'THÀNH LẬP 2018 · HỘI VIÊN',
+    clubTitle: '🏄 Câu lạc bộ Thể thao Biển Mallipo · Đội SUP',
+    clubDesc: 'Tham gia đội SUP để khám phá các tour ván đứng từ Mallipo đến Cheollipo, đảo Nangsae và Baekripo.',
+    clubPrice: 'Phí hội viên hằng năm: 200.000 KRW',
+    clubSince: 'Từ năm 2018',
+    clubCallSmall: 'Đăng ký hội viên · Hỏi về tour',
+    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
+    clubNote: 'Lịch trình và tuyến tour có thể thay đổi theo thời tiết, sóng, dòng chảy và điều kiện an toàn. Luôn kiểm tra an toàn trước khi khởi hành.',
     errNotSupported: "Trình duyệt không hỗ trợ tính năng định vị GPS.",
     errDenied: "Quyền truy cập vị trí bị từ chối.",
     errUnavailable: "Không thể xác định vị trí. Vui lòng kiểm tra GPS.",
@@ -259,6 +372,14 @@ const translations = {
     titleGuide: "⚠️ GPSが動作しない場合",
     noteGuide: "1. スマートフォンの位置情報サービスをオンにしてください。<br>2. ブラウザの位置情報権한を許可してください。<br>3. 可能な限りHTTPSで接続してください。<br>4. 屋外に移動すると精度が向上します。",
     footerText: "GPSデータはブラウザ上で測定され、外部サーバーへ自動送信されることはありません。",
+    clubBadge: '2018年設立 · MEMBERSHIP',
+    clubTitle: '🏄 マリポ海洋スポーツクラブ · SUPチーム',
+    clubDesc: 'マリポを出発し、チョルリポ・ナンセ島・ペクリポなどを巡るSUPツアーを一緒に楽しむチームです。',
+    clubPrice: '年会費：200,000 KRW',
+    clubSince: '2018年から',
+    clubCallSmall: '入会 · ツアーお問い合わせ',
+    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
+    clubNote: 'ツアー日程・ルートは天候、波、潮流、安全状況により変更される場合があります。出発前に安全確認を行います。',
     errNotSupported: "お使いのブラウザはGPS機能をサポートしていません。",
     errDenied: "位置情報の権限が拒否されました。",
     errUnavailable: "現在地を確認できません。GPS設定を確認してください。",
@@ -301,6 +422,14 @@ const translations = {
     titleGuide: "⚠️ 当GPS无法正常工作时",
     noteGuide: "1. 请开启手机定位服务。<br>2. 允许浏览器的定位权限。<br>3. 尽量使用 HTTPS 访问。<br>4. 在室外稍作等待可提高精确度。",
     footerText: "GPS数据仅在浏览器本地测量，不会自动发送至服务器。",
+    clubBadge: '成立于2018 · 会员招募',
+    clubTitle: '🏄 Mallipo海洋运动俱乐部 · SUP团队',
+    clubDesc: '加入SUP团队，从万里浦出发，体验前往千里浦、Nangsae岛和百里浦的海上桨板之旅。',
+    clubPrice: '年费：200,000韩元',
+    clubSince: '始于2018年',
+    clubCallSmall: '会员加入 · 旅行咨询',
+    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
+    clubNote: '行程和路线可能因天气、海浪、潮流及安全情况而调整。出发前请进行现场安全确认。',
     errNotSupported: "此浏览器不支持GPS定位功能。",
     errDenied: "定位权限被拒绝，请在浏览器设置中允许定位权限。",
     errUnavailable: "无法获取当前位置，请检查GPS服务。",
@@ -312,6 +441,124 @@ const translations = {
     shareTitle: "我的当前GPS位置",
     copyAlert: "已复制GPS坐标。",
     shareFallbackAlert: "由于不支持直接分享，已复制位置信息到剪贴板。"
+  },
+
+  es: {
+    title: "Enviar mi ubicación GPS",
+    headerTitle: "📍 Enviar mi ubicación GPS",
+    headerDesc: "Consulta y comparte rápidamente tu ubicación actual.",
+    statusWait: "Esperando ubicación GPS...",
+    statusMeasuring: "Midiendo ubicación GPS...",
+    statusStopped: "Medición GPS detenida.",
+    statusOk: "Ubicación GPS obtenida correctamente.",
+    coordsFormat: "Lat {lat} / Lon {lon}",
+    labelLat: "Latitud", labelLon: "Longitud", labelAccuracy: "Precisión",
+    labelAltitude: "Altitud", labelSpeed: "Velocidad", labelTime: "Última actualización",
+    notSupported: "No compatible",
+    startBtn: "📡 Iniciar GPS", stopBtn: "⏹ Detener GPS",
+    titleShare: "📤 Enviar ubicación", shareBtn: "📲 Compartir mi ubicación",
+    copyBtn: "📋 Copiar coordenadas GPS", smsBtn: "💬 Enviar por SMS",
+    noteShare: "Abre el menú de compartir del teléfono para enviar el enlace de ubicación.",
+    titleMap: "🗺️ Mapa de ubicación actual", mapBtn: "🌐 Abrir en Google Maps",
+    titleInfo: "🔗 Información para compartir",
+    messageDefault: "Aún no se ha obtenido la ubicación GPS.",
+    titleGuide: "⚠️ Si el GPS no funciona",
+    noteGuide: "1. Activa la ubicación del teléfono.<br>2. Permite el acceso a la ubicación en el navegador.<br>3. Usa HTTPS si es posible.<br>4. Sal al exterior para mejorar la precisión.",
+    footerText: "Los datos GPS se procesan localmente en el navegador y no se envían automáticamente a un servidor.",
+    errNotSupported: "Este navegador no admite geolocalización GPS.",
+    errDenied: "Permiso de ubicación denegado.",
+    errUnavailable: "No se puede determinar la ubicación actual.",
+    errTimeout: "Tiempo de espera del GPS agotado.",
+    errGeneric: "No se pudo obtener la ubicación GPS.",
+    errHttps: "Aviso: el GPS puede estar bloqueado si no se usa HTTPS.",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>El mapa aparecerá después de medir el GPS.</div>",
+    msgTemplate: "📍 Mi ubicación actual\nLatitud: {lat}\nLongitud: {lon}\nPrecisión: ~{accuracy} m\nHora: {time}\n\n🗺️ Mapa:\n{url}",
+    shareTitle: "Mi ubicación GPS actual", copyAlert: "Coordenadas GPS copiadas.",
+    shareFallbackAlert: "La función de compartir no está disponible; se copió la ubicación.",
+    clubBadge: "DESDE 2018 · MEMBRESÍA", clubTitle: "🏄 Club de Deportes Marinos de Mallipo · Equipo SUP",
+    clubDesc: "Únete a nuestro equipo SUP para tours en paddleboard desde Mallipo hacia Cheollipo, la isla Nangsae y Baekripo.",
+    clubPrice: "Cuota anual: 200.000 KRW", clubSince: "Desde 2018",
+    clubCallSmall: "Inscripción · Consultas sobre tours",
+    clubPromo: "한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย",
+    clubNote: "Los horarios y rutas pueden cambiar según el clima, las olas, las corrientes y las condiciones de seguridad. Se realiza una comprobación antes de salir."
+  },
+  fr: {
+    title: "Envoyer ma position GPS",
+    headerTitle: "📍 Envoyer ma position GPS",
+    headerDesc: "Consultez et partagez facilement votre position actuelle.",
+    statusWait: "En attente de la position GPS...",
+    statusMeasuring: "Mesure de la position GPS...",
+    statusStopped: "Mesure GPS arrêtée.",
+    statusOk: "Position GPS obtenue.",
+    coordsFormat: "Lat {lat} / Lon {lon}",
+    labelLat: "Latitude", labelLon: "Longitude", labelAccuracy: "Précision",
+    labelAltitude: "Altitude", labelSpeed: "Vitesse", labelTime: "Dernière mise à jour",
+    notSupported: "Non pris en charge",
+    startBtn: "📡 Démarrer le GPS", stopBtn: "⏹ Arrêter le GPS",
+    titleShare: "📤 Envoyer la position", shareBtn: "📲 Partager ma position",
+    copyBtn: "📋 Copier les coordonnées GPS", smsBtn: "💬 Envoyer par SMS",
+    noteShare: "Le bouton ouvre le menu de partage du téléphone pour envoyer le lien de position.",
+    titleMap: "🗺️ Carte de la position actuelle", mapBtn: "🌐 Ouvrir dans Google Maps",
+    titleInfo: "🔗 Informations à partager",
+    messageDefault: "La position GPS n'a pas encore été mesurée.",
+    titleGuide: "⚠️ Si le GPS ne fonctionne pas",
+    noteGuide: "1. Activez la localisation du téléphone.<br>2. Autorisez la localisation dans le navigateur.<br>3. Utilisez HTTPS si possible.<br>4. Placez-vous à l'extérieur pour améliorer la précision.",
+    footerText: "Les données GPS sont traitées localement dans le navigateur et ne sont pas envoyées automatiquement à un serveur.",
+    errNotSupported: "Ce navigateur ne prend pas en charge la géolocalisation GPS.",
+    errDenied: "Autorisation de localisation refusée.",
+    errUnavailable: "Impossible de déterminer la position actuelle.",
+    errTimeout: "Délai GPS dépassé.",
+    errGeneric: "Impossible d'obtenir la position GPS.",
+    errHttps: "Attention : le GPS peut être bloqué sans HTTPS.",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>La carte apparaîtra après la mesure GPS.</div>",
+    msgTemplate: "📍 Ma position actuelle\nLatitude : {lat}\nLongitude : {lon}\nPrécision : ~{accuracy} m\nHeure : {time}\n\n🗺️ Carte :\n{url}",
+    shareTitle: "Ma position GPS actuelle", copyAlert: "Coordonnées GPS copiées.",
+    shareFallbackAlert: "Le partage direct n'est pas pris en charge ; la position a été copiée.",
+    clubBadge: "DEPUIS 2018 · ADHÉSION", clubTitle: "🏄 Club de Sports Nautiques de Mallipo · Équipe SUP",
+    clubDesc: "Rejoignez notre équipe SUP pour des excursions en paddleboard de Mallipo vers Cheollipo, l'île de Nangsae et Baekripo.",
+    clubPrice: "Cotisation annuelle : 200 000 KRW", clubSince: "Depuis 2018",
+    clubCallSmall: "Adhésion · Informations sur les tours",
+    clubPromo: "한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย",
+    clubNote: "Les horaires et itinéraires peuvent changer selon la météo, les vagues, les courants et les conditions de sécurité. Contrôle de sécurité avant le départ."
+  },
+  th: {
+    title: "ส่งตำแหน่ง GPS ของฉัน",
+    headerTitle: "📍 ส่งตำแหน่ง GPS ของฉัน",
+    headerDesc: "ตรวจสอบตำแหน่งปัจจุบันและแชร์ได้อย่างรวดเร็ว",
+    statusWait: "กำลังรอตำแหน่ง GPS...",
+    statusMeasuring: "กำลังวัดตำแหน่ง GPS...",
+    statusStopped: "หยุดการวัด GPS แล้ว",
+    statusOk: "ตรวจพบตำแหน่ง GPS สำเร็จ",
+    coordsFormat: "ละติจูด {lat} / ลองจิจูด {lon}",
+    labelLat: "ละติจูด", labelLon: "ลองจิจูด", labelAccuracy: "ความแม่นยำ",
+    labelAltitude: "ระดับความสูง", labelSpeed: "ความเร็ว", labelTime: "อัปเดตล่าสุด",
+    notSupported: "ไม่รองรับ",
+    startBtn: "📡 เริ่มวัด GPS", stopBtn: "⏹ หยุด GPS",
+    titleShare: "📤 ส่งตำแหน่ง", shareBtn: "📲 แชร์ตำแหน่งของฉัน",
+    copyBtn: "📋 คัดลอกพิกัด GPS", smsBtn: "💬 ส่งทาง SMS",
+    noteShare: "ปุ่มแชร์จะเปิดเมนูแชร์ของโทรศัพท์เพื่อส่งลิงก์ตำแหน่ง",
+    titleMap: "🗺️ แผนที่ตำแหน่งปัจจุบัน", mapBtn: "🌐 เปิดใน Google Maps",
+    titleInfo: "🔗 ข้อมูลตำแหน่งสำหรับส่ง",
+    messageDefault: "ยังไม่ได้วัดตำแหน่ง GPS",
+    titleGuide: "⚠️ เมื่อ GPS ไม่ทำงาน",
+    noteGuide: "1. เปิดบริการตำแหน่งของโทรศัพท์<br>2. อนุญาตตำแหน่งในเบราว์เซอร์<br>3. ใช้ HTTPS หากทำได้<br>4. ออกไปกลางแจ้งเพื่อเพิ่มความแม่นยำ",
+    footerText: "ข้อมูล GPS ประมวลผลในเบราว์เซอร์และจะไม่ถูกส่งไปยังเซิร์ฟเวอร์โดยอัตโนมัติ",
+    errNotSupported: "เบราว์เซอร์นี้ไม่รองรับ GPS",
+    errDenied: "ไม่ได้รับอนุญาตให้เข้าถึงตำแหน่ง",
+    errUnavailable: "ไม่สามารถระบุตำแหน่งปัจจุบันได้",
+    errTimeout: "หมดเวลาตอบสนอง GPS",
+    errGeneric: "ไม่สามารถรับตำแหน่ง GPS ได้",
+    errHttps: "คำเตือน: GPS อาจถูกบล็อกหากไม่ได้ใช้ HTTPS",
+    mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>แผนที่จะแสดงหลังวัด GPS</div>",
+    msgTemplate: "📍 ตำแหน่งปัจจุบันของฉัน\nละติจูด: {lat}\nลองจิจูด: {lon}\nความแม่นยำ: ~{accuracy} m\nเวลา: {time}\n\n🗺️ แผนที่:\n{url}",
+    shareTitle: "ตำแหน่ง GPS ปัจจุบันของฉัน", copyAlert: "คัดลอกพิกัด GPS แล้ว",
+    shareFallbackAlert: "ไม่รองรับการแชร์โดยตรง จึงคัดลอกตำแหน่งไว้ในคลิปบอร์ด",
+    clubBadge: "ตั้งแต่ปี 2018 · สมาชิก", clubTitle: "🏄 ชมรมกีฬาทางทะเลมัลลิโพ · ทีม SUP",
+    clubDesc: "เข้าร่วมทีม SUP เพื่อทัวร์แพดเดิลบอร์ดจากมัลลิโพไปยังชอลลีโพ เกาะนังแซ และแพคลีโพ",
+    clubPrice: "ค่าสมาชิกรายปี: 200,000 KRW", clubSince: "ตั้งแต่ปี 2018",
+    clubCallSmall: "สมัครสมาชิก · สอบถามทัวร์",
+    clubPromo: "한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย",
+    clubNote: "กำหนดการและเส้นทางอาจเปลี่ยนตามสภาพอากาศ คลื่น กระแสน้ำ และความปลอดภัย กรุณาตรวจสอบก่อนออกเดินทาง"
   }
 };
 
@@ -355,6 +602,14 @@ function changeLanguage(lang){
   $("title-guide").textContent = t.titleGuide;
   $("note-guide").innerHTML = t.noteGuide;
   $("footer-text").textContent = t.footerText;
+  $("club-badge").textContent = t.clubBadge;
+  $("club-title").textContent = t.clubTitle;
+  $("club-desc").textContent = t.clubDesc;
+  $("club-price").textContent = t.clubPrice;
+  $("club-since").textContent = t.clubSince;
+  $("club-call-small").textContent = t.clubCallSmall;
+  $("club-lang-promo").textContent = t.clubPromo;
+  $("club-note").textContent = t.clubNote;
 
   if(!currentPosition){
     setStatus(t.statusWait, "wait");
@@ -418,7 +673,7 @@ function updatePosition(position){
   $("speed").textContent = c.speed != null && c.speed >= 0 ? `${(c.speed * 3.6).toFixed(1)} km/h` : "--";
 
   const d = new Date(position.timestamp);
-  const langLocaleMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN', ja: 'ja-JP', zh: 'zh-CN' };
+  const langLocaleMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN', ja: 'ja-JP', zh: 'zh-CN', es: 'es-ES', fr: 'fr-FR', th: 'th-TH' };
   const locale = langLocaleMap[currentLang] || 'en-US';
   
   $("time").textContent = d.toLocaleTimeString(locale);
@@ -454,7 +709,7 @@ function getShareText(){
   const c = currentPosition.coords;
   const d = new Date(currentPosition.timestamp);
   const t = translations[currentLang];
-  const langLocaleMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN', ja: 'ja-JP', zh: 'zh-CN' };
+  const langLocaleMap = { ko: 'ko-KR', en: 'en-US', vi: 'vi-VN', ja: 'ja-JP', zh: 'zh-CN', es: 'es-ES', fr: 'fr-FR', th: 'th-TH' };
   const locale = langLocaleMap[currentLang] || 'en-US';
 
   const mapsUrl = `https://www.google.com/maps?q=${c.latitude},${c.longitude}`;
