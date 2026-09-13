@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대원 항로 계산기 — Great Circle Route Calculator</title>
+<style>
+:root{--bg:#08111d;--card:#101d2d;--card2:#0d1826;--line:#29425e;--text:#eaf3fb;--muted:#9db0c4;--accent:#52c7ff;--good:#62e6a7;--warn:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#07101a,#0c1b2b);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif}
+.wrap{max-width:1450px;margin:auto;padding:22px}.hero{padding:18px 0 10px}.hero h1{margin:0 0 7px;font-size:30px}.hero p{margin:0;color:var(--muted)}
+.grid{display:grid;grid-template-columns:330px 1fr;gap:16px}.card{background:rgba(16,29,45,.94);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 10px 35px #0005}
+h2{font-size:18px;margin:0 0 13px}.sub{font-size:12px;color:var(--muted);margin:12px 0 7px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 5px}input,select,button{width:100%;border:1px solid var(--line);background:#0a1522;color:var(--text);border-radius:9px;padding:10px;font-size:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}button{cursor:pointer;background:#12304a}button:hover{border-color:var(--accent)}.primary{background:#07557d;border-color:#168bc4}
+.main{display:grid;grid-template-columns:minmax(500px,1fr) 390px;gap:16px}.canvasbox{position:relative;background:#06101b;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+canvas{display:block;width:100%;height:590px}.legend{padding:10px 13px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:11px}.stat b{display:block;font-size:19px;margin-top:4px}.stat span{font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:8px 6px;border-bottom:1px solid #20364d;text-align:right}th:first-child,td:first-child{text-align:center}th{color:var(--muted);font-weight:normal}
+.info{background:#0b1b2b;border:1px solid #254c6b;border-radius:12px;padding:11px;font-size:12px;line-height:1.6;color:#c8d8e7;margin-top:12px}.note{color:var(--warn)}
+@media(max-width:1050px){.grid,.main{grid-template-columns:1fr}.canvasbox canvas{height:480px}}
+@media(max-width:650px){.wrap{padding:10px}.row,.buttons,.stats{grid-template-columns:1fr}.hero h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1>🌐 대원 항로 계산기</h1>
+    <p>출발지·도착지 GPS를 입력하면 중심각, 거리, 초기/최종 방위각, Vertex, Vertex까지의 각도와 항로상의 방위각을 계산합니다.</p>
+  </div>
+
+  <div class="grid">
+    <aside class="card">
+      <h2>① GPS 입력</h2>
+      <div class="sub">출발지 A</div>
+      <div class="row">
+        <div><label>위도 (°)</label><input id="lat1" type="number" step="0.000001" value="37.5665"></div>
+        <div><label>경도 (°)</label><input id="lon1" type="number" step="0.000001" value="126.9780"></div>
+      </div>
+      <div class="sub">도착지 B</div>
+      <div class="row">
+        <div><label>위도 (°)</label><input id="lat2" type="number" step="0.000001" value="52.3676"></div>
+        <div><label>경도 (°)</label><input id="lon2" type="number" step="0.000001" value="4.9041"></div>
+      </div>
+
+      <div class="sub">표시 설정</div>
+      <label>항로 분할 지점 수</label>
+      <select id="npts">
+        <option>11</option><option selected>21</option><option>41</option><option>81</option>
+      </select>
+      <div class="buttons">
+        <button class="primary" id="calc">대원 항로 계산</button>
+        <button id="swap">A ↔ B</button>
+      </div>
+      <div class="sub">예제</div>
+      <select id="preset">
+        <option value="">선택하세요</option>
+        <option value="seoul-tokyo">서울 → 도쿄</option>
+        <option value="seoul-amsterdam">서울 → 암스테르담</option>
+        <option value="seoul-ny">서울 → 뉴욕</option>
+        <option value="ny-london">뉴욕 → 런던</option>
+      </select>
+      <div class="info">
+        <b>핵심 원리</b><br>
+        대원 항로는 지구 중심을 통과하는 평면과 지표면이 만나는 최단거리입니다.
+        항로의 <b>방위각은 일정하지 않고 계속 변합니다.</b>
+        Vertex는 대원 위에서 위도가 최대 또는 최소가 되는 점입니다.
+      </div>
+    </aside>
+
+    <section class="main">
+      <div class="canvasbox">
+        <canvas id="map"></canvas>
+        <div class="legend">● 출발지　● 도착지　● Vertex　━ 대원 항로　· · 항로상의 방위각 표시</div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>② 핵심 계산 결과</h2>
+          <div class="stats">
+            <div class="stat"><span>대원 중심각</span><b id="angle">—</b></div>
+            <div class="stat"><span>대원 거리</span><b id="distance">—</b></div>
+            <div class="stat"><span>초기 방위각</span><b id="initial">—</b></div>
+            <div class="stat"><span>최종 방위각</span><b id="final">—</b></div>
+            <div class="stat"><span>Vertex 위도</span><b id="vlat">—</b></div>
+            <div class="stat"><span>Vertex 경도</span><b id="vlon">—</b></div>
+            <div class="stat"><span>A → Vertex</span><b id="va">—</b></div>
+            <div class="stat"><span>Vertex → B</span><b id="vb">—</b></div>
+          </div>
+          <div class="info">
+            <b>방위각 변화</b><br><span id="change">—</span><br>
+            <span class="note">※ Vertex는 선택한 A→B 대원호 위에서 계산됩니다.</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h2>③ 항로상의 각 지점</h2>
+          <div style="max-height:330px;overflow:auto">
+            <table>
+              <thead><tr><th>#</th><th>비율</th><th>위도</th><th>경도</th><th>방위각</th><th>거리</th></tr></thead>
+              <tbody id="routeTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+const R=6371.0088, DEG=Math.PI/180, RAD=180/Math.PI;
+const $=id=>document.getElementById(id);
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=(x,d=3)=>Number(x).toFixed(d);
+const normLon=x=>((x+540)%360)-180;
+function rad(x){return x*DEG} function deg(x){return x*RAD}
+function latLonVec(lat,lon){let p=rad(lat),l=rad(lon);return [Math.cos(p)*Math.cos(l),Math.cos(p)*Math.sin(l),Math.sin(p)]}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function norm(v){let n=Math.hypot(...v);return v.map(x=>x/n)}
+function slerp(a,b,t){
+  let d=clamp(dot(a,b),-1,1), w=Math.acos(d);
+  if(w<1e-12)return a.slice();
+  let s=Math.sin(w);
+  return a.map((x,i)=>(Math.sin((1-t)*w)/s)*x+(Math.sin(t*w)/s)*b[i]);
+}
+function vecLatLon(v){v=norm(v);return [deg(Math.asin(clamp(v[2],-1,1))),normLon(deg(Math.atan2(v[1],v[0])))]}
+function initialBearing(a,b){
+  let p1=rad(a[0]),p2=rad(b[0]),dl=rad(normLon(b[1]-a[1]));
+  let y=Math.sin(dl)*Math.cos(p2);
+  let x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+  return (deg(Math.atan2(y,x))+360)%360;
+}
+function distanceAngle(a,b){
+  return Math.acos(clamp(dot(latLonVec(...a),latLonVec(...b)),-1,1));
+}
+function bearingAt(p,next){return initialBearing(p,next)}
+function destinationFrom(p,bearing,ang){
+  let f1=rad(p[0]),l1=rad(p[1]),th=rad(bearing);
+  let f2=Math.asin(clamp(Math.sin(f1)*Math.cos(ang)+Math.cos(f1)*Math.sin(ang)*Math.cos(th),-1,1));
+  let l2=l1+Math.atan2(Math.sin(th)*Math.sin(ang)*Math.cos(f1),Math.cos(ang)-Math.sin(f1)*Math.sin(f2));
+  return [deg(f2),normLon(deg(l2))]
+}
+// Vertex: great-circle plane normal n. A vertex is a point on the great circle
+// where latitude is extremal; it is proportional to projection of the north pole
+// onto the great-circle plane.
+function getVertices(A,B){
+  let a=latLonVec(...A),b=latLonVec(...B),n=norm(cross(a,b));
+  let z=[0,0,1];
+  let proj=z.map((x,i)=>x-n[i]*dot(z,n));
+  let v=norm(proj);
+  let v2=v.map(x=>-x);
+  return [vecLatLon(v),vecLatLon(v2),v,n];
+}
+function onArc(v,A,B,total){
+  let av=Math.acos(clamp(dot(latLonVec(...A),v),-1,1));
+  let vb=Math.acos(clamp(dot(v,latLonVec(...B)),-1,1));
+  return Math.abs((av+vb)-total)<1e-6;
+}
+function solve(){
+  let A=[+$('lat1').value,+$('lon1').value],B=[+$('lat2').value,+$('lon2').value];
+  if(Math.abs(A[0])>90||Math.abs(B[0])>90){alert('위도는 -90°~90° 범위입니다.');return}
+  let av=latLonVec(...A),bv=latLonVec(...B), total=Math.acos(clamp(dot(av,bv),-1,1));
+  if(total<1e-10){alert('출발지와 도착지가 같습니다.');return}
+  if(Math.abs(Math.PI-total)<1e-8){alert('정확히 대척점인 경우 대원 항로가 하나로 결정되지 않습니다.');return}
+
+  let ini=initialBearing(A,B);
+  let final=(initialBearing(B,A)+180)%360;
+
+  let [V1,V2]=getVertices(A,B);
+  let v=latLonVec(...V1), vertex=onArc(v,A,B,total)?V1:V2;
+  // If the selected vertex is on the chosen minor arc, use it. Otherwise opposite.
+  let vvec=latLonVec(...vertex);
+  let aV=Math.acos(clamp(dot(av,vvec),-1,1));
+  let vB=Math.acos(clamp(dot(vvec,bv),-1,1));
+
+  // Table points
+  let N=+$('npts').value, pts=[];
+  for(let i=0;i<N;i++){
+    let t=i/(N-1), p=vecLatLon(slerp(av,bv,t));
+    let next=i<N-1?vecLatLon(slerp(av,bv,Math.min(1,t+1/(N-1)))):B;
+    let br=i===N-1?final:bearingAt(p,next);
+    pts.push({i,t,p,br,d:t*total*R});
+  }
+
+  $('angle').textContent=fmt(deg(total),3)+'°';
+  $('distance').textContent=fmt(total*R,1)+' km';
+  $('initial').textContent=fmt(ini,2)+'°';
+  $('final').textContent=fmt(final,2)+'°';
+  $('vlat').textContent=fmt(vertex[0],5)+'°';
+  $('vlon').textContent=fmt(vertex[1],5)+'°';
+  $('va').textContent=fmt(deg(aV),3)+'° / '+fmt(aV*R,1)+' km';
+  $('vb').textContent=fmt(deg(vB),3)+'° / '+fmt(vB*R,1)+' km';
+  let delta=((final-ini+540)%360)-180;
+  $('change').textContent='초기 → 최종 방위각 변화: '+fmt(delta,2)+'° (최단 회전 방향 기준)';
+
+  $('routeTable').innerHTML=pts.map(q=>`<tr><td>${q.i}</td><td>${fmt(q.t*100,1)}%</td><td>${fmt(q.p[0],5)}°</td><td>${fmt(q.p[1],5)}°</td><td>${fmt(q.br,2)}°</td><td>${fmt(q.d,1)}</td></tr>`).join('');
+  draw(A,B,pts,vertex);
+}
+function draw(A,B,pts,V){
+  const c=$('map'),box=c.getBoundingClientRect(),dpr=devicePixelRatio||1,w=Math.max(500,box.width),h=590;
+  c.width=w*dpr;c.height=h*dpr;let x=c.getContext('2d');x.scale(dpr,dpr);
+  x.fillStyle='#06101b';x.fillRect(0,0,w,h);
+  // equirectangular map with longitude centered at 0
+  const px=(lon)=>((lon+180)/360)*w, py=(lat)=>(90-lat)/180*h;
+  // grid
+  x.strokeStyle='#163047';x.lineWidth=1;
+  for(let lon=-180;lon<=180;lon+=30){x.beginPath();x.moveTo(px(lon),0);x.lineTo(px(lon),h);x.stroke()}
+  for(let lat=-60;lat<=60;lat+=30){x.beginPath();x.moveTo(0,py(lat));x.lineTo(w,py(lat));x.stroke()}
+  // route, split across dateline
+  x.strokeStyle='#52c7ff';x.lineWidth=3;x.beginPath();
+  pts.forEach((q,i)=>{
+    let X=px(q.p[1]),Y=py(q.p[0]);
+    if(i===0||Math.abs(q.p[1]-pts[i-1].p[1])>180){x.moveTo(X,Y)}else{x.lineTo(X,Y)}
+  });x.stroke();
+  // markers
+  function mark(p,label,fill){x.beginPath();x.arc(px(p[1]),py(p[0]),6,0,Math.PI*2);x.fillStyle=fill;x.fill();x.strokeStyle='#fff';x.stroke();x.fillStyle='#eaf3fb';x.font='bold 12px Arial';x.fillText(label,px(p[1])+9,py(p[0])-8)}
+  mark(A,'A','#62e6a7');mark(B,'B','#ffd166');mark(V,'V','#ff6b8a');
+  // bearings arrows every few points
+  x.strokeStyle='#9db0c4';x.lineWidth=1.3;
+  for(let i=1;i<pts.length-1;i+=Math.max(1,Math.floor(pts.length/10))){
+    let q=pts[i], d=.035*w, br=rad(q.br);
+    let dx=Math.sin(br)*d,dy=-Math.cos(br)*d,X=px(q.p[1]),Y=py(q.p[0]);
+    x.beginPath();x.moveTo(X-dx*.5,Y-dy*.5);x.lineTo(X+dx*.5,Y+dy*.5);x.stroke();
+  }
+}
+$('calc').onclick=solve;
+$('swap').onclick=()=>{let a=$('lat1').value,b=$('lon1').value;$('lat1').value=$('lat2').value;$('lon1').value=$('lon2').value;$('lat2').value=a;$('lon2').value=b;solve()};
+$('preset').onchange=e=>{
+  const p={
+   'seoul-tokyo':[37.5665,126.9780,35.6762,139.6503],
+   'seoul-amsterdam':[37.5665,126.9780,52.3676,4.9041],
+   'seoul-ny':[37.5665,126.9780,40.7128,-74.0060],
+   'ny-london':[40.7128,-74.0060,51.5074,-0.1278]
+  }[e.target.value];if(p){['lat1','lon1','lat2','lon2'].forEach((id,i)=>$(id).value=p[i]);solve()}
+};
+window.addEventListener('resize',solve);solve();
+</script>
+</body>
+</html>
