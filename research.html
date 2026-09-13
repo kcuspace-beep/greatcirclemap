@@ -15,6 +15,45 @@
 *{box-sizing:border-box}
 body{margin:0;background:linear-gradient(135deg,#06111f,#0a1d32);color:var(--text);
 font-family:system-ui,-apple-system,"Segoe UI",sans-serif;height:100vh;overflow:hidden}
+
+/* -------------------------------------------------------------
+   ★ Intro Overlay Style (위성 관측 지구본 오버레이) ★
+   ------------------------------------------------------------- */
+#introOverlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: radial-gradient(circle at center, #0a2239 0%, #030a12 100%);
+  z-index: 99999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+#introCanvas {
+  width: 100%; max-width: 600px; height: 60vh; max-height: 500px;
+}
+.intro-title {
+  font-size: 22px; color: var(--cyan); font-weight: bold; margin-top: 15px;
+  letter-spacing: 2px; text-shadow: 0 0 12px rgba(77, 216, 255, 0.6);
+  text-align: center;
+}
+.intro-sub {
+  font-size: 13px; color: var(--muted); margin-top: 6px; text-align: center;
+}
+.intro-progress-bar {
+  width: 240px; height: 4px; background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px; margin-top: 20px; overflow: hidden; position: relative;
+}
+.intro-progress-fill {
+  width: 0%; height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan));
+  transition: width 0.05s linear;
+}
+.intro-skip-btn {
+  position: absolute; bottom: 25px; right: 25px;
+  background: rgba(16, 43, 71, 0.8); border: 1px solid var(--line);
+  color: var(--muted); padding: 8px 16px; border-radius: 20px;
+  font-size: 12px; cursor: pointer; backdrop-filter: blur(5px);
+  transition: all 0.2s;
+}
+.intro-skip-btn:hover { color: #fff; border-color: var(--cyan); background: var(--panel2); }
+
 header{height:76px;padding:12px 20px;display:flex;align-items:center;gap:18px;
 background:rgba(8,25,43,.96);border-bottom:1px solid var(--line);box-shadow:0 4px 20px #0008}
 .brand{flex:1;min-width:250px}.brand h1{margin:0;font-size:20px;color:var(--cyan)}
@@ -75,6 +114,18 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 </style>
 </head>
 <body>
+
+<!-- ★ 인트로 오버레이 HTML ★ -->
+<div id="introOverlay">
+  <canvas id="introCanvas"></canvas>
+  <div class="intro-title" id="t-intro-title">GLOBAL MONITORING SYSTEM</div>
+  <div class="intro-sub" id="t-intro-sub">위성 관측 좌표계를 기반으로 지구본을 연결 중입니다...</div>
+  <div class="intro-progress-bar">
+    <div class="intro-progress-fill" id="introProgress"></div>
+  </div>
+  <button class="intro-skip-btn" onclick="dismissIntro()">건너뛰기 (Skip) ✕</button>
+</div>
+
 <header>
   <div class="brand">
     <h1 id="t-head-title">국가 중심 세계지도 & 주요 지형 GPS 모니터링</h1>
@@ -331,7 +382,9 @@ const i18n = {
     sec7: "⑦ 변환 결과", thItem: "항목", thVal: "값", tdOrig: "원래 GPS", tdVec: "3D 벡터", tdRot: "회전 후", tdNlat: "새 위도", tdNlon: "새 경도",
     sec8: "⑧ 대원 방정식 및 특성",
     gcDesc: "동경 135°와 서경 45°(135°E ↔ 45°W) 축은 회전 후에도 휘어지지 않고 완전한 대원 구조를 유지합니다.",
-    centers: ["C1 (북동1)", "C2 (북동2)", "C3 (북서1)", "C4 (북서2)", "C5 (남동1)", "C6 (남동2)", "C7 (남서1)", "C8 (남서2)"]
+    centers: ["C1 (북동1)", "C2 (북동2)", "C3 (북서1)", "C4 (북서2)", "C5 (남동1)", "C6 (남동2)", "C7 (남서1)", "C8 (남서2)"],
+    introTitle: "SATELLITE ORBITAL MONITOR",
+    introSub: "위성 관측 좌표계를 기반으로 3D 지구본 모듈을 연결 중입니다..."
   },
   en: {
     headTitle: "Center-Oriented World Map & Features GPS",
@@ -353,7 +406,9 @@ const i18n = {
     sec7: "⑦ Transformation Result", thItem: "Item", thVal: "Value", tdOrig: "Original GPS", tdVec: "3D Vector", tdRot: "After Rotation", tdNlat: "New Lat", tdNlon: "New Lon",
     sec8: "⑧ Great Circle Properties",
     gcDesc: "Longitudes 135°E ↔ 45°W maintain a true Great Circle structure after rotation without bending.",
-    centers: ["C1 (NE1)", "C2 (NE2)", "C3 (NW1)", "C4 (NW2)", "C5 (SE1)", "C6 (SE2)", "C7 (SW1)", "C8 (SW2)"]
+    centers: ["C1 (NE1)", "C2 (NE2)", "C3 (NW1)", "C4 (NW2)", "C5 (SE1)", "C6 (SE2)", "C7 (SW1)", "C8 (SW2)"],
+    introTitle: "SATELLITE ORBITAL MONITOR",
+    introSub: "Initializing 3D Satellite Earth Globe Module..."
   },
   vi: {
     headTitle: "Bản Đồ Thế Giới Trung Tâm & GPS Địa Hình",
@@ -375,7 +430,9 @@ const i18n = {
     sec7: "⑦ Kết Quả Biến Đổi", thItem: "Mục", thVal: "Giá trị", tdOrig: "GPS Ban đầu", tdVec: "Vectơ 3D", tdRot: "Sau khi quay", tdNlat: "Vĩ độ mới", tdNlon: "Kinh độ mới",
     sec8: "⑧ Đặc Tính Vòng Tròn Lớn",
     gcDesc: "Các kinh tuyến 135°Đ ↔ 45°T giữ nguyên cấu trúc Vòng Tròn Lớn sau khi quay.",
-    centers: ["C1 (ĐB1)", "C2 (ĐB2)", "C3 (TB1)", "C4 (TB2)", "C5 (ĐN1)", "C6 (ĐN2)", "C7 (TN1)", "C8 (TN2)"]
+    centers: ["C1 (ĐB1)", "C2 (ĐB2)", "C3 (TB1)", "C4 (TB2)", "C5 (ĐN1)", "C6 (ĐN2)", "C7 (TN1)", "C8 (TN2)"],
+    introTitle: "SATELLITE ORBITAL MONITOR",
+    introSub: "Đang kết nối mô-đun Quả địa cầu 3D vệ tinh..."
   }
 };
 
@@ -454,6 +511,8 @@ function changeLanguage(langKey) {
   $("td-nlon").textContent = t.tdNlon;
   $("t-sec8-title").textContent = t.sec8;
   $("t-gc-desc").textContent = t.gcDesc;
+  if($("t-intro-title")) $("t-intro-title").textContent = t.introTitle;
+  if($("t-intro-sub")) $("t-intro-sub").textContent = t.introSub;
   initTable();
   render();
 }
@@ -750,7 +809,6 @@ function drawPath(points,stroke,width=1,fill=null){
   ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();
 }
 
-// 별 모양(Star) 마커 렌더링 함수
 function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
   let rot = Math.PI / 2 * 3;
   let x = cx, y = cy;
@@ -815,7 +873,6 @@ function render(){
   ctx.clearRect(0,0,w,h);
   const b=makeBasis(s.lat,s.lon,s.mode);
 
-  // 1. 위경도 격자선
   for(let lo=-180;lo<=180;lo+=30){
     let pts=[]; for(let la=-90;la<=90;la+=2){
       let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
@@ -831,7 +888,6 @@ function render(){
     drawPath(pts,"rgba(28, 85, 122, 0.4)", 1);
   }
 
-  // 2. 대륙 윤곽선 및 채우기
   const landData = worldGeoData.length > 0 ? worldGeoData : detailedLand;
   landData.forEach(poly=>{
     let pts=[];
@@ -842,7 +898,6 @@ function render(){
     drawPath(pts, "#38bdf8", 1.2, "rgba(14, 116, 144, 0.35)");
   });
 
-  // 3. 대원 경로
   const a=v(parseFloat($("aLat").value)||0,parseFloat($("aLon").value)||0);
   const bb=v(parseFloat($("bLat").value)||0,parseFloat($("bLon").value)||0);
   const ang=Math.acos(clamp(dot(a,bb)));
@@ -857,7 +912,6 @@ function render(){
     drawPath(pts,"#f97316",2.5);
   }
 
-  // 4. 지도 중심점 십자 마커
   const c=project(0,0,w,h,s.proj);
   if (c.visible !== false) {
     ctx.strokeStyle="#ff6675";ctx.lineWidth=2;
@@ -865,7 +919,6 @@ function render(){
     ctx.fillStyle="#ff6675";ctx.beginPath();ctx.arc(c.x,c.y,4,0,Math.PI*2);ctx.fill();
   }
 
-  // 5. 구면직각삼각형 중심점 8곳
   const now = Date.now() * 0.003;
   baseCenters.forEach((center, idx) => {
     let q = rotateSph(center.lat, center.lon, b);
@@ -884,11 +937,6 @@ function render(){
     ctx.fillText(i18n[currentLang].centers[idx], p.x + 8, p.y - 4);
   });
 
-  // -------------------------------------------------------------
-  // ★ 극동점(x = +90°, y = 0) 및 극서점(x = -90°, y = 0) 고정 렌더링 ★
-  // 도법 변환이나 중심점 좌표 변환에도 y=0 고정을 유지하도록
-  // 새 지도 위도 0°, 경도 ±90° 위치를 투영하여 항상 별 모양으로 표시합니다.
-  // -------------------------------------------------------------
   const extremePoints = [
     { name: "극동점 (East Extreme)", lat: 0, lon: 90 },
     { name: "극서점 (West Extreme)", lat: 0, lon: -90 }
@@ -897,7 +945,6 @@ function render(){
   extremePoints.forEach(pt => {
     let p = project(pt.lat, pt.lon, w, h, s.proj);
     if (p.visible !== false) {
-      // 붉은색 강렬한 별 모양 마커 표시 (외경 9px, 내경 4.5px)
       drawStar(p.x, p.y, 5, 9, 4.5, "#ff3344");
       ctx.fillStyle = "#ff6675";
       ctx.font = "bold 11px sans-serif";
@@ -905,7 +952,6 @@ function render(){
     }
   });
 
-  // 6. 마커 레이어 (G20, 강, 산, 해구)
   activeMarkerPositions = [];
 
   if ($("chk-g20").checked) {
@@ -1088,13 +1134,166 @@ function loop(){
   requestAnimationFrame(loop);
 }
 
+// -------------------------------------------------------------
+// ★ 위성 시점 3D 지구본 애니메이션 (첫 화면 약 3초 오버레이) ★
+// -------------------------------------------------------------
+let introCanvas = $("introCanvas"), ictx = introCanvas.getContext("2d");
+let introRot = 0;
+let introDuration = 3000; // 3초 (3000ms)
+let introStartTime = Date.now();
+let introActive = true;
+
+function resizeIntroCanvas(){
+  if(!introCanvas) return;
+  const d = devicePixelRatio || 1;
+  const r = introCanvas.getBoundingClientRect();
+  introCanvas.width = r.width * d;
+  introCanvas.height = r.height * d;
+  ictx.setTransform(d, 0, 0, d, 0, 0);
+}
+
+function renderIntroGlobe(){
+  if(!introActive) return;
+  const w = introCanvas.clientWidth;
+  const h = introCanvas.clientHeight;
+  ictx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w, h) * 0.38;
+  const elapsed = Date.now() - introStartTime;
+  const progress = Math.min(1.0, elapsed / introDuration);
+
+  // 게이지 바 업데이트
+  const progressFill = $("introProgress");
+  if (progressFill) progressFill.style.width = (progress * 100) + "%";
+
+  // 1. 지구 외곽 및 글로우 효과
+  let glowGradient = ictx.createRadialGradient(cx, cy, r * 0.9, cx, cy, r * 1.35);
+  glowGradient.addColorStop(0, "rgba(77, 216, 255, 0.4)");
+  glowGradient.addColorStop(1, "rgba(77, 216, 255, 0)");
+  ictx.fillStyle = glowGradient;
+  ictx.beginPath();
+  ictx.arc(cx, cy, r * 1.35, 0, Math.PI * 2);
+  ictx.fill();
+
+  // 2. 해양 구체 바디
+  let oceanGradient = ictx.createRadialGradient(cx - r*0.3, cy - r*0.3, r*0.1, cx, cy, r);
+  oceanGradient.addColorStop(0, "#164c78");
+  oceanGradient.addColorStop(0.7, "#092540");
+  oceanGradient.addColorStop(1, "#030e1a");
+  ictx.fillStyle = oceanGradient;
+  ictx.beginPath();
+  ictx.arc(cx, cy, r, 0, Math.PI * 2);
+  ictx.fill();
+
+  // 3. 자전하는 경위선 (3D Orthographic projection)
+  introRot += 0.8; // 자전 속도
+  ictx.strokeStyle = "rgba(77, 216, 255, 0.25)";
+  ictx.lineWidth = 1;
+
+  for (let lat = -60; lat <= 60; lat += 20) {
+    let pts = [];
+    for (let lon = -180; lon <= 180; lon += 5) {
+      let radLat = lat * D;
+      let radLon = (lon + introRot) * D;
+      let x3d = Math.cos(radLat) * Math.sin(radLon);
+      let z3d = Math.cos(radLat) * Math.cos(radLon);
+      let y3d = Math.sin(radLat);
+
+      if (z3d > 0) { // 전면만 렌더링
+        pts.push({ x: cx + r * x3d, y: cy - r * y3d });
+      } else {
+        if(pts.length > 0) {
+          ictx.beginPath();
+          pts.forEach((p, i) => i === 0 ? ictx.moveTo(p.x, p.y) : ictx.lineTo(p.x, p.y));
+          ictx.stroke();
+          pts = [];
+        }
+      }
+    }
+    if (pts.length > 0) {
+      ictx.beginPath();
+      pts.forEach((p, i) => i === 0 ? ictx.moveTo(p.x, p.y) : ictx.lineTo(p.x, p.y));
+      ictx.stroke();
+    }
+  }
+
+  // 4. 자전하는 대륙 릴리프
+  detailedLand.forEach(poly => {
+    let pts = [];
+    poly.forEach(c => {
+      let radLat = c[0] * D;
+      let radLon = (c[1] + introRot) * D;
+      let x3d = Math.cos(radLat) * Math.sin(radLon);
+      let z3d = Math.cos(radLat) * Math.cos(radLon);
+      let y3d = Math.sin(radLat);
+
+      if (z3d > 0) {
+        pts.push({ x: cx + r * x3d, y: cy - r * y3d });
+      }
+    });
+
+    if (pts.length > 1) {
+      ictx.beginPath();
+      pts.forEach((p, i) => i === 0 ? ictx.moveTo(p.x, p.y) : ictx.lineTo(p.x, p.y));
+      ictx.strokeStyle = "rgba(95, 224, 162, 0.7)";
+      ictx.lineWidth = 1.2;
+      ictx.stroke();
+      ictx.fillStyle = "rgba(95, 224, 162, 0.2)";
+      ictx.fill();
+    }
+  });
+
+  // 5. 위성 궤도 링 표현
+  ictx.strokeStyle = "rgba(255, 212, 90, 0.5)";
+  ictx.lineWidth = 1;
+  ictx.beginPath();
+  ictx.ellipse(cx, cy, r * 1.3, r * 0.35, -Math.PI / 6, 0, Math.PI * 2);
+  ictx.stroke();
+
+  // 궤도 위성 점
+  let satAngle = (Date.now() * 0.002) % (Math.PI * 2);
+  let satX = cx + Math.cos(satAngle) * (r * 1.3) * Math.cos(-Math.PI/6) - Math.sin(satAngle) * (r * 0.35) * Math.sin(-Math.PI/6);
+  let satY = cy + Math.cos(satAngle) * (r * 1.3) * Math.sin(-Math.PI/6) + Math.sin(satAngle) * (r * 0.35) * Math.cos(-Math.PI/6);
+  ictx.fillStyle = "#ffd45a";
+  ictx.beginPath(); ictx.arc(satX, satY, 4, 0, Math.PI * 2); ictx.fill();
+  ictx.shadowColor = "#ffd45a"; ictx.shadowBlur = 8;
+
+  // 3초 후 자동 종료 처리
+  if (elapsed >= introDuration) {
+    dismissIntro();
+  } else {
+    requestAnimationFrame(renderIntroGlobe);
+  }
+}
+
+function dismissIntro() {
+  if (!introActive) return;
+  introActive = false;
+  const overlay = $("introOverlay");
+  if (overlay) {
+    overlay.style.opacity = "0";
+    overlay.style.visibility = "hidden";
+    setTimeout(() => {
+      overlay.style.display = "none";
+    }, 800);
+  }
+}
+
+window.addEventListener("resize", () => {
+  resize();
+  resizeIntroCanvas();
+});
+
 ["lat","lon","mode","offset","projection","aLat","aLon","bLat","bLon"].forEach(id=>$(id).addEventListener("input",render));
-window.addEventListener("resize",resize);
 
 changeLanguage("ko");
 resize();
+resizeIntroCanvas();
 calculateGreatCircle();
 loop();
+requestAnimationFrame(renderIntroGlobe);
 </script>
 </body>
 </html>
