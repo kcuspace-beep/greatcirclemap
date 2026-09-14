@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#075985">
+<title>GPS An toàn Hàng hải Việt Nam</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans",sans-serif;background:#eef7fb;color:#123}
+header{background:#075985;color:#fff;padding:20px 15px;text-align:center}
+h1{font-size:22px;margin:0 0 7px}.subtitle{font-size:14px;opacity:.92}
+main{max-width:780px;margin:auto;padding:14px}
+.card{background:#fff;border-radius:16px;padding:17px;margin:12px 0;box-shadow:0 3px 14px #0001}
+h2,h3{margin:0 0 12px}.status{display:flex;align-items:center;gap:8px;font-weight:700}
+.dot{width:12px;height:12px;border-radius:50%;background:#aaa}.ok{background:#16a34a}
+.coord{font-size:25px;font-weight:800;word-break:break-all;margin:13px 0}
+button,a.btn{border:0;border-radius:11px;padding:13px 14px;margin:5px 4px 5px 0;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;display:inline-block}
+.primary{background:#075985;color:#fff}.secondary{background:#e0f2fe;color:#075985}
+.danger{background:#dc2626;color:#fff}.green{background:#16a34a;color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid button{width:100%;margin:0}
+.data{background:#f8fafc;border-radius:10px;padding:12px;line-height:1.75;font-size:14px}
+.small{font-size:13px;color:#52606d;line-height:1.55}
+.privacy{background:#ecfdf5;border-left:5px solid #16a34a;padding:12px;border-radius:10px;font-size:13px;line-height:1.55}
+label{font-size:13px;font-weight:700;display:block;margin:8px 0 4px}
+input,select,textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;font-size:14px;background:#fff}
+textarea{min-height:125px}
+.copyrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.copyrow button{margin:0}
+footer{text-align:center;padding:20px;color:#64748b;font-size:12px}
+@media(max-width:500px){.coord{font-size:21px}.grid,.copyrow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1 id="title">🇻🇳 GPS An toàn Hàng hải</h1>
+<div class="subtitle" id="subtitle">Xác định vị trí · Sao chép tọa độ · Chia sẻ · Yêu cầu trợ giúp khẩn cấp</div>
+</header>
+
+<main>
+<section class="card">
+<label id="languageLabel">Ngôn ngữ / Language</label>
+<select id="language" onchange="setLanguage(this.value)">
+<option value="vi">🇻🇳 Tiếng Việt</option>
+<option value="en">🇬🇧 English</option>
+<option value="ko">🇰🇷 한국어</option>
+<option value="zh">🇨🇳 简体中文</option>
+<option value="ja">🇯🇵 日本語</option>
+</select>
+</section>
+
+<section class="card">
+<div class="status"><span id="dot" class="dot"></span><span id="status">Chưa xác định vị trí GPS</span></div>
+<div id="coord" class="coord">--.------, --.------</div>
+<div class="grid">
+<button class="primary" id="getBtn" onclick="getLocation()">📍 Vị trí hiện tại</button>
+<button class="secondary" id="copyBtn" onclick="copyCoords()">📋 Sao chép GPS</button>
+</div>
+<p class="small" id="gpsNote">Hãy cho phép trình duyệt truy cập vị trí. GPS có thể xác định vị trí mà không cần Internet, nhưng bản đồ và ứng dụng nhắn tin có thể cần kết nối mạng.</p>
+</section>
+
+<section class="card">
+<h3 id="infoTitle">📍 Thông tin vị trí</h3>
+<div class="data">
+<span id="latLabel">Vĩ độ</span>: <b id="lat">-</b><br>
+<span id="lonLabel">Kinh độ</span>: <b id="lon">-</b><br>
+<span id="accLabel">Độ chính xác</span>: <b id="acc">-</b><br>
+<span id="altLabel">Độ cao</span>: <b id="alt">-</b><br>
+<span id="timeLabel">Thời gian đo</span>: <b id="time">-</b>
+</div>
+<div class="copyrow">
+<button class="secondary" onclick="copyDecimal()" id="decimalBtn">📋 Sao chép dạng thập phân</button>
+<button class="secondary" onclick="copyDMS()" id="dmsBtn">📋 Sao chép dạng DMS</button>
+</div>
+<a id="map" class="btn primary" href="#" target="_blank" id="mapBtn">🗺️ Google Maps</a>
+</section>
+
+<section class="card">
+<h3 id="shareTitle">📤 Chia sẻ vị trí</h3>
+<label id="phoneLabel">Số điện thoại WhatsApp (có mã quốc gia, tùy chọn)</label>
+<input id="phone" placeholder="+849xxxxxxxx">
+<div id="msg" class="data" style="margin-top:9px">Hãy xác định vị trí GPS trước.</div>
+<div class="grid" style="margin-top:9px">
+<button class="green" onclick="shareWhatsApp()">WhatsApp</button>
+<button class="secondary" onclick="shareKakao()">KakaoTalk</button>
+</div>
+<button class="primary" onclick="nativeShare()" id="shareBtn">📲 Chia sẻ bằng điện thoại</button>
+</section>
+
+<section class="card">
+<h3 id="emergencyTitle">🆘 Yêu cầu trợ giúp khẩn cấp</h3>
+<p class="small" id="emergencyNote">Nút này tạo một tin nhắn khẩn cấp có chứa tọa độ hiện tại. Nó không tự động gọi cơ quan cứu hộ. Trong tình huống nguy hiểm, hãy liên hệ cơ quan cứu hộ địa phương và người đi cùng nếu có thể.</p>
+<textarea id="emergencyText" readonly></textarea>
+<div class="grid">
+<button class="danger" onclick="emergency()" id="emergencyBtn">🚨 Tạo tin nhắn khẩn cấp</button>
+<button class="secondary" onclick="copyEmergency()" id="emergencyCopyBtn">📋 Sao chép tin nhắn</button>
+</div>
+</section>
+
+<section class="card">
+<h3 id="privacyTitle">🔒 Quyền riêng tư</h3>
+<div class="privacy" id="privacyText">
+<strong>Trang này không thu thập thông tin cá nhân.</strong><br>
+Tọa độ GPS chỉ được sử dụng trong trình duyệt để hiển thị vị trí và tạo nội dung chia sẻ. Trang này không có máy chủ riêng để lưu tọa độ. Vị trí không được tự động gửi cho bất kỳ ai. Chỉ khi bạn chủ động nhấn nút chia sẻ, dữ liệu mới được chuyển sang dịch vụ/ứng dụng bạn chọn, chẳng hạn WhatsApp, KakaoTalk hoặc Google Maps. Quyền vị trí do trình duyệt và hệ điều hành quản lý.
+</div>
+</section>
+
+<section class="card">
+<h3 id="checkTitle">🧭 Kiểm tra an toàn trước khi ra biển</h3>
+<div class="small" id="checkText">
+☐ Kiểm tra GPS và độ chính xác<br>
+☐ Lưu/chia sẻ tọa độ xuất phát<br>
+☐ Thông báo điểm đến và thời gian dự kiến quay về<br>
+☐ Kiểm tra pin, chống nước và phương tiện liên lạc<br>
+☐ Kiểm tra áo phao và thiết bị an toàn<br>
+☐ Kiểm tra gió, sóng, thủy triều và dòng chảy<br>
+☐ Thông báo kế hoạch cho người đồng hành
+</div>
+</section>
+</main>
+
+<footer id="footer">Marine Safety GPS · Trang HTML một tệp · Không tự động thu thập dữ liệu cá nhân</footer>
+
+<script>
+let pos=null;
+const T={
+vi:{title:"🇻🇳 GPS An toàn Hàng hải",subtitle:"Xác định vị trí · Sao chép tọa độ · Chia sẻ · Yêu cầu trợ giúp khẩn cấp",status:"Chưa xác định vị trí GPS",getting:"Đang xác định vị trí GPS...",done:"Đã xác định vị trí GPS",fail:"Không thể xác định vị trí: ",get:"📍 Vị trí hiện tại",copy:"📋 Sao chép GPS",note:"Hãy cho phép trình duyệt truy cập vị trí. GPS có thể xác định vị trí mà không cần Internet, nhưng bản đồ và ứng dụng nhắn tin có thể cần kết nối mạng.",info:"📍 Thông tin vị trí",lat:"Vĩ độ",lon:"Kinh độ",acc:"Độ chính xác",alt:"Độ cao",time:"Thời gian đo",decimal:"📋 Sao chép dạng thập phân",dms:"📋 Sao chép dạng DMS",map:"🗺️ Google Maps",share:"📤 Chia sẻ vị trí",phone:"Số điện thoại WhatsApp (có mã quốc gia, tùy chọn)",empty:"Hãy xác định vị trí GPS trước.",sharePhone:"📲 Chia sẻ bằng điện thoại",emergency:"🆘 Yêu cầu trợ giúp khẩn cấp",emergencyNote:"Nút này tạo một tin nhắn khẩn cấp có chứa tọa độ hiện tại. Nó không tự động gọi cơ quan cứu hộ. Trong tình huống nguy hiểm, hãy liên hệ cơ quan cứu hộ địa phương và người đi cùng nếu có thể.",emergencyBtn:"🚨 Tạo tin nhắn khẩn cấp",emergencyCopy:"📋 Sao chép tin nhắn",privacy:"🔒 Quyền riêng tư",privacyText:"<strong>Trang này không thu thập thông tin cá nhân.</strong><br>Tọa độ GPS chỉ được sử dụng trong trình duyệt để hiển thị vị trí và tạo nội dung chia sẻ. Trang này không có máy chủ riêng để lưu tọa độ. Vị trí không được tự động gửi cho bất kỳ ai. Chỉ khi bạn chủ động nhấn nút chia sẻ, dữ liệu mới được chuyển sang dịch vụ/ứng dụng bạn chọn, chẳng hạn WhatsApp, KakaoTalk hoặc Google Maps. Quyền vị trí do trình duyệt và hệ điều hành quản lý.",check:"🧭 Kiểm tra an toàn trước khi ra biển",checks:"☐ Kiểm tra GPS và độ chính xác<br>☐ Lưu/chia sẻ tọa độ xuất phát<br>☐ Thông báo điểm đến và thời gian dự kiến quay về<br>☐ Kiểm tra pin, chống nước và phương tiện liên lạc<br>☐ Kiểm tra áo phao và thiết bị an toàn<br>☐ Kiểm tra gió, sóng, thủy triều và dòng chảy<br>☐ Thông báo kế hoạch cho người đồng hành",copied:"Đã sao chép."},
+en:{title:"🇻🇳 Marine Safety GPS",subtitle:"Find location · Copy coordinates · Share · Emergency assistance",status:"GPS location not obtained",getting:"Getting GPS location...",done:"GPS location obtained",fail:"Unable to get location: ",get:"📍 Current location",copy:"📋 Copy GPS",note:"Allow your browser to access location. GPS can determine your position without Internet, but maps and messaging apps may need a network connection.",info:"📍 Location information",lat:"Latitude",lon:"Longitude",acc:"Accuracy",alt:"Altitude",time:"Measured at",decimal:"📋 Copy decimal",dms:"📋 Copy DMS",map:"🗺️ Google Maps",share:"📤 Share location",phone:"WhatsApp phone number (with country code, optional)",empty:"Get your GPS location first.",sharePhone:"📲 Phone share menu",emergency:"🆘 Emergency assistance",emergencyNote:"This button creates an emergency message containing your current coordinates. It does not automatically contact rescue authorities. In danger, contact local emergency services and your companions if possible.",emergencyBtn:"🚨 Create emergency message",emergencyCopy:"📋 Copy message",privacy:"🔒 Privacy",privacyText:"<strong>This page does not collect personal information.</strong><br>GPS coordinates are used only in your browser to display your position and create shareable content. This page has no server that stores your coordinates. Your location is not automatically sent to anyone. Only when you actively choose to share, data is passed to the service/app you select, such as WhatsApp, KakaoTalk, or Google Maps. Location permission is controlled by your browser and operating system.",check:"🧭 Pre-departure safety check",checks:"☐ Check GPS and accuracy<br>☐ Save/share departure coordinates<br>☐ Tell someone your destination and expected return time<br>☐ Check battery, waterproofing and communications<br>☐ Check PFD/life jacket and safety equipment<br>☐ Check wind, waves, tide and currents<br>☐ Tell a companion your activity plan",copied:"Copied."},
+ko:{title:"🇻🇳 해양레저 GPS 안전",subtitle:"현재 위치 확인 · 좌표 복사 · 공유 · 긴급 구조 요청",status:"GPS 위치 확인 전",getting:"GPS 위치 측정 중...",done:"GPS 위치 확인 완료",fail:"위치 확인 실패: ",get:"📍 현재 위치 확인",copy:"📋 GPS 복사",note:"브라우저의 위치 권한을 허용하세요. GPS는 인터넷 없이도 위치를 계산할 수 있지만 지도와 메신저 전송에는 통신망이 필요할 수 있습니다.",info:"📍 현재 위치 정보",lat:"위도",lon:"경도",acc:"정확도",alt:"고도",time:"측정 시각",decimal:"📋 십진수 좌표 복사",dms:"📋 DMS 좌표 복사",map:"🗺️ Google Maps",share:"📤 위치 공유",phone:"WhatsApp 전화번호(국가번호 포함, 선택)",empty:"먼저 GPS 위치를 확인하세요.",sharePhone:"📲 휴대폰 공유 메뉴",emergency:"🆘 긴급 구조 요청",emergencyNote:"현재 좌표가 포함된 긴급 메시지를 만듭니다. 이 버튼이 구조기관에 자동 신고하는 것은 아닙니다. 실제 긴급상황에서는 현지 긴급기관과 동행자에게 연락하세요.",emergencyBtn:"🚨 긴급 메시지 만들기",emergencyCopy:"📋 긴급문구 복사",privacy:"🔒 개인정보 보호",privacyText:"<strong>이 페이지는 개인정보를 수집하지 않습니다.</strong><br>GPS 좌표는 브라우저에서 현재 위치를 표시하고 공유 내용을 만드는 데만 사용됩니다. 이 페이지에는 좌표를 저장하는 별도 서버가 없습니다. 위치는 누구에게도 자동 전송되지 않습니다. 사용자가 공유 버튼을 직접 누른 경우에만 WhatsApp, 카카오톡, Google Maps 등 선택한 서비스/앱으로 데이터가 전달될 수 있습니다. 위치 권한은 브라우저와 운영체제가 관리합니다.",check:"🧭 출항 전 안전 점검",checks:"☐ GPS와 정확도 확인<br>☐ 출발 좌표 저장/공유<br>☐ 목적지와 예상 복귀시간 전달<br>☐ 배터리·방수·통신수단 확인<br>☐ 구명조끼 및 안전장비 확인<br>☐ 바람·파도·조석·조류 확인<br>☐ 동행자에게 활동계획 전달",copied:"복사되었습니다."},
+zh:{title:"🇻🇳 海上运动 GPS 安全",subtitle:"获取位置 · 复制坐标 · 分享 · 紧急求助",status:"尚未获取 GPS 位置",getting:"正在获取 GPS 位置...",done:"GPS 位置已获取",fail:"无法获取位置：",get:"📍 当前位置",copy:"📋 复制 GPS",note:"请允许浏览器访问位置信息。GPS 可以在没有互联网的情况下计算位置，但地图和聊天应用可能需要网络。",info:"📍 位置信息",lat:"纬度",lon:"经度",acc:"精度",alt:"海拔",time:"测量时间",decimal:"📋 复制十进制度",dms:"📋 复制 DMS",map:"🗺️ Google Maps",share:"📤 分享位置",phone:"WhatsApp 电话号码（含国家代码，可选）",empty:"请先获取 GPS 位置。",sharePhone:"📲 手机分享",emergency:"🆘 紧急求助",emergencyNote:"此按钮会生成包含当前坐标的紧急消息，不会自动联系救援机构。发生危险时，请尽可能联系当地紧急服务和同行人员。",emergencyBtn:"🚨 生成紧急消息",emergencyCopy:"📋 复制消息",privacy:"🔒 隐私保护",privacyText:"<strong>本页面不收集个人信息。</strong><br>GPS 坐标仅在浏览器中用于显示位置和生成分享内容。本页面没有用于保存坐标的服务器。位置不会自动发送给任何人。只有当您主动选择分享时，数据才可能发送到您选择的服务/应用，例如 WhatsApp、KakaoTalk 或 Google Maps。位置权限由浏览器和操作系统管理。",check:"🧭 出海前安全检查",checks:"☐ 检查 GPS 和精度<br>☐ 保存/分享出发坐标<br>☐ 告知目的地和预计返回时间<br>☐ 检查电量、防水和通信设备<br>☐ 检查救生衣和安全装备<br>☐ 检查风、浪、潮汐和水流<br>☐ 将活动计划告知同行人员",copied:"已复制。"},
+ja:{title:"🇻🇳 マリンレジャー GPS 安全",subtitle:"現在地確認 · 座標コピー · 共有 · 緊急救助",status:"GPS位置未取得",getting:"GPS位置を取得中...",done:"GPS位置を取得しました",fail:"位置を取得できません：",get:"📍 現在地",copy:"📋 GPSをコピー",note:"ブラウザの位置情報へのアクセスを許可してください。GPSはインターネットなしでも位置を計算できますが、地図やメッセージアプリには通信が必要な場合があります。",info:"📍 位置情報",lat:"緯度",lon:"経度",acc:"精度",alt:"高度",time:"測定時刻",decimal:"📋 10進座標をコピー",dms:"📋 DMSをコピー",map:"🗺️ Google Maps",share:"📤 位置を共有",phone:"WhatsApp電話番号（国番号付き・任意）",empty:"先にGPS位置を取得してください。",sharePhone:"📲 スマートフォンで共有",emergency:"🆘 緊急救助",emergencyNote:"現在の座標を含む緊急メッセージを作成します。このボタンは救助機関へ自動通報するものではありません。危険時は可能な限り現地の緊急サービスと同行者へ連絡してください。",emergencyBtn:"🚨 緊急メッセージ作成",emergencyCopy:"📋 メッセージをコピー",privacy:"🔒 プライバシー",privacyText:"<strong>このページは個人情報を収集しません。</strong><br>GPS座標はブラウザ内で位置を表示し、共有内容を作成するためだけに使用されます。このページには座標を保存するサーバーがありません。位置情報が自動的に誰かへ送信されることはありません。利用者が共有ボタンを押した場合のみ、WhatsApp、KakaoTalk、Google Mapsなど選択したサービス/アプリへデータが渡る場合があります。位置情報の権限はブラウザとOSが管理します。",check:"🧭 出航前の安全確認",checks:"☐ GPSと精度を確認<br>☐ 出発地点の座標を保存・共有<br>☐ 目的地と帰着予定時刻を伝える<br>☐ バッテリー・防水・通信手段を確認<br>☐ 救命胴衣・安全装備を確認<br>☐ 風・波・潮汐・海流を確認<br>☐ 同行者に活動計画を伝える",copied:"コピーしました。"}
+};
+let lang="vi";
+function $(id){return document.getElementById(id)}
+function setLanguage(v){
+ lang=v; const t=T[v];
+ $("title").textContent=t.title;$("subtitle").textContent=t.subtitle;$("status").textContent=pos?t.done:t.status;
+ $("getBtn").textContent=t.get;$("copyBtn").textContent=t.copy;$("gpsNote").textContent=t.note;
+ $("infoTitle").textContent=t.info;$("latLabel").textContent=t.lat;$("lonLabel").textContent=t.lon;$("accLabel").textContent=t.acc;$("altLabel").textContent=t.alt;$("timeLabel").textContent=t.time;
+ $("decimalBtn").textContent=t.decimal;$("dmsBtn").textContent=t.dms;$("map").textContent=t.map;
+ $("shareTitle").textContent=t.share;$("phoneLabel").textContent=t.phone;$("shareBtn").textContent=t.sharePhone;
+ $("emergencyTitle").textContent=t.emergency;$("emergencyNote").textContent=t.emergencyNote;$("emergencyBtn").textContent=t.emergencyBtn;$("emergencyCopyBtn").textContent=t.emergencyCopy;
+ $("privacyTitle").textContent=t.privacy;$("privacyText").innerHTML=t.privacyText;$("checkTitle").textContent=t.check;$("checkText").innerHTML=t.checks;
+ if(pos) updateMessages();
+}
+function showPosition(p){
+ pos=p; const c=p.coords, lat=c.latitude, lon=c.longitude;
+ $("lat").textContent=lat.toFixed(6)+"°";$("lon").textContent=lon.toFixed(6)+"°";$("coord").textContent=lat.toFixed(6)+", "+lon.toFixed(6);
+ $("acc").textContent=c.accuracy?Math.round(c.accuracy)+" m":"-";$("alt").textContent=c.altitude!=null?c.altitude.toFixed(1)+" m":"-";$("time").textContent=new Date(p.timestamp).toLocaleString();
+ $("dot").classList.add("ok");$("status").textContent=T[lang].done;$("map").href="https://www.google.com/maps?q="+lat+","+lon;updateMessages();
+}
+function getLocation(){
+ if(!navigator.geolocation){alert("Geolocation is not supported by this browser.");return}
+ $("status").textContent=T[lang].getting;
+ navigator.geolocation.getCurrentPosition(showPosition,e=>{$("status").textContent=T[lang].fail+e.message},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+}
+function decimalText(){
+ if(!pos)return T[lang].empty;
+ return pos.coords.latitude.toFixed(6)+", "+pos.coords.longitude.toFixed(6);
+}
+function dms(v,isLat){
+ let a=Math.abs(v), d=Math.floor(a), m0=(a-d)*60, m=Math.floor(m0), s=(m0-m)*60;
+ let hemi=isLat?(v>=0?"N":"S"):(v>=0?"E":"W");
+ return d+"° "+m+"′ "+s.toFixed(2)+"″ "+hemi;
+}
+function dmsText(){
+ if(!pos)return T[lang].empty;
+ return dms(pos.coords.latitude,true)+", "+dms(pos.coords.longitude,false);
+}
+function coordText(){
+ if(!pos)return T[lang].empty;
+ return "GPS: "+decimalText()+"\nDMS: "+dmsText()+"\nGoogle Maps: https://www.google.com/maps?q="+pos.coords.latitude+","+pos.coords.longitude;
+}
+function updateMessages(){
+ $("msg").textContent=coordText();
+ $("emergencyText").value=lang==="ko"?"🚨 긴급상황\n현재 위치에서 도움이 필요합니다.\n"+coordText():
+ lang==="vi"?"🚨 KHẨN CẤP\nTôi cần trợ giúp. Vui lòng kiểm tra vị trí hiện tại.\n"+coordText():
+ lang==="zh"?"🚨 紧急情况\n我需要帮助，请查看我的当前位置。\n"+coordText():
+ lang==="ja"?"🚨 緊急事態\n助けが必要です。現在地を確認してください。\n"+coordText():
+ "🚨 EMERGENCY\nI need help. Please check my current location.\n"+coordText();
+}
+async function copyText(s){try{await navigator.clipboard.writeText(s);alert(T[lang].copied)}catch(e){alert(s)}}
+function copyCoords(){if(!pos){alert(T[lang].empty);return}copyText(coordText())}
+function copyDecimal(){if(!pos){alert(T[lang].empty);return}copyText(decimalText())}
+function copyDMS(){if(!pos){alert(T[lang].empty);return}copyText(dmsText())}
+function shareWhatsApp(){
+ if(!pos){alert(T[lang].empty);return}
+ let phone=$("phone").value.replace(/\D/g,"");
+ window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(coordText()),"_blank");
+}
+function shareKakao(){
+ if(!pos){alert(T[lang].empty);return}
+ if(navigator.share) navigator.share({title:"GPS Location",text:coordText()}).catch(()=>{});
+ else copyText(coordText());
+}
+function nativeShare(){
+ if(!pos){alert(T[lang].empty);return}
+ if(navigator.share) navigator.share({title:"Marine Safety GPS",text:coordText()}).catch(()=>{});
+ else copyText(coordText());
+}
+function emergency(){
+ if(!pos){alert(T[lang].empty);return}
+ updateMessages();copyText($("emergencyText").value);
+}
+function copyEmergency(){
+ if(!pos){alert(T[lang].empty);return}
+ updateMessages();copyText($("emergencyText").value);
+}
+setLanguage("vi");
+</script>
+</body>
+</html>
