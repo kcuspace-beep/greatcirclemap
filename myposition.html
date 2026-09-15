@@ -31,6 +31,67 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .note{font-size:13px;color:#667085;line-height:1.55}
 pre{white-space:pre-wrap;word-break:break-all;background:#f5f7fa;border-radius:12px;padding:12px;font-size:13px}
 footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
+
+/* Marine Sites Section Style */
+.sea-sites-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.sea-site-card {
+  display: flex;
+  flex-direction: column;
+  justify: space-between;
+  align-items: center;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 10px;
+  text-decoration: none;
+  color: #1e293b;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.sea-site-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(11, 92, 255, 0.12);
+  border-color: #0b5cff;
+}
+.sea-site-icon {
+  font-size: 26px;
+  margin-bottom: 8px;
+}
+.sea-site-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0b5cff;
+  margin-bottom: 4px;
+}
+.sea-site-desc {
+  font-size: 11px;
+  color: #64748b;
+  word-break: keep-all;
+  line-height: 1.3;
+}
+
+@media(max-width:520px){
+  .sea-sites-grid {
+    grid-template-columns: 1fr;
+  }
+  .sea-site-card {
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 12px 16px;
+    gap: 14px;
+  }
+  .sea-site-icon {
+    margin-bottom: 0;
+    font-size: 28px;
+  }
+}
+
 @media(max-width:420px){.coords{font-size:22px}.row{grid-template-columns:1fr}.lang-selector{position:static;margin-top:10px;text-align:right}}
 
 /* Mallipo Marine Sports Club membership promotion */
@@ -182,6 +243,35 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
       4. 실외에서 잠시 기다리면 GPS 정확도가 좋아질 수 있습니다.
     </p>
   </section>
+
+  <!-- 바다활동에 필요한 사이트 정보 카드 추가 -->
+  <section class="card">
+    <h2 id="title-sea-sites">🌊 바다활동에 필요한 사이트 정보</h2>
+    <div class="sea-sites-grid">
+      <a href="https://www.badatime.com/" target="_blank" rel="noopener noreferrer" class="sea-site-card">
+        <div class="sea-site-icon">⚓</div>
+        <div>
+          <div class="sea-site-name">바다타임</div>
+          <div class="sea-site-desc">물때표 및 바다 날씨 정보</div>
+        </div>
+      </a>
+      <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer" class="sea-site-card">
+        <div class="sea-site-icon">🌀</div>
+        <div>
+          <div class="sea-site-name">윈디</div>
+          <div class="sea-site-desc">실시간 바람·파도·기상 레이더</div>
+        </div>
+      </a>
+      <a href="https://old.windguru.cz/int/index.php?sc=452361&sty=m_spot" target="_blank" rel="noopener noreferrer" class="sea-site-card">
+        <div class="sea-site-icon">🏄</div>
+        <div>
+          <div class="sea-site-name">윈드그루</div>
+          <div class="sea-site-desc">해양 스포츠 풍향·파고 예보</div>
+        </div>
+      </a>
+    </div>
+  </section>
+
 </main>
 
 <footer id="footer-text">GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.</footer>
@@ -230,6 +320,7 @@ const translations = {
     clubCallSmall: '회원가입 · 투어 문의',
     clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
     clubNote: '※ 투어 일정·코스·운영 여부는 기상, 파도, 조류 및 안전상황에 따라 달라질 수 있습니다. 실제 출항 전 현장 안전확인을 우선합니다.',
+    titleSeaSites: "🌊 바다활동에 필요한 사이트 정보",
     errNotSupported: "이 브라우저는 GPS 위치 기능을 지원하지 않습니다.",
     errDenied: "위치 권한이 거부되었습니다. 브라우저 설정에서 위치 권한을 허용하세요.",
     errUnavailable: "현재 위치를 확인할 수 없습니다. GPS/위치 서비스를 확인하세요.",
@@ -280,6 +371,7 @@ const translations = {
     clubCallSmall: 'Membership · Tour inquiries',
     clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
     clubNote: 'Tour schedules and routes may change depending on weather, waves, currents and safety conditions. Final safety checks are made before departure.',
+    titleSeaSites: "🌊 Essential Websites for Ocean Activities",
     errNotSupported: "This browser does not support GPS geolocation.",
     errDenied: "Location permission denied. Please allow location access in your browser settings.",
     errUnavailable: "Cannot determine current location. Please check your GPS/Location services.",
@@ -328,8 +420,9 @@ const translations = {
     clubPrice: 'Phí hội viên hằng năm: 200.000 KRW',
     clubSince: 'Từ năm 2018',
     clubCallSmall: 'Đăng ký hội viên · Hỏi về tour',
-    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
+    clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · Thái',
     clubNote: 'Lịch trình và tuyến tour có thể thay đổi theo thời tiết, sóng, dòng chảy và điều kiện an toàn. Luôn kiểm tra an toàn trước khi khởi hành.',
+    titleSeaSites: "🌊 Trang Web Cần Thiết Cho Hoạt Động Biển",
     errNotSupported: "Trình duyệt không hỗ trợ tính năng định vị GPS.",
     errDenied: "Quyền truy cập vị trí bị từ chối.",
     errUnavailable: "Không thể xác định vị trí. Vui lòng kiểm tra GPS.",
@@ -370,7 +463,7 @@ const translations = {
     titleInfo: "🔗 送信用位置情報",
     messageDefault: "まだGPS位置情報が測定されていません。",
     titleGuide: "⚠️ GPSが動作しない場合",
-    noteGuide: "1. スマートフォンの位置情報サービスをオンにしてください。<br>2. ブラウザの位置情報権한を許可してください。<br>3. 可能な限りHTTPSで接続してください。<br>4. 屋外に移動すると精度が向上します。",
+    noteGuide: "1. スマートフォンの位置情報サービスをオンにしてください。<br>2. ブラウザの位置情報権限を許可してください。<br>3. 可能な限りHTTPSで接続してください。<br>4. 屋外に移動すると精度が向上します。",
     footerText: "GPSデータはブラウザ上で測定され、外部サーバーへ自動送信されることはありません。",
     clubBadge: '2018年設立 · MEMBERSHIP',
     clubTitle: '🏄 マリポ海洋スポーツクラブ · SUPチーム',
@@ -380,6 +473,7 @@ const translations = {
     clubCallSmall: '入会 · ツアーお問い合わせ',
     clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
     clubNote: 'ツアー日程・ルートは天候、波、潮流、安全状況により変更される場合があります。出発前に安全確認を行います。',
+    titleSeaSites: "🌊 海洋アクティビティおすすめサイト",
     errNotSupported: "お使いのブラウザはGPS機能をサポートしていません。",
     errDenied: "位置情報の権限が拒否されました。",
     errUnavailable: "現在地を確認できません。GPS設定を確認してください。",
@@ -430,6 +524,7 @@ const translations = {
     clubCallSmall: '会员加入 · 旅行咨询',
     clubPromo: '한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย',
     clubNote: '行程和路线可能因天气、海浪、潮流及安全情况而调整。出发前请进行现场安全确认。',
+    titleSeaSites: "🌊 海洋活动常用网站",
     errNotSupported: "此浏览器不支持GPS定位功能。",
     errDenied: "定位权限被拒绝，请在浏览器设置中允许定位权限。",
     errUnavailable: "无法获取当前位置，请检查GPS服务。",
@@ -480,7 +575,8 @@ const translations = {
     clubPrice: "Cuota anual: 200.000 KRW", clubSince: "Desde 2018",
     clubCallSmall: "Inscripción · Consultas sobre tours",
     clubPromo: "한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย",
-    clubNote: "Los horarios y rutas pueden cambiar según el clima, las olas, las corrientes y las condiciones de seguridad. Se realiza una comprobación antes de salir."
+    clubNote: "Los horarios y rutas pueden cambiar según el clima, las olas, las corrientes y las condiciones de seguridad. Se realiza una comprobación antes de salir.",
+    titleSeaSites: "🌊 Sitios Web Útiles para Actividades Marítimas"
   },
   fr: {
     title: "Envoyer ma position GPS",
@@ -519,7 +615,8 @@ const translations = {
     clubPrice: "Cotisation annuelle : 200 000 KRW", clubSince: "Depuis 2018",
     clubCallSmall: "Adhésion · Informations sur les tours",
     clubPromo: "한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย",
-    clubNote: "Les horaires et itinéraires peuvent changer selon la météo, les vagues, les courants et les conditions de sécurité. Contrôle de sécurité avant le départ."
+    clubNote: "Les horaires et itinéraires peuvent changer selon la météo, les vagues, les courants et les conditions de sécurité. Contrôle de sécurité avant le départ.",
+    titleSeaSites: "🌊 Sites Utiles pour les Activités Nautiques"
   },
   th: {
     title: "ส่งตำแหน่ง GPS ของฉัน",
@@ -558,7 +655,8 @@ const translations = {
     clubPrice: "ค่าสมาชิกรายปี: 200,000 KRW", clubSince: "ตั้งแต่ปี 2018",
     clubCallSmall: "สมัครสมาชิก · สอบถามทัวร์",
     clubPromo: "한국어 · English · Tiếng Việt · 日本語 · 中文 · Español · Français · ไทย",
-    clubNote: "กำหนดการและเส้นทางอาจเปลี่ยนตามสภาพอากาศ คลื่น กระแสน้ำ และความปลอดภัย กรุณาตรวจสอบก่อนออกเดินทาง"
+    clubNote: "กำหนดการและเส้นทางอาจเปลี่ยนตามสภาพอากาศ คลื่น กระแสน้ำ และความปลอดภัย กรุณาตรวจสอบก่อนออกเดินทาง",
+    titleSeaSites: "🌊 เว็บไซต์ที่จำเป็นสำหรับกิจกรรมทางทะเล"
   }
 };
 
@@ -610,6 +708,7 @@ function changeLanguage(lang){
   $("club-call-small").textContent = t.clubCallSmall;
   $("club-lang-promo").textContent = t.clubPromo;
   $("club-note").textContent = t.clubNote;
+  if($("title-sea-sites")) $("title-sea-sites").textContent = t.titleSeaSites || "🌊 바다활동에 필요한 사이트 정보";
 
   if(!currentPosition){
     setStatus(t.statusWait, "wait");
