@@ -204,6 +204,7 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 
     <label style="margin-top:10px;" id="t-lbl-filter">지도 표시 마커 선택</label>
     <div class="filter-group">
+      <label class="filter-item"><input type="checkbox" id="chk-grid" checked onchange="render()"><span id="lbl-chk-grid">위·경도 그리드선</span></label>
       <label class="filter-item"><input type="checkbox" id="chk-g20" checked onchange="render()"> G20 수도</label>
       <label class="filter-item"><input type="checkbox" id="chk-rivers" checked onchange="render()"> 10대 강</label>
       <label class="filter-item"><input type="checkbox" id="chk-mountains" checked onchange="render()"> 10대 산</label>
@@ -374,6 +375,7 @@ const i18n = {
     btnTaean: "태안/만리포", btnPole: "북극",
     sec2: "② 경도 기준 이동", lblOffset: "Δλ — X축/경도 오프셋 (°)",
     sec3: "③ 지도 투영법 및 표시 항목", lblFilter: "지도 표시 마커 선택",
+    chkGrid: "위·경도 그리드선",
     sec4: "④ 대원 계산", lblALat: "출발 φ₁", lblALon: "출발 λ₁", lblBLat: "도착 φ₂", lblBLon: "도착 λ₂", btnCalcGc: "대원 / 최고점 계산",
     sec5: "⑤ 수학적 핵심",
     mapTitle: "국가 중심 세계지도",
@@ -398,6 +400,7 @@ const i18n = {
     btnTaean: "Taean/Mallipo", btnPole: "North Pole",
     sec2: "② Longitude Shift", lblOffset: "Δλ — X-axis/Lon Offset (°)",
     sec3: "③ Projection & Filters", lblFilter: "Select Markers to Display",
+    chkGrid: "Lat/Lon Grid Lines",
     sec4: "④ Great Circle Calc", lblALat: "Start φ₁", lblALon: "Start λ₁", lblBLat: "End φ₂", lblBLon: "End λ₂", btnCalcGc: "Calculate Great Circle",
     sec5: "⑤ Math Essentials",
     mapTitle: "Center-Oriented World Map",
@@ -422,6 +425,7 @@ const i18n = {
     btnTaean: "Taean/Mallipo", btnPole: "Bắc Cực",
     sec2: "② Dịch Chuyển Kinh Độ", lblOffset: "Δλ — Độ lệch kinh độ (°)",
     sec3: "③ Phép Chiếu & Bộ Lọc", lblFilter: "Chọn Dấu Mốc Hiển Thị",
+    chkGrid: "Lưới Kinh/Vĩ Độ",
     sec4: "④ Tính Vòng Tròn Lớn", lblALat: "Điểm đi φ₁", lblALon: "Điểm đi λ₁", lblBLat: "Điểm đến φ₂", lblBLon: "Điểm đến λ₂", btnCalcGc: "Tính Vòng Tròn Lớn",
     sec5: "⑤ Cốt Lõi Toán Học",
     mapTitle: "Bản Đồ Thế Giới Trung Tâm",
@@ -539,6 +543,7 @@ function changeLanguage(langKey) {
   $("t-lbl-offset").textContent = t.lblOffset;
   $("t-sec3-title").textContent = t.sec3;
   if($("t-lbl-filter")) $("t-lbl-filter").textContent = t.lblFilter;
+  if($("lbl-chk-grid")) $("lbl-chk-grid").textContent = t.chkGrid;
   $("t-sec4-title").textContent = t.sec4;
   $("t-lbl-alat").textContent = t.lblALat;
   $("t-lbl-alon").textContent = t.lblALon;
@@ -849,17 +854,38 @@ function getState(){
   };
 }
 
-function drawPath(points,stroke,width=1,fill=null){
-  if(!points.length)return;
+// 기존 drawPath 함수 수정
+function drawPath(points, stroke, width = 1, fill = null) {
+  if (!points || !points.length) return;
+
   ctx.beginPath();
   let first = true;
-  for(let i=0; i<points.length; i++){
-    if(points[i].visible === false) { first = true; continue; }
-    if(first) { ctx.moveTo(points[i].x, points[i].y); first = false; }
-    else { ctx.lineTo(points[i].x, points[i].y); }
+
+  for (let i = 0; i < points.length; i++) {
+    // 가시 영역 벗어남 또는 불연속점 처리
+    if (points[i].visible === false) { 
+      first = true; 
+      continue; 
+    }
+    
+    if (first) { 
+      ctx.moveTo(points[i].x, points[i].y); 
+      first = false; 
+    } else { 
+      ctx.lineTo(points[i].x, points[i].y); 
+    }
   }
-  if(fill){ctx.fillStyle=fill;ctx.fill()}
-  ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.stroke();
+
+  // 면을 채우는 옵션이 있을 때만 경로를 닫고(closePath), 
+  // 단순 외각 선형 표현 시에는 절대 closePath()를 수행하지 않고 끝맺음합니다.
+  if (fill) {
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = stroke;
+  ctx.lineWidth = width;
+  ctx.stroke(); // ctx.closePath() 금지
 }
 
 function drawStar(cx, cy, spikes, outerRadius, innerRadius, color) {
@@ -926,48 +952,75 @@ function render(){
   ctx.clearRect(0,0,w,h);
   const b=makeBasis(s.lat,s.lon,s.mode);
 
-  for(let lo=-180;lo<=180;lo+=30){
-    let pts=[]; for(let la=-90;la<=90;la+=2){
-      let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
-      pts.push(project(q.lat,q.lon,w,h,s.proj));
+  // 위·경도 그리드선 렌더링 (체크박스 활성화 시 실행)
+  if ($("chk-grid")?.checked) {
+    for(let lo=-180;lo<=180;lo+=30){
+      let pts=[]; for(let la=-90;la<=90;la+=2){
+        let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
+        let p=project(q.lat,q.lon,w,h,s.proj);
+        pts.push(p);
+      }
+      drawPath(pts,"rgba(28, 85, 122, 0.4)", 1);
     }
-    drawPath(pts,"rgba(28, 85, 122, 0.4)", 1);
-  }
-  for(let la=-75;la<=75;la+=15){
-    let pts=[]; for(let lo=-180;lo<=180;lo+=2){
-      let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
-      pts.push(project(q.lat,q.lon,w,h,s.proj));
+    for(let la=-75;la<=75;la+=15){
+      let pts=[]; for(let lo=-180;lo<=180;lo+=2){
+        let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
+        let p=project(q.lat,q.lon,w,h,s.proj);
+        if (pts.length > 0) {
+          const prevP = pts[pts.length - 1];
+          if (Math.abs(p.x - prevP.x) > w * 0.5) {
+            p.visible = false;
+          }
+        }
+        pts.push(p);
+      }
+      drawPath(pts,"rgba(28, 85, 122, 0.4)", 1);
     }
-    drawPath(pts,"rgba(28, 85, 122, 0.4)", 1);
   }
 
   const landData = worldGeoData.length > 0 ? worldGeoData : detailedLand;
-  landData.forEach(poly=>{
-    let pts=[];
-    poly.forEach(c=>{
-      let q=rotateSph(c[0],c[1],b); q.lon=normalizeLon(q.lon-s.offset);
-      pts.push(project(q.lat,q.lon,w,h,s.proj));
+  landData.forEach(poly => {
+    let pts = [];
+    poly.forEach((c, idx) => {
+      let q = rotateSph(c[0], c[1], b); 
+      q.lon = normalizeLon(q.lon - s.offset);
+      let p = project(q.lat, q.lon, w, h, s.proj);
+
+      // 이전 점과의 X축 거리 차이가 캔버스 폭의 절반 이상 벌어지면 (경도 래핑 지점)
+      // 선을 수평으로 잇지 않고 분리(비가시화) 처리하여 끝맺음합니다.
+      if (pts.length > 0) {
+        const prevP = pts[pts.length - 1];
+        if (Math.abs(p.x - prevP.x) > w * 0.5) {
+          p.visible = false;
+        }
+      }
+      pts.push(p);
     });
     drawPath(pts, "#38bdf8", 1.2, "rgba(14, 116, 144, 0.28)");
   });
 
-  // Detailed country borders: each Natural Earth country polygon is transformed
-  // through the same spherical rotation and projection as the rest of the map.
+  // Detailed country borders
   if ($("chk-borders")?.checked && worldCountryFeatures.length){
     worldCountryFeatures.forEach(country=>{
       country.rings.forEach((ring, ringIndex)=>{
         const pts=[];
         ring.forEach(c=>{
           const q=rotateSph(c[1],c[0],b); q.lon=normalizeLon(q.lon-s.offset);
-          pts.push(project(q.lat,q.lon,w,h,s.proj));
+          const p=project(q.lat,q.lon,w,h,s.proj);
+          if (pts.length > 0) {
+            const prevP = pts[pts.length - 1];
+            if (Math.abs(p.x - prevP.x) > w * 0.5) {
+              p.visible = false;
+            }
+          }
+          pts.push(p);
         });
         drawPath(pts, "rgba(214,236,248,0.72)", ringIndex===0 ? 0.75 : 0.5);
       });
     });
   }
 
-  // Major country names are drawn at approximate label anchor points from
-  // Natural Earth's country centroids. They follow the selected rotated map.
+  // Major country names
   if ($("chk-country-labels")?.checked && worldCountryFeatures.length){
     const labelSeen=new Set();
     worldCountryFeatures.forEach(country=>{
@@ -1000,7 +1053,14 @@ function render(){
       const t=i/180, sinA=Math.sin(ang);
       const p=add(scale(a,Math.sin((1-t)*ang)/sinA),scale(bb,Math.sin(t*ang)/sinA));
       const q=sph(p); const rq=rotateSph(q.lat,q.lon,b); rq.lon=normalizeLon(rq.lon-s.offset);
-      pts.push(project(rq.lat,rq.lon,w,h,s.proj));
+      const projP = project(rq.lat,rq.lon,w,h,s.proj);
+      if (pts.length > 0) {
+        const prevP = pts[pts.length - 1];
+        if (Math.abs(projP.x - prevP.x) > w * 0.5) {
+          projP.visible = false;
+        }
+      }
+      pts.push(projP);
     }
     drawPath(pts,"#f97316",2.5);
   }
