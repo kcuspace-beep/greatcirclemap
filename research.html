@@ -208,6 +208,8 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
       <label class="filter-item"><input type="checkbox" id="chk-rivers" checked onchange="render()"> 10대 강</label>
       <label class="filter-item"><input type="checkbox" id="chk-mountains" checked onchange="render()"> 10대 산</label>
       <label class="filter-item"><input type="checkbox" id="chk-trenches" checked onchange="render()"> 10대 해구</label>
+      <label class="filter-item"><input type="checkbox" id="chk-borders" checked onchange="render()"> 국가 국경선</label>
+      <label class="filter-item"><input type="checkbox" id="chk-country-labels" checked onchange="render()"> 주요 국가명</label>
     </div>
   </div>
 
@@ -252,6 +254,7 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
     <div class="overlay">
       <b id="t-ov-title">해석 안내</b><br>
       <span id="modeText"></span><br>
+      <span id="countryDataStatus">국경 데이터 불러오는 중…</span><br>
       <span id="t-ov-legend">★ 빨강: 극동/극서점 · 초록: 수도 · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점</span>
     </div>
   </div>
@@ -455,6 +458,56 @@ const $=id=>document.getElementById(id), D=Math.PI/180, R2D=180/Math.PI;
 const canvas=$("mapCanvas"), ctx=canvas.getContext("2d"), globe=$("globeCanvas"), gctx=globe.getContext("2d");
 
 let worldGeoData = [];
+let worldCountryFeatures = [];
+let countryDataStatus = "loading";
+
+// Natural Earth 1:110m country boundaries. Public-domain dataset.
+const COUNTRY_GEOJSON_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
+
+// Major-country labels are deliberately limited so the map remains readable.
+const majorCountryCodes = new Set([
+  "KOR","PRK","JPN","CHN","MNG","RUS","IND","PAK","IDN","PHL","VNM","THA","MYS","MMR",
+  "AUS","NZL","USA","CAN","MEX","BRA","ARG","CHL","PER","COL",
+  "GBR","IRL","FRA","DEU","ESP","PRT","ITA","NLD","BEL","CHE","POL","UKR","NOR","SWE","FIN",
+  "TUR","SAU","IRN","IRQ","ISR","EGY","ZAF","NGA","KEN","DZA","MAR"
+]);
+
+function featureCountryName(props){
+  return props.NAME || props.NAME_EN || props.ADMIN || props.SOVEREIGNT || "";
+}
+
+function featureIso3(props){
+  return props.ADM0_A3 || props.ISO_A3 || props.ADM0_A3_US || "";
+}
+
+function normalizeCountryFeatures(fc){
+  const out=[];
+  if(!fc || !Array.isArray(fc.features)) return out;
+  fc.features.forEach(f=>{
+    const g=f.geometry;
+    if(!g) return;
+    if(g.type === "Polygon") out.push({name:featureCountryName(f.properties||{}),iso3:featureIso3(f.properties||{}),rings:g.coordinates});
+    if(g.type === "MultiPolygon") g.coordinates.forEach(poly=>out.push({name:featureCountryName(f.properties||{}),iso3:featureIso3(f.properties||{}),rings:poly}));
+  });
+  return out;
+}
+
+async function loadCountryBoundaries(){
+  try{
+    const res=await fetch(COUNTRY_GEOJSON_URL, {cache:"force-cache"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const fc=await res.json();
+    worldCountryFeatures=normalizeCountryFeatures(fc);
+    worldGeoData=[];
+    worldCountryFeatures.forEach(f=>f.rings.forEach(r=>worldGeoData.push(r.map(c=>[c[1],c[0]]))));
+    countryDataStatus="loaded";
+    render();
+  }catch(err){
+    countryDataStatus="fallback";
+    console.warn("Country boundary data could not be loaded; using simplified land.",err);
+    render();
+  }
+}
 
 const detailedLand = [
   [[71,28],[70,42],[60,60],[68,74],[73,80],[72,110],[76,140],[70,170],[60,165],[55,138],[45,135],[38,118],[22,114],[10,105],[1,104],[10,78],[25,62],[30,48],[31,35],[36,36],[41,28],[44,13],[54,9],[62,5],[70,20]],
@@ -895,8 +948,48 @@ function render(){
       let q=rotateSph(c[0],c[1],b); q.lon=normalizeLon(q.lon-s.offset);
       pts.push(project(q.lat,q.lon,w,h,s.proj));
     });
-    drawPath(pts, "#38bdf8", 1.2, "rgba(14, 116, 144, 0.35)");
+    drawPath(pts, "#38bdf8", 1.2, "rgba(14, 116, 144, 0.28)");
   });
+
+  // Detailed country borders: each Natural Earth country polygon is transformed
+  // through the same spherical rotation and projection as the rest of the map.
+  if ($("chk-borders")?.checked && worldCountryFeatures.length){
+    worldCountryFeatures.forEach(country=>{
+      country.rings.forEach((ring, ringIndex)=>{
+        const pts=[];
+        ring.forEach(c=>{
+          const q=rotateSph(c[1],c[0],b); q.lon=normalizeLon(q.lon-s.offset);
+          pts.push(project(q.lat,q.lon,w,h,s.proj));
+        });
+        drawPath(pts, "rgba(214,236,248,0.72)", ringIndex===0 ? 0.75 : 0.5);
+      });
+    });
+  }
+
+  // Major country names are drawn at approximate label anchor points from
+  // Natural Earth's country centroids. They follow the selected rotated map.
+  if ($("chk-country-labels")?.checked && worldCountryFeatures.length){
+    const labelSeen=new Set();
+    worldCountryFeatures.forEach(country=>{
+      if(!majorCountryCodes.has(country.iso3) || labelSeen.has(country.iso3)) return;
+      const ring=country.rings?.[0];
+      if(!ring || !ring.length) return;
+      let sx=0, sy=0, n=0;
+      ring.forEach(c=>{sx+=c[0]; sy+=c[1]; n++;});
+      const lon=sx/n, lat=sy/n;
+      let q=rotateSph(lat,lon,b); q.lon=normalizeLon(q.lon-s.offset);
+      const p=project(q.lat,q.lon,w,h,s.proj);
+      if(p.visible===false) return;
+      labelSeen.add(country.iso3);
+      ctx.fillStyle="rgba(235,248,255,0.92)";
+      ctx.font="600 9px sans-serif";
+      ctx.textAlign="center";
+      ctx.strokeStyle="rgba(4,18,30,0.9)"; ctx.lineWidth=3;
+      ctx.strokeText(country.name,p.x,p.y);
+      ctx.fillText(country.name,p.x,p.y);
+      ctx.textAlign="start";
+    });
+  }
 
   const a=v(parseFloat($("aLat").value)||0,parseFloat($("aLon").value)||0);
   const bb=v(parseFloat($("bLat").value)||0,parseFloat($("bLon").value)||0);
@@ -1014,6 +1107,7 @@ function render(){
   $("mapTitle").textContent=`${i18n[currentLang].mapTitle} · ${$("projection").selectedOptions[0].text}`;
   updateProjectionInfo();
   $("modeText").textContent=s.mode==="center"? `${i18n[currentLang].optCenter}` : `${i18n[currentLang].optPole}`;
+  if($("countryDataStatus")) $("countryDataStatus").textContent = countryDataStatus === "loaded" ? "국경 데이터: Natural Earth 110m" : (countryDataStatus === "loading" ? "국경 데이터 불러오는 중…" : "국경 데이터 로드 실패 — 단순 육지선 사용");
   updateReadout(b,s);
   drawGlobe(b,s);
 }
@@ -1292,6 +1386,7 @@ changeLanguage("ko");
 resize();
 resizeIntroCanvas();
 calculateGreatCircle();
+loadCountryBoundaries();
 loop();
 requestAnimationFrame(renderIntroGlobe);
 </script>
