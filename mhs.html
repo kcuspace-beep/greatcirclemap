@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>바다캠프 중·고등학생 서핑 교실</title>
+<style>
+:root{
+  --blue:#087fc9; --deep:#063b70; --sky:#eaf8ff; --mint:#eafaf5;
+  --yellow:#ffd84d; --orange:#ff8b32; --purple:#7657d9; --green:#159b73;
+  --text:#18344d; --white:#fff; --shadow:0 10px 28px rgba(6,59,112,.12);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans KR","Malgun Gothic",Arial,sans-serif;color:var(--text);background:#f5fbff;line-height:1.65}
+.hero{
+  min-height:430px;padding:34px 6vw 55px;position:relative;overflow:hidden;
+  background:linear-gradient(160deg,#bfeeff 0%,#eafaff 42%,#fff 100%);
+}
+.hero:after{content:"";position:absolute;left:-5%;right:-5%;bottom:-110px;height:220px;background:#fff;border-radius:50% 50% 0 0/55% 55% 0 0}
+.brand{font-size:1.15rem;font-weight:900;color:var(--deep);letter-spacing:.05em}
+.hero-content{max-width:1180px;margin:auto;position:relative;z-index:2}
+.badge{display:inline-block;background:var(--blue);color:white;border-radius:999px;padding:7px 16px;font-weight:800;margin:20px 0 10px}
+h1{font-size:clamp(2.5rem,7vw,5.8rem);line-height:1.02;margin:0;color:var(--deep);letter-spacing:-.07em}
+h1 span{color:var(--blue)}
+.subtitle{font-size:clamp(1rem,2vw,1.35rem);font-weight:700;margin:18px 0;max-width:700px}
+.weather{display:inline-block;background:#fff;border-radius:16px;padding:12px 18px;box-shadow:var(--shadow);font-weight:800}
+.container{max-width:1180px;margin:auto;padding:0 20px}
+.intro{margin-top:-35px;position:relative;z-index:4;background:#fff;border-radius:24px;box-shadow:var(--shadow);padding:28px}
+.intro-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:24px;align-items:center}
+.intro h2{margin:0 0 8px;color:var(--blue)}
+.goals{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.goal{padding:15px 10px;border-radius:15px;background:var(--sky);text-align:center;font-weight:900}
+.goal b{display:block;font-size:1.8rem}
+section{padding:58px 0}
+.section-title{font-size:2rem;color:var(--deep);margin:0 0 8px}
+.section-lead{margin:0 0 25px;color:#527086}
+.flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin:24px 0 35px}
+.flow span{background:var(--deep);color:white;padding:10px 15px;border-radius:999px;font-weight:800}
+.flow i{color:var(--blue);font-style:normal;font-size:1.4rem}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:white;border-radius:22px;padding:23px;box-shadow:var(--shadow);border-top:6px solid var(--blue)}
+.card:nth-child(2){border-color:var(--green)}
+.card:nth-child(3){border-color:var(--orange)}
+.card:nth-child(4){border-color:var(--purple)}
+.card:nth-child(5){border-color:#0a9fc7}
+.card:nth-child(6){border-color:#ed4d76}
+.num{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff;font-weight:900;margin-right:8px}
+.card:nth-child(2) .num{background:var(--green)}
+.card:nth-child(3) .num{background:var(--orange)}
+.card:nth-child(4) .num{background:var(--purple)}
+.card:nth-child(5) .num{background:#0a9fc7}
+.card:nth-child(6) .num{background:#ed4d76}
+.card h3{display:inline;font-size:1.35rem}
+.card p{margin:14px 0 0}
+.card ul{padding-left:20px;margin-bottom:0}
+.safety{background:linear-gradient(135deg,#e8f8ff,#effcf8)}
+.safety-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.safety-card{background:#fff;border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+.safety-card h3{color:var(--deep);margin-top:0}
+.timeline{display:grid;grid-template-columns:120px 1fr;gap:0;background:white;border-radius:22px;overflow:hidden;box-shadow:var(--shadow)}
+.timeline div{padding:18px;border-bottom:1px solid #e8eef3}
+.timeline .time{font-weight:900;color:var(--blue);background:#f0f9ff}
+.callout{margin-top:30px;padding:25px;border-radius:22px;background:var(--deep);color:#fff;text-align:center}
+.callout strong{font-size:1.5rem}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.tag{background:#e8f4ff;color:var(--deep);border-radius:999px;padding:6px 12px;font-weight:800;font-size:.9rem}
+footer{background:#052d55;color:#dcefff;text-align:center;padding:35px 20px}
+@media(max-width:800px){
+ .intro-grid,.steps,.safety-grid{grid-template-columns:1fr}
+ .goals{grid-template-columns:repeat(2,1fr)}
+ .hero{min-height:390px}
+ .timeline{grid-template-columns:85px 1fr}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-content">
+    <div class="brand">🌊 BadaCamp · 바다캠프</div>
+    <div class="badge">중학생 그룹 · 고등학생 그룹</div>
+    <h1>중·고등학생<br><span>서핑 교실</span></h1>
+    <p class="subtitle">바다를 이해하고, 안전을 배우고, 파도의 힘을 직접 느끼며 서핑 감각을 키우는 수업</p>
+    <div class="weather">☀️ 토요일 오후 · 맑은 바다 · 조금 시원한 바람</div>
+  </div>
+</header>
+
+<main>
+<div class="container">
+  <section class="intro">
+    <div class="intro-grid">
+      <div>
+        <h2>바다캠프 서핑 교실은?</h2>
+        <p>
+          단순히 보드 위에 일어나는 것을 목표로 하지 않습니다.
+          실내에서 바다 환경과 안전을 먼저 이해하고, 강사의 시범을 관찰한 뒤,
+          팀별 실습을 통해 서핑의 기본 동작을 단계적으로 익힙니다.
+          마지막에는 글라이딩과 테이크 오프를 통해 파도가 밀어주는 힘과
+          물 위에서 움직이는 느낌을 직접 경험합니다.
+        </p>
+      </div>
+      <div class="goals">
+        <div class="goal"><b>🌊</b>바다 이해</div>
+        <div class="goal"><b>🛟</b>안전 교육</div>
+        <div class="goal"><b>🏄</b>실습 레슨</div>
+        <div class="goal"><b>⭐</b>서핑 감각</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-title">수업 전체 흐름</h2>
+    <p class="section-lead">이론에서 실제 파도까지, 학생들이 서핑의 기본 흐름을 자연스럽게 연결합니다.</p>
+    <div class="flow">
+      <span>실내 교육</span><i>→</i><span>강사 시범</span><i>→</i>
+      <span>패들링</span><i>→</i><span>패들아웃</span><i>→</i>
+      <span>방향 전환</span><i>→</i><span>테이크 오프</span><i>→</i><span>글라이딩</span>
+    </div>
+
+    <div class="steps">
+      <article class="card">
+        <span class="num">1</span><h3>실내 이론 수업</h3>
+        <p><b>바다를 먼저 이해하기</b></p>
+        <ul>
+          <li>만리포 바다의 특징</li>
+          <li>파도와 바람의 기본 이해</li>
+          <li>입수·퇴수 방법</li>
+          <li>장비 사용과 서핑 안전수칙</li>
+          <li>서퍼 간 기본 예절과 위급 상황 대처</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <span class="num">2</span><h3>강사의 서핑 시범</h3>
+        <p>강사가 직접 서핑 동작을 보여주며 학생들이 서핑의 전체 흐름을 눈으로 이해하도록 합니다.</p>
+        <p><b>패들링 → 패들아웃 → 방향 전환 → 파도 접근 → 테이크 오프 → 글라이딩</b></p>
+      </article>
+
+      <article class="card">
+        <span class="num">3</span><h3>패들링</h3>
+        <p>서핑의 가장 기본적인 동작입니다. 양팔로 물을 효과적으로 당겨 보드를 앞으로 이동시키며, 라인업 이동과 파도 잡기의 기본을 익힙니다.</p>
+      </article>
+
+      <article class="card">
+        <span class="num">4</span><h3>패들아웃 & 방향 전환</h3>
+        <p>파도가 들어오는 해변에서 원하는 위치까지 안전하게 이동하고, 보드의 방향을 바꾸어 다시 파도를 향하는 방법을 연습합니다.</p>
+      </article>
+
+      <article class="card">
+        <span class="num">5</span><h3>테이크 오프</h3>
+        <p>파도를 잡았을 때 보드 위에 일어나는 기본 동작을 배웁니다. 처음부터 완벽한 자세보다 보드의 움직임과 몸의 균형을 느끼는 데 집중합니다.</p>
+      </article>
+
+      <article class="card">
+        <span class="num">6</span><h3>글라이딩 & 서핑 경험</h3>
+        <p>파도가 보드를 밀어주는 순간을 직접 경험합니다. 파도의 힘, 보드의 속도, 물 위에서 미끄러지는 느낌을 통해 서핑의 핵심 감각을 익힙니다.</p>
+      </article>
+    </div>
+  </section>
+</div>
+
+<section class="safety">
+  <div class="container">
+    <h2 class="section-title">안전이 먼저입니다</h2>
+    <p class="section-lead">청소년 서핑 수업에서는 기술보다 바다를 이해하고 안전하게 활동하는 과정이 우선입니다.</p>
+    <div class="safety-grid">
+      <div class="safety-card"><h3>🛟 입수 전</h3><p>당일 바다 상태, 파도와 바람, 활동 장소와 이동 동선을 확인합니다.</p></div>
+      <div class="safety-card"><h3>👀 물속에서</h3><p>강사의 안내와 팀의 위치를 확인하며 자신의 능력에 맞는 범위에서 활동합니다.</p></div>
+      <div class="safety-card"><h3>🤝 함께 배우기</h3><p>서로의 공간을 존중하고, 필요할 때 즉시 강사에게 상황을 알립니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<div class="container">
+<section>
+  <h2 class="section-title">학생들이 배우는 핵심</h2>
+  <div class="timeline">
+    <div class="time">STEP 01</div><div><b>바다 이해</b><br>파도·바람·장소를 이해합니다.</div>
+    <div class="time">STEP 02</div><div><b>안전</b><br>장비와 입수·퇴수, 기본 안전수칙을 익힙니다.</div>
+    <div class="time">STEP 03</div><div><b>움직임</b><br>패들링과 패들아웃, 방향 전환을 연습합니다.</div>
+    <div class="time">STEP 04</div><div><b>파도 경험</b><br>파도의 힘을 느끼고 글라이딩을 경험합니다.</div>
+    <div class="time">STEP 05</div><div><b>서핑 감각</b><br>테이크 오프를 통해 기본적인 서핑 활동을 경험합니다.</div>
+  </div>
+
+  <div class="callout">
+    <strong>“서핑을 배우는 것은 파도를 정복하는 것이 아니라,<br>파도를 이해하고 파도의 힘을 느끼는 것에서 시작합니다.”</strong>
+  </div>
+
+  <div class="tags">
+    <span class="tag">#바다캠프</span><span class="tag">#만리포서핑</span>
+    <span class="tag">#중학생서핑</span><span class="tag">#고등학생서핑</span>
+    <span class="tag">#청소년서핑</span><span class="tag">#서핑교실</span>
+    <span class="tag">#서핑레슨</span><span class="tag">#패들링</span>
+    <span class="tag">#테이크오프</span><span class="tag">#서핑안전</span>
+  </div>
+</section>
+</div>
+</main>
+
+<footer>
+  <div><b>BadaCamp 바다캠프</b></div>
+  <div>중학생·고등학생 서핑 교실 · 실내 교육 + 강사 시범 + 팀별 바다 실습</div>
+  <div style="margin-top:8px">🌊 바다를 배우고 · 파도를 느끼고 · 서핑 감각을 키우다</div>
+</footer>
+
+</body>
+</html>
