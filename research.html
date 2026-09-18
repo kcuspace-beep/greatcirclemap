@@ -97,6 +97,10 @@ button.secondary{background:#193650}.buttons{display:grid;grid-template-columns:
 .zoom-controls{position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:6px;z-index:10}
 .zoom-btn{width:32px;height:32px;background:#071827dd;border:1px solid #2a6385;color:var(--cyan);font-size:16px;font-weight:bold;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;backdrop-filter:blur(4px)}
 .zoom-btn:hover{background:var(--blue);color:#fff}
+.zoom-level-readout{min-width:70px;text-align:center;font-size:10px;color:var(--gold);padding:3px 6px;background:#071827dd;border:1px solid #2a6385;border-radius:6px}
+.country-focus-card{position:absolute;top:12px;left:12px;z-index:11;display:none;min-width:220px;max-width:330px;padding:10px 12px;border:1px solid var(--cyan);border-radius:9px;background:rgba(4,18,30,.92);backdrop-filter:blur(6px);box-shadow:0 6px 20px #0008}
+.country-focus-card b{color:var(--cyan);font-size:13px}.country-focus-card small{display:block;color:var(--muted);line-height:1.45;margin-top:3px}.country-focus-card button{margin-top:7px;width:auto;padding:5px 9px}
+.country-focus-badge{position:absolute;right:12px;bottom:12px;z-index:9;padding:6px 9px;border-radius:7px;background:#071827dd;border:1px solid #2a6385;color:var(--gold);font-size:10px;display:none}
 
 .overlay{position:absolute;left:12px;bottom:12px;background:#071827dd;border:1px solid #2a6385;border-radius:9px;padding:8px 12px;font-size:11px;line-height:1.5;backdrop-filter:blur(5px);z-index:5;pointer-events:none}
 #globeCanvas{width:100%;height:180px;background:#061320;border-radius:8px;border:1px solid #24516b}
@@ -245,10 +249,17 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
     <canvas id="mapCanvas"></canvas>
     
     <div class="zoom-controls">
-      <div class="zoom-btn" onclick="zoomMap(1.2)" title="확대">+</div>
-      <div class="zoom-btn" onclick="zoomMap(0.8)" title="축소">−</div>
+      <div class="zoom-btn" onclick="zoomMap(1.5)" title="확대">+</div>
+      <div class="zoom-level-readout" id="zoomReadout">100%</div>
+      <div class="zoom-btn" onclick="zoomMap(0.67)" title="축소">−</div>
       <div class="zoom-btn" onclick="resetZoomPan()" title="초기화">↺</div>
     </div>
+    <div class="country-focus-card" id="countryFocusCard">
+      <b id="countryFocusName">국가 확대 모드</b>
+      <small id="countryFocusInfo">확대된 국가의 실제 국경 형상을 중심으로 표시합니다.</small>
+      <button class="secondary" onclick="clearCountryFocus()">세계지도 복귀</button>
+    </div>
+    <div class="country-focus-badge" id="countryFocusBadge">COUNTRY DETAIL</div>
 
     <div id="tooltip" class="map-tooltip"></div>
 
@@ -449,6 +460,10 @@ let panX = 0, panY = 0;
 let isDragging = false;
 let startX, startY;
 let activeMarkerPositions = [];
+let countryScreenFeatures = [];
+let selectedCountry = null;
+let countryFocusLocked = false;
+let countryAutoFocus = true;
 
 const LAT_VAL = 35.2644;
 const baseCenters = [
@@ -947,10 +962,20 @@ function updateProjectionInfo(){
   $("projectionInfoTags").innerHTML = m.tags.map(x=>`<span class="projection-tag">${x}</span>`).join("");
 }
 
+function countryDisplayName(country){return country?.name || country?.iso3 || "Selected country";}
+function pointInPolygon(x,y,pts){let inside=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const xi=pts[i].x,yi=pts[i].y,xj=pts[j].x,yj=pts[j].y;const hit=((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi+1e-12)+xi);if(hit)inside=!inside;}return inside;}
+function findCountryAtScreen(x,y){for(const c of countryScreenFeatures){for(const ring of c.rings){if(ring.length>2&&pointInPolygon(x,y,ring))return c;}}return null;}
+function updateCountryFocusCard(){const card=$("countryFocusCard"),badge=$("countryFocusBadge");if(!card||!badge)return;if(selectedCountry){card.style.display="block";badge.style.display="block";$("countryFocusName").textContent=countryDisplayName(selectedCountry);$("countryFocusInfo").textContent=`${selectedCountry.iso3||""} · 확대 ${Math.round(zoomLevel*100)}% · 실제 국경 형상 중심 표시`;}else{card.style.display="none";badge.style.display="none";}}
+function focusCountry(country,lock=true){if(!country)return;selectedCountry=country;countryFocusLocked=lock;render();}
+function clearCountryFocus(){selectedCountry=null;countryFocusLocked=false;render();}
+function drawCountryFocus(country,w,h){if(!country||!country.rings?.length)return;const all=[];country.rings.forEach(r=>r.forEach(c=>all.push(c)));if(!all.length)return;const minLon=Math.min(...all.map(c=>c[0])),maxLon=Math.max(...all.map(c=>c[0])),minLat=Math.min(...all.map(c=>c[1])),maxLat=Math.max(...all.map(c=>c[1]));const lonSpan=Math.max(.01,maxLon-minLon),latSpan=Math.max(.01,maxLat-minLat),scale=Math.min(w*.76/lonSpan,h*.76/latSpan),cx=(minLon+maxLon)/2,cy=(minLat+maxLat)/2;ctx.save();ctx.fillStyle="rgba(2,11,20,.78)";ctx.fillRect(0,0,w,h);ctx.lineJoin="round";country.rings.forEach((ring,idx)=>{ctx.beginPath();ring.forEach((c,i)=>{const x=w/2+(c[0]-cx)*scale,y=h/2-(c[1]-cy)*scale;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.fillStyle=idx===0?"rgba(30,120,190,.42)":"rgba(30,120,190,.30)";ctx.fill();ctx.strokeStyle="rgba(77,216,255,.95)";ctx.lineWidth=Math.max(1.5,Math.min(5,zoomLevel*.5));ctx.stroke();});ctx.strokeStyle="rgba(255,212,90,.35)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(w/2,18);ctx.lineTo(w/2,h-18);ctx.moveTo(18,h/2);ctx.lineTo(w-18,h/2);ctx.stroke();ctx.fillStyle="#ffd45a";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText(countryDisplayName(country),w/2,24);ctx.font="10px sans-serif";ctx.fillStyle="#9db8cd";ctx.fillText(`국경 형상 · ${country.iso3||""} · Natural Earth`,w/2,h-10);ctx.restore();}
+
 function render(){
   const s=getState(), w=canvas.clientWidth, h=canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
   const b=makeBasis(s.lat,s.lon,s.mode);
+  if(selectedCountry && countryFocusLocked){drawCountryFocus(selectedCountry,w,h);$("centerReadout").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;$("mapTitle").textContent=`${countryDisplayName(selectedCountry)} · 국가 상세 지도`;updateProjectionInfo();updateCountryFocusCard();if($('zoomReadout'))$('zoomReadout').textContent=Math.round(zoomLevel*100)+"%";return;}
+  countryScreenFeatures=[];
 
   // 위·경도 그리드선 렌더링 (체크박스 활성화 시 실행)
   if ($("chk-grid")?.checked) {
@@ -1002,6 +1027,7 @@ function render(){
   // Detailed country borders
   if ($("chk-borders")?.checked && worldCountryFeatures.length){
     worldCountryFeatures.forEach(country=>{
+      const screenCountry={name:country.name,iso3:country.iso3,rings:[]};
       country.rings.forEach((ring, ringIndex)=>{
         const pts=[];
         ring.forEach(c=>{
@@ -1016,9 +1042,18 @@ function render(){
           pts.push(p);
         });
         drawPath(pts, "rgba(214,236,248,0.72)", ringIndex===0 ? 0.75 : 0.5);
+        screenCountry.rings.push(pts);
       });
+      if(screenCountry.rings.length) countryScreenFeatures.push(screenCountry);
     });
   }
+
+  // 확대 시 화면 중앙에 들어온 국가를 자동 선택
+  if(countryAutoFocus && zoomLevel>=2.5 && !countryFocusLocked && worldCountryFeatures.length){
+    const cc=findCountryAtScreen(w/2,h/2);
+    if(cc) selectedCountry=cc;
+  }
+  updateCountryFocusCard();
 
   // Major country names
   if ($("chk-country-labels")?.checked && worldCountryFeatures.length){
@@ -1170,6 +1205,7 @@ function render(){
   if($("countryDataStatus")) $("countryDataStatus").textContent = countryDataStatus === "loaded" ? "국경 데이터: Natural Earth 110m" : (countryDataStatus === "loading" ? "국경 데이터 불러오는 중…" : "국경 데이터 로드 실패 — 단순 육지선 사용");
   updateReadout(b,s);
   drawGlobe(b,s);
+  if($('zoomReadout'))$('zoomReadout').textContent=Math.round(zoomLevel*100)+"%";
 }
 
 function add(a,b){return a.map((x,i)=>x+b[i])}
@@ -1197,20 +1233,24 @@ function drawGlobe(b,s){
 }
 
 function zoomMap(factor) {
-  zoomLevel = Math.max(0.5, Math.min(5.0, zoomLevel * factor));
+  zoomLevel = Math.max(0.25, Math.min(50.0, zoomLevel * factor));
+  if(zoomLevel<2.5 && !countryFocusLocked) selectedCountry=null;
   render();
 }
 
 function resetZoomPan() {
-  zoomLevel = 1.0;
-  panX = 0; panY = 0;
-  render();
+  zoomLevel = 1.0; panX = 0; panY = 0; selectedCountry=null; countryFocusLocked=false; render();
 }
 
 canvas.addEventListener('wheel', (e) => {
   e.preventDefault();
-  zoomMap(e.deltaY < 0 ? 1.1 : 0.9);
+  zoomMap(e.deltaY < 0 ? 1.25 : 0.8);
 }, { passive: false });
+
+canvas.addEventListener('dblclick', (e) => {
+  const rect=canvas.getBoundingClientRect(); const c=findCountryAtScreen(e.clientX-rect.left,e.clientY-rect.top);
+  if(c && zoomLevel>=1.5) focusCountry(c,true);
+});
 
 canvas.addEventListener('mousedown', (e) => {
   isDragging = true;
@@ -1229,6 +1269,7 @@ window.addEventListener('mousemove', (e) => {
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
   const tooltip = $("tooltip");
+  if(!countryFocusLocked && zoomLevel>=2.5){const hc=findCountryAtScreen(mx,my);if(hc)selectedCountry=hc;updateCountryFocusCard();}
   let hovered = false;
 
   for (let item of activeMarkerPositions) {
