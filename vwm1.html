@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국가 중심 세계지도 & 대원항로 GPS 보정 연구 가이드</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfeff',
+                            100: '#cffaff',
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            900: '#164e63',
+                            950: '#083344',
+                        },
+                        darkbg: '#0b0f19',
+                        cardbg: '#111827',
+                        borderbg: '#1f2937'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Lucide Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- KaTeX for Latex Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
+        }
+
+        .tab-btn.active {
+            color: #22d3ee;
+            border-bottom: 2px solid #22d3ee;
+            background-color: rgba(6, 182, 212, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="sticky top-0 z-50 glass-panel border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/30">
+                        <i class="fa-solid me-0 fa-earth-asia text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base sm:text-lg text-white leading-tight">국가 중심 세계지도 & 대원항로 GPS 보정</h1>
+                        <p class="text-xs text-cyan-400 font-medium">연구 가이드 및 인터랙티브 대시보드</p>
+                    </div>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-1">
+                    <button onclick="switchTab('overview')" class="nav-btn px-3 py-2 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                        <i class="fa-solid fa-book-open mr-1.5"></i>연구 개요
+                    </button>
+                    <button onclick="switchTab('map-visualizer')" class="nav-btn px-3 py-2 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                        <i class="fa-solid fa-globe mr-1.5"></i>대원항로 시뮬레이터
+                    </button>
+                    <button onclick="switchTab('gps-simulator')" class="nav-btn px-3 py-2 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                        <i class="fa-solid fa-satellite-dish mr-1.5"></i>GPS 필터링 시뮬레이터
+                    </button>
+                    <button onclick="switchTab('distortion')" class="nav-btn px-3 py-2 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition">
+                        <i class="fa-solid fa-expand mr-1.5"></i>위도 왜곡 보정
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <a href="#tags-section" class="text-xs bg-cyan-950 text-cyan-300 border border-cyan-800 px-3 py-1.5 rounded-full hover:bg-cyan-900 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-hashtag text-cyan-400"></i>
+                        <span>연구 태그</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Navigation Menu -->
+        <div class="md:hidden flex border-t border-gray-800 overflow-x-auto text-xs py-1 px-2 gap-1 bg-gray-900/90">
+            <button onclick="switchTab('overview')" class="px-3 py-1.5 rounded whitespace-nowrap text-gray-300 active-mobile">개요</button>
+            <button onclick="switchTab('map-visualizer')" class="px-3 py-1.5 rounded whitespace-nowrap text-gray-300">대원항로</button>
+            <button onclick="switchTab('gps-simulator')" class="px-3 py-1.5 rounded whitespace-nowrap text-gray-300">GPS필터</button>
+            <button onclick="switchTab('distortion')" class="px-3 py-1.5 rounded whitespace-nowrap text-gray-300">위도보정</button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+
+        <section id="tab-overview" class="tab-content space-y-6">
+            <!-- Hero Banner -->
+            <div class="relative rounded-2xl overflow-hidden glass-panel p-6 sm:p-8 border border-cyan-500/20 glow-cyan bg-gradient-to-r from-gray-900 via-gray-900 to-cyan-950/40">
+                <div class="max-w-3xl space-y-3">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-semibold">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                        학술 연구 논문 대시보드
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                        국가 중심 세계지도와 대원의 수학적 원리 기반 GPS 데이터 보정 및 왜곡 없는 공간 활동 기록에 관한 연구
+                    </h2>
+                    <p class="text-sm text-gray-400 leading-relaxed">
+                        본 연구는 태평양/한국 중심 세계지도의 직관적 이점과 지구 구면체상의 대원항로 수학 공식을 결합하여, 위도별 면적·거리 왜곡을 정밀하게 보정하고 고정밀 GPS 수신 체계(RTK/Kalman)를 구성하는 통합 방법론을 제공합니다.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Search and Filter for Research Sections -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 glass-panel p-4 rounded-xl border border-gray-800">
+                <div class="relative w-full sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                    <input type="text" id="paper-search" oninput="filterResearchSections()" placeholder="연구 내용 검색 (예: 메르카토르, 칼만필터, Haversine...)" class="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-400 w-full sm:w-auto justify-end">
+                    <span class="font-medium">핵심 영역:</span>
+                    <span class="px-2 py-1 rounded bg-gray-800 text-cyan-400 border border-gray-700">지도학</span>
+                    <span class="px-2 py-1 rounded bg-gray-800 text-cyan-400 border border-gray-700">구면삼각법</span>
+                    <span class="px-2 py-1 rounded bg-gray-800 text-cyan-400 border border-gray-700">GPS공학</span>
+                </div>
+            </div>
+
+            <!-- Accordion List for Paper Sections -->
+            <div class="space-y-4" id="research-accordion">
+                <!-- Section 1 -->
+                <div class="research-item glass-panel rounded-xl border border-gray-800 overflow-hidden transition" data-keywords="서론 연구목적 국가중심 왜곡">
+                    <button onclick="toggleAccordion('acc-1')" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-xs border border-cyan-500/30">1</span>
+                            <h3 class="font-bold text-white text-sm sm:text-base">서론 및 연구 배경</h3>
+                        </div>
+                        <i id="acc-1-icon" class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div id="acc-1" class="hidden px-6 pb-5 pt-2 text-xs sm:text-sm text-gray-300 space-y-3 border-t border-gray-800/50 leading-relaxed">
+                        <p>
+                            세계지도는 3차원 지구 타원체를 2차원 평면에 투영하는 과정에서 왜곡이 필수적으로 수반됩니다. 전통적 메르카토르 도법은 적도 부근에 비해 고위도 지역의 면적을 과도하게 확대시킵니다.
+                        </p>
+                        <p>
+                            본 연구는 <strong>태평양 중심(한국 중심) 세계지도</strong>의 시각적·인식적 우수성을 살리면서, 구면 삼각법에 기반한 **대원항로(Great Circle Route)** 계산 및 고정밀 **GPS 신호 필터링 알고리즘**을 결합하여 공간 활동 데이터를 실제 축척으로 복원하는 프레임워크를 제안합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Section 2 -->
+                <div class="research-item glass-panel rounded-xl border border-gray-800 overflow-hidden transition" data-keywords="특징 역사 문화 지리 활용 자오선 교역로">
+                    <button onclick="toggleAccordion('acc-2')" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-xs border border-cyan-500/30">2</span>
+                            <h3 class="font-bold text-white text-sm sm:text-base">국가 중심 세계지도의 특징 및 학문적 활용</h3>
+                        </div>
+                        <i id="acc-2-icon" class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div id="acc-2" class="hidden px-6 pb-5 pt-2 text-xs sm:text-sm text-gray-300 space-y-4 border-t border-gray-800/50 leading-relaxed">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-gray-900/80 p-3.5 rounded-lg border border-gray-800">
+                                <h4 class="font-bold text-cyan-400 text-xs mb-1.5"><i class="fa-solid fa-landmark mr-1.5"></i>역사적 활용</h4>
+                                <p class="text-xs text-gray-400">동아시아-태평양 해상 실크로드 및 교역 경로를 중앙에 위치시켜 역사적 상호작용의 직관적 해석 가능.</p>
+                            </div>
+                            <div class="bg-gray-900/80 p-3.5 rounded-lg border border-gray-800">
+                                <h4 class="font-bold text-cyan-400 text-xs mb-1.5"><i class="fa-solid fa-compact-disc mr-1.5"></i>문화적 활용</h4>
+                                <p class="text-xs text-gray-400">한류(K-Culture) 및 인적 교류의 방사형 파급 네트워크를 절단 없이 한눈에 표출 가능.</p>
+                            </div>
+                            <div class="bg-gray-900/80 p-3.5 rounded-lg border border-gray-800">
+                                <h4 class="font-bold text-cyan-400 text-xs mb-1.5"><i class="fa-solid fa-compass mr-1.5"></i>지리·교육적 활용</h4>
+                                <p class="text-xs text-gray-400">서구 중심의 지리관에서 벗어나 다원적 시각을 형성하고 투영 왜곡의 수학적 한계를 체득하는 교육적 도구.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3 -->
+                <div class="research-item glass-panel rounded-xl border border-gray-800 overflow-hidden transition" data-keywords="대원항로 haversine 수학적원리 구면삼각법">
+                    <button onclick="toggleAccordion('acc-3')" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-xs border border-cyan-500/30">3</span>
+                            <h3 class="font-bold text-white text-sm sm:text-base">대원(Great Circle)의 수학적 원리</h3>
+                        </div>
+                        <i id="acc-3-icon" class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div id="acc-3" class="hidden px-6 pb-5 pt-2 text-xs sm:text-sm text-gray-300 space-y-3 border-t border-gray-800/50 leading-relaxed">
+                        <p>
+                            지구 표면의 두 점 $P_1(\phi_1, \lambda_1)$과 $P_2(\phi_2, \lambda_2)$ 사이의 최단 거리는 구의 중심을 지나는 평면이 구 표면과 만나는 **대원(Great Circle)**의 호(Arc)로 계산됩니다.
+                        </p>
+                        <div class="bg-gray-900 p-4 rounded-xl border border-cyan-900/50 text-center font-mono text-cyan-300 text-xs sm:text-sm overflow-x-auto">
+                            $$\Delta\sigma = \arccos\left(\sin\phi_1\sin\phi_2 + \cos\phi_1\cos\phi_2\cos(\Delta\lambda)\right)$$
+                            <div class="mt-2 text-gray-400 text-xs font-sans">
+                                거리 $d = R \cdot \Delta\sigma \quad (\text{지구 평균 반지름 } R \approx 6,371\text{ km})$
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4 -->
+                <div class="research-item glass-panel rounded-xl border border-gray-800 overflow-hidden transition" data-keywords="GPS 수신 RTK 칼만필터 HDOP PDOP 노이즈">
+                    <button onclick="toggleAccordion('acc-4')" class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800/50 transition">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-400 font-bold flex items-center justify-center text-xs border border-cyan-500/30">4</span>
+                            <h3 class="font-bold text-white text-sm sm:text-base">정확한 GPS 수신 및 검증 알고리즘</h3>
+                        </div>
+                        <i id="acc-4-icon" class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300"></i>
+                    </button>
+                    <div id="acc-4" class="hidden px-6 pb-5 pt-2 text-xs sm:text-sm text-gray-300 space-y-3 border-t border-gray-800/50 leading-relaxed">
+                        <ul class="list-disc list-inside space-y-2 text-gray-300">
+                            <li><strong class="text-white">DOP 필터링:</strong> HDOP $\le 2.0$ 및 수신 위성 수 $\ge 8$개 조건 검증 후 데이터 채택.</li>
+                            <li><strong class="text-white">RTK-GPS 보정:</strong> 기준국(Base Station) 반송파 위상 보정으로 cm 단위 오차 정밀화.</li>
+                            <li><strong class="text-white">칼만 필터(Kalman Filter):</strong> 센서 측정 노이즈와 운동 상태 예측값을 결합하여 무작위 위치 튐(Jittering) 현상 제거.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-map-visualizer" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Controls Side Panel -->
+                <div class="glass-panel p-5 rounded-2xl border border-gray-800 space-y-5">
+                    <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                        <h3 class="font-bold text-white text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-cyan-400"></i> 항로 및 지도 설정
+                        </h3>
+                        <span class="text-xs bg-cyan-950 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800">대원항로</span>
+                    </div>
+
+                    <!-- Projection Switch -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-2">지도 중심 투영 방식</label>
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-gray-900 rounded-lg border border-gray-800 text-xs">
+                            <button id="btn-center-pacific" onclick="setMapProjection('pacific')" class="py-2 rounded font-medium text-cyan-400 bg-gray-800 shadow">
+                                태평양/한국 중심
+                            </button>
+                            <button id="btn-center-atlantic" onclick="setMapProjection('atlantic')" class="py-2 rounded font-medium text-gray-400 hover:text-white">
+                                그리니치 중심
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Preset Routes -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-300 mb-2">사전 설정 주요 항로</label>
+                        <select id="route-preset" onchange="applyPresetRoute()" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                            <option value="icn-lax">서울 (ICN) ➔ 로스앤젤레스 (LAX)</option>
+                            <option value="icn-lhr">서울 (ICN) ➔ 런던 (LHR)</option>
+                            <option value="icn-syd">서울 (ICN) ➔ 시드니 (SYD)</option>
+                            <option value="icn-jfk">서울 (ICN) ➔ 뉴욕 (JFK)</option>
+                        </select>
+                    </div>
+
+                    <!-- Manual Coordinates Input -->
+                    <div class="space-y-3 pt-2 border-t border-gray-800">
+                        <div class="text-xs font-semibold text-cyan-400">출발지 (P1) 좌표</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-[10px] text-gray-400">위도 (Lat)</span>
+                                <input type="number" id="p1-lat" value="37.56" step="0.01" class="w-full bg-gray-900 border border-gray-700 rounded px-2.5 py-1 text-xs text-white">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-400">경도 (Lon)</span>
+                                <input type="number" id="p1-lon" value="126.97" step="0.01" class="w-full bg-gray-900 border border-gray-700 rounded px-2.5 py-1 text-xs text-white">
+                            </div>
+                        </div>
+
+                        <div class="text-xs font-semibold text-cyan-400 pt-1">도착지 (P2) 좌표</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <span class="text-[10px] text-gray-400">위도 (Lat)</span>
+                                <input type="number" id="p2-lat" value="33.94" step="0.01" class="w-full bg-gray-900 border border-gray-700 rounded px-2.5 py-1 text-xs text-white">
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-gray-400">경도 (Lon)</span>
+                                <input type="number" id="p2-lon" value="-118.40" step="0.01" class="w-full bg-gray-900 border border-gray-700 rounded px-2.5 py-1 text-xs text-white">
+                            </div>
+                        </div>
+
+                        <!-- Detour Error Slider -->
+                        <div class="pt-2">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <span class="text-gray-300">실제 우회율 (기상/항로 이탈)</span>
+                                <span id="detour-val" class="font-mono text-cyan-400">5%</span>
+                            </div>
+                            <input type="range" id="detour-slider" min="0" max="30" value="5" oninput="updateCalculations()" class="w-full accent-cyan-400">
+                        </div>
+                    </div>
+
+                    <!-- Calculation Output Cards -->
+                    <div class="bg-gray-900/90 p-4 rounded-xl border border-cyan-500/30 space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">대원 최단 거리 (구면):</span>
+                            <span id="gc-dist" class="font-mono font-bold text-cyan-300">0 km</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">지도상 등경사 직선 거리:</span>
+                            <span id="rhumb-dist" class="font-mono font-bold text-gray-300">0 km</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">우회 감안 실제 이동 거리:</span>
+                            <span id="real-dist" class="font-mono font-bold text-amber-400">0 km</span>
+                        </div>
+                        <div class="flex justify-between border-t border-gray-800 pt-2">
+                            <span class="text-gray-300 font-semibold">경로 효율성 오차 (E):</span>
+                            <span id="efficiency-ratio" class="font-mono font-bold text-emerald-400">+0.00%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Canvas Visualizer -->
+                <div class="lg:col-span-2 glass-panel p-5 rounded-2xl border border-gray-800 flex flex-col justify-between space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-bold text-white text-base">2D/3D 대원항로 구면 투영 지도</h3>
+                            <p class="text-xs text-gray-400">빨간 점선: 메르카토르 평면 직선 | 하늘색 실선: 대원 최단 항로 (Great Circle Arc)</p>
+                        </div>
+                        <span id="projection-badge" class="px-2.5 py-1 bg-cyan-950 text-cyan-400 text-xs border border-cyan-800 rounded-full">
+                            태평양 중심 (180° 자오선)
+                        </span>
+                    </div>
+
+                    <!-- World Map Canvas -->
+                    <div class="relative w-full h-[380px] bg-gray-950 rounded-xl overflow-hidden border border-gray-800 flex items-center justify-center">
+                        <canvas id="world-canvas" class="w-full h-full block cursor-crosshair"></canvas>
+                        <div class="absolute bottom-3 right-3 bg-gray-900/80 px-3 py-1.5 rounded-lg border border-gray-800 text-[11px] text-gray-400 font-mono">
+                            <span id="mouse-coords">위도: --, 경도: --</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 text-center text-xs">
+                        <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+                            <div class="text-gray-400 mb-0.5">평면지도 왜곡률</div>
+                            <div id="distortion-stat" class="font-bold text-cyan-400 font-mono">+18.4%</div>
+                        </div>
+                        <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+                            <div class="text-gray-400 mb-0.5">절감 연료 추정</div>
+                            <div id="fuel-saved" class="font-bold text-emerald-400 font-mono">~12.3%</div>
+                        </div>
+                        <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800">
+                            <div class="text-gray-400 mb-0.5">중앙 자오선</div>
+                            <div id="meridian-stat" class="font-bold text-gray-200 font-mono">150° E (한국 중심)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-gps-simulator" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 rounded-2xl border border-gray-800 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-4">
+                    <div>
+                        <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                            <i class="fa-solid fa-satellite-dish text-cyan-400"></i> 고정밀 GPS 수신 및 칼만 필터(Kalman Filter) 실시간 시뮬레이터
+                        </h3>
+                        <p class="text-xs text-gray-400 mt-1">
+                            위성 배치 형태(DOP) 및 멀티패스 오차 노이즈를 필터링하여 왜곡 없는 실제 이동 경로를 복원하는 과정
+                        </p>
+                    </div>
+                    <button onclick="regenerateGpsPath()" class="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-cyan-500/20 transition flex items-center gap-2">
+                        <i class="fa-solid fa-rotate-right"></i> 새 이동 궤적 생성
+                    </button>
+                </div>
+
+                <!-- Controls & Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <!-- Control 1: Satellite Count -->
+                    <div class="bg-gray-900 p-4 rounded-xl border border-gray-800">
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-300 font-medium">수신 위성 수</span>
+                            <span id="sat-val" class="font-mono text-cyan-400 font-bold">10 개</span>
+                        </div>
+                        <input type="range" id="sat-slider" min="4" max="18" value="10" oninput="updateGpsSimulation()" class="w-full accent-cyan-400">
+                        <div class="text-[10px] text-gray-500 mt-1">≥ 8개 채택 권장</div>
+                    </div>
+
+                    <!-- Control 2: HDOP Noise -->
+                    <div class="bg-gray-900 p-4 rounded-xl border border-gray-800">
+                        <div class="flex justify-between text-xs mb-2">
+                            <span class="text-gray-300 font-medium">HDOP (정밀도 지표)</span>
+                            <span id="hdop-val" class="font-mono text-cyan-400 font-bold">1.4</span>
+                        </div>
+                        <input type="range" id="hdop-slider" min="0.8" max="5.0" step="0.1" value="1.4" oninput="updateGpsSimulation()" class="w-full accent-cyan-400">
+                        <div id="hdop-status" class="text-[10px] text-emerald-400 mt-1">우수 (HDOP ≤ 2.0)</div>
+                    </div>
+
+                    <!-- Control 3: RTK Mode -->
+                    <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 flex flex-col justify-between">
+                        <div class="text-xs text-gray-300 font-medium">RTK-GPS 보정 적용</div>
+                        <label class="relative inline-flex items-center cursor-pointer mt-2">
+                            <input type="checkbox" id="rtk-toggle" checked onchange="updateGpsSimulation()" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                            <span class="ml-3 text-xs text-gray-300 font-semibold" id="rtk-label">온라인 (센티미터급)</span>
+                        </label>
+                    </div>
+
+                    <!-- Control 4: Kalman Filter -->
+                    <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 flex flex-col justify-between">
+                        <div class="text-xs text-gray-300 font-medium">칼만 필터(Kalman)</div>
+                        <label class="relative inline-flex items-center cursor-pointer mt-2">
+                            <input type="checkbox" id="kalman-toggle" checked onchange="updateGpsSimulation()" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            <span class="ml-3 text-xs text-gray-300 font-semibold" id="kalman-label">활성화 (노이즈 제거)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- GPS Simulation Canvas -->
+                <div class="relative w-full h-[360px] bg-gray-950 rounded-xl overflow-hidden border border-gray-800">
+                    <canvas id="gps-canvas" class="w-full h-full block"></canvas>
+                    <div class="absolute top-3 left-3 bg-gray-900/90 p-3 rounded-lg border border-gray-800 text-xs space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-0.5 bg-red-500 inline-block"></span>
+                            <span class="text-gray-300">원시 수신 데이터 (Raw GPS Noisy Path)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-0.5 bg-cyan-400 inline-block"></span>
+                            <span class="text-gray-300">RTK & 칼만 보정 궤적 (Filtered Route)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-0.5 bg-emerald-400 inline-block border-t border-dashed"></span>
+                            <span class="text-gray-300">대원 최단 기준선 (True Great Circle)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Rate Display -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div class="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
+                        <div class="text-xs text-gray-400">원시 데이터 위치 오차 RMS</div>
+                        <div id="raw-error" class="text-lg font-bold text-red-400 font-mono mt-1">± 4.82 m</div>
+                    </div>
+                    <div class="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
+                        <div class="text-xs text-gray-400">보정 후 정밀 오차 RMS</div>
+                        <div id="corrected-error" class="text-lg font-bold text-cyan-400 font-mono mt-1">± 0.14 m</div>
+                    </div>
+                    <div class="bg-gray-900/70 p-3 rounded-xl border border-gray-800">
+                        <div class="text-xs text-gray-400">신뢰도 지수 (Confidence Level)</div>
+                        <div id="confidence-score" class="text-lg font-bold text-emerald-400 font-mono mt-1">99.2%</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tab-distortion" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Inputs & Scale Factors -->
+                <div class="glass-panel p-5 rounded-2xl border border-gray-800 space-y-5">
+                    <h3 class="font-bold text-white text-base flex items-center gap-2 border-b border-gray-800 pb-3">
+                        <i class="fa-solid fa-expand text-cyan-400"></i> 위도별 지도 왜곡률 및 보정
+                    </h3>
+
+                    <div>
+                        <div class="flex justify-between items-center text-xs mb-2">
+                            <span class="text-gray-300 font-medium">대상 위치 위도 ($\phi$)</span>
+                            <span id="lat-display" class="font-mono text-cyan-400 font-bold">60.0° N (고위도 예: 그린란드)</span>
+                        </div>
+                        <input type="range" id="latitude-slider" min="0" max="85" value="60" oninput="updateDistortionVisuals()" class="w-full accent-cyan-400">
+                        <div class="flex justify-between text-[10px] text-gray-500 mt-1">
+                            <span>0° (적도)</span>
+                            <span>45° (중위도)</span>
+                            <span>85° (극지방)</span>
+                        </div>
+                    </div>
+
+                    <!-- Math Breakdown -->
+                    <div class="space-y-3 bg-gray-900/80 p-4 rounded-xl border border-gray-800 text-xs">
+                        <div>
+                            <div class="text-gray-400 mb-1">평면 메르카토르 확대율 ($S_{Merc} = \sec\phi$):</div>
+                            <div id="merc-factor" class="font-mono font-bold text-red-400 text-sm">2.000 배</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 mb-1">실제 면적/거리 보정 계수 ($S_{Real} = \cos\phi$):</div>
+                            <div id="real-factor" class="font-mono font-bold text-cyan-400 text-sm">0.500 (50.0%)</div>
+                        </div>
+                        <div class="border-t border-gray-800 pt-2 text-[11px] text-gray-400">
+                            * 고위도로 이동할수록 평면 지도상의 면적은 과도하게 늘어나므로, 실제 활동 영역 계산 시 $\cos(\phi)$를 곱하여 정규화합니다.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Chart & Comparison -->
+                <div class="lg:col-span-2 glass-panel p-5 rounded-2xl border border-gray-800 space-y-4">
+                    <h3 class="font-bold text-white text-base">위도에 따른 평면 지도 vs 실제 지표면 면적 보정 그래프</h3>
+                    <div class="relative w-full h-[280px]">
+                        <canvas id="distortion-chart"></canvas>
+                    </div>
+
+                    <!-- Visual Area Square Comparison -->
+                    <div class="grid grid-cols-2 gap-4 pt-2">
+                        <div class="bg-gray-900 p-3 rounded-xl border border-gray-800 text-center space-y-2">
+                            <span class="text-xs text-gray-400 block">메르카토르 평면 지도 표시 크기</span>
+                            <div class="h-20 flex items-center justify-center">
+                                <div id="merc-square" class="bg-red-500/20 border-2 border-red-500 rounded transition-all duration-300" style="width: 60px; height: 60px;"></div>
+                            </div>
+                            <span id="merc-sq-label" class="text-xs font-mono text-red-400">확대율 2.0x</span>
+                        </div>
+
+                        <div class="bg-gray-900 p-3 rounded-xl border border-gray-800 text-center space-y-2">
+                            <span class="text-xs text-gray-400 block">실제 구면 공간 활동 영역 (보정 완료)</span>
+                            <div class="h-20 flex items-center justify-center">
+                                <div id="real-square" class="bg-cyan-500/20 border-2 border-cyan-400 rounded transition-all duration-300" style="width: 30px; height: 30px;"></div>
+                            </div>
+                            <span id="real-sq-label" class="text-xs font-mono text-cyan-400">실제 비율 1.0x</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="tags-section" class="glass-panel p-6 rounded-2xl border border-gray-800 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-800 pb-3">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-tags text-cyan-400"></i> 연구 논문 키워드 태그 (10개)
+                </h3>
+                <button onclick="copyTags()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-cyan-400 rounded-lg text-xs font-medium border border-gray-700 transition flex items-center gap-1.5">
+                    <i class="fa-regular fa-copy"></i>
+                    <span id="copy-btn-text">태그 전체 복사</span>
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-2.5" id="tags-container">
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#국가중심세계지도</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#대원항로</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#GPS보정</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#대원거리계산</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#Haversine공식</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#위도왜곡보정</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#RTK_GPS</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#칼만필터</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#역사지리복원</span>
+                <span class="tag-item px-3 py-1.5 bg-cyan-950/70 border border-cyan-800 text-cyan-300 rounded-lg text-xs font-medium hover:bg-cyan-900 transition cursor-pointer">#GIS공간분석</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 bg-gray-950 py-6 text-center text-xs text-gray-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2026 국가 중심 세계지도 및 대원항로 GPS 연구 가이드. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('text-cyan-400', 'bg-gray-800'));
+            
+            if (tabId === 'map-visualizer') drawWorldMap();
+            if (tabId === 'gps-simulator') updateGpsSimulation();
+            if (tabId === 'distortion') renderDistortionChart();
+        }
+
+        // Accordion Toggle
+        function toggleAccordion(id) {
+            const el = document.getElementById(id);
+            const icon = document.getElementById(id + '-icon');
+            if (el.classList.contains('hidden')) {
+                el.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                el.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Filter Research Accordions
+        function filterResearchSections() {
+            const query = document.getElementById('paper-search').value.toLowerCase();
+            document.querySelectorAll('.research-item').forEach(item => {
+                const keywords = item.getAttribute('data-keywords').toLowerCase();
+                const text = item.innerText.toLowerCase();
+                if (keywords.includes(query) || text.includes(query)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // --- MATH & HAVERSINE CALCULATIONS ---
+        const EARTH_RADIUS_KM = 6371.0;
+
+        function toRad(deg) { return deg * Math.PI / 180; }
+        function toDeg(rad) { return rad * 180 / Math.PI; }
+
+        function calculateHaversine(lat1, lon1, lat2, lon2) {
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const rLat1 = toRad(lat1);
+            const rLat2 = toRad(lat2);
+
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(rLat1) * Math.cos(rLat2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return EARTH_RADIUS_KM * c;
+        }
+
+        let mapCenterLongitude = 150; // Pacific Centric default
+
+        function setMapProjection(centerType) {
+            const btnPac = document.getElementById('btn-center-pacific');
+            const btnAtl = document.getElementById('btn-center-atlantic');
+            const badge = document.getElementById('projection-badge');
+
+            if (centerType === 'pacific') {
+                mapCenterLongitude = 150;
+                btnPac.className = "py-2 rounded font-medium text-cyan-400 bg-gray-800 shadow";
+                btnAtl.className = "py-2 rounded font-medium text-gray-400 hover:text-white";
+                badge.innerText = "태평양 중심 (150° E)";
+                document.getElementById('meridian-stat').innerText = "150° E (한국 중심)";
+            } else {
+                mapCenterLongitude = 0;
+                btnAtl.className = "py-2 rounded font-medium text-cyan-400 bg-gray-800 shadow";
+                btnPac.className = "py-2 rounded font-medium text-gray-400 hover:text-white";
+                badge.innerText = "그리니치 중심 (0°)";
+                document.getElementById('meridian-stat').innerText = "0° (영국 중심)";
+            }
+            drawWorldMap();
+        }
+
+        // Preset routes dictionary
+        const PRESET_ROUTES = {
+            'icn-lax': { p1: [37.56, 126.97], p2: [33.94, -118.40] },
+            'icn-lhr': { p1: [37.56, 126.97], p2: [51.47, -0.45] },
+            'icn-syd': { p1: [37.56, 126.97], p2: [-33.86, 151.20] },
+            'icn-jfk': { p1: [37.56, 126.97], p2: [40.64, -73.77] }
+        };
+
+        function applyPresetRoute() {
+            const val = document.getElementById('route-preset').value;
+            const route = PRESET_ROUTES[val];
+            if (route) {
+                document.getElementById('p1-lat').value = route.p1[0];
+                document.getElementById('p1-lon').value = route.p1[1];
+                document.getElementById('p2-lat').value = route.p2[0];
+                document.getElementById('p2-lon').value = route.p2[1];
+                updateCalculations();
+            }
+        }
+
+        function updateCalculations() {
+            const lat1 = parseFloat(document.getElementById('p1-lat').value) || 0;
+            const lon1 = parseFloat(document.getElementById('p1-lon').value) || 0;
+            const lat2 = parseFloat(document.getElementById('p2-lat').value) || 0;
+            const lon2 = parseFloat(document.getElementById('p2-lon').value) || 0;
+            const detourPercent = parseFloat(document.getElementById('detour-slider').value) || 0;
+
+            document.getElementById('detour-val').innerText = detourPercent + '%';
+
+            const gcDist = calculateHaversine(lat1, lon1, lat2, lon2);
+            const flatApprox = gcDist * (1 + (Math.abs(lat1) + Math.abs(lat2)) / 300);
+            const realDist = gcDist * (1 + detourPercent / 100);
+            const efficiency = ((realDist - gcDist) / gcDist) * 100;
+
+            document.getElementById('gc-dist').innerText = Math.round(gcDist).toLocaleString() + ' km';
+            document.getElementById('rhumb-dist').innerText = Math.round(flatApprox).toLocaleString() + ' km';
+            document.getElementById('real-dist').innerText = Math.round(realDist).toLocaleString() + ' km';
+            document.getElementById('efficiency-ratio').innerText = '+' + efficiency.toFixed(2) + '%';
+
+            drawWorldMap();
+        }
+
+        // --- WORLD MAP CANVAS RENDERER ---
+        function drawWorldMap() {
+            const canvas = document.getElementById('world-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Set resolution
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            const width = canvas.width;
+            const height = canvas.height;
+
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Background Grids
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += 40) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+            }
+            for (let y = 0; y < height; y += 40) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+            }
+
+            // Latitude/Longitude to Canvas X/Y conversion
+            function lonToX(lon) {
+                let normLon = lon - mapCenterLongitude;
+                while (normLon < -180) normLon += 360;
+                while (normLon > 180) normLon -= 360;
+                return ((normLon + 180) / 360) * width;
+            }
+
+            function latToY(lat) {
+                return ((90 - lat) / 180) * height;
+            }
+
+            // Draw Equator & Prime Meridian
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.2)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(0, height / 2); ctx.lineTo(width, height / 2); ctx.stroke(); // Equator
+            ctx.setLineDash([]);
+
+            // Draw P1 and P2
+            const lat1 = parseFloat(document.getElementById('p1-lat').value) || 0;
+            const lon1 = parseFloat(document.getElementById('p1-lon').value) || 0;
+            const lat2 = parseFloat(document.getElementById('p2-lat').value) || 0;
+            const lon2 = parseFloat(document.getElementById('p2-lon').value) || 0;
+
+            const x1 = lonToX(lon1), y1 = latToY(lat1);
+            const x2 = lonToX(lon2), y2 = latToY(lat2);
+
+            // Draw Mercator Flat Line (Dashed Red)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw Great Circle Interpolated Arc (Cyan Solid)
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+
+            const steps = 60;
+            for (let i = 0; i <= steps; i++) {
+                const f = i / steps;
+                // Spherical Linear Interpolation (Slerp) approximation
+                const phi1 = toRad(lat1), lam1 = toRad(lon1);
+                const phi2 = toRad(lat2), lam2 = toRad(lon2);
+
+                const d = Math.acos(Math.sin(phi1)*Math.sin(phi2) + Math.cos(phi1)*Math.cos(phi2)*Math.cos(lam2 - lam1));
+                if (isNaN(d) || d === 0) continue;
+
+                const A = Math.sin((1 - f) * d) / Math.sin(d);
+                const B = Math.sin(f * d) / Math.sin(d);
+
+                const x = A * Math.cos(phi1) * Math.cos(lam1) + B * Math.cos(phi2) * Math.cos(lam2);
+                const y = A * Math.cos(phi1) * Math.sin(lam1) + B * Math.cos(phi2) * Math.sin(lam2);
+                const z = A * Math.sin(phi1) + B * Math.sin(phi2);
+
+                const latI = toDeg(Math.atan2(z, Math.sqrt(x*x + y*y)));
+                const lonI = toDeg(Math.atan2(y, x));
+
+                const px = lonToX(lonI);
+                const py = latToY(latI);
+
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // Draw Points P1 and P2
+            [ {x: x1, y: y1, label: 'P1 (출발)'}, {x: x2, y: y2, label: 'P2 (도착)'} ].forEach(p => {
+                ctx.fillStyle = '#22d3ee';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '11px sans-serif';
+                ctx.fillText(p.label, p.x + 8, p.y - 8);
+            });
+        }
+
+        // --- GPS SIMULATION CANVAS ---
+        let gpsPoints = [];
+
+        function regenerateGpsPath() {
+            gpsPoints = [];
+            let currX = 50, currY = 180;
+            for (let i = 0; i < 40; i++) {
+                currX += 15 + Math.random() * 5;
+                currY += (Math.sin(i / 3) * 12) + (Math.random() - 0.5) * 4;
+                gpsPoints.push({ x: currX, y: currY });
+            }
+            updateGpsSimulation();
+        }
+
+        function updateGpsSimulation() {
+            const canvas = document.getElementById('gps-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            const satCount = parseInt(document.getElementById('sat-slider').value);
+            const hdop = parseFloat(document.getElementById('hdop-slider').value);
+            const rtkOn = document.getElementById('rtk-toggle').checked;
+            const kalmanOn = document.getElementById('kalman-toggle').checked;
+
+            document.getElementById('sat-val').innerText = satCount + ' 개';
+            document.getElementById('hdop-val').innerText = hdop.toFixed(1);
+            
+            const hdopStatus = document.getElementById('hdop-status');
+            if (hdop <= 2.0) {
+                hdopStatus.innerText = "우수 (HDOP ≤ 2.0)";
+                hdopStatus.className = "text-[10px] text-emerald-400 mt-1";
+            } else {
+                hdopStatus.innerText = "경고 (HDOP > 2.0, 오차 증가)";
+                hdopStatus.className = "text-[10px] text-amber-400 mt-1";
+            }
+
+            if (gpsPoints.length === 0) regenerateGpsPath();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate Noise scale
+            let noiseScale = (hdop * 8) / (satCount / 8);
+            if (rtkOn) noiseScale *= 0.15;
+
+            // Raw Noisy Path (Red)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+
+            const rawNoisyPoints = [];
+            gpsPoints.forEach((pt, idx) => {
+                const noiseX = (Math.sin(idx * 7) + Math.cos(idx * 13)) * noiseScale;
+                const noiseY = (Math.cos(idx * 11) - Math.sin(idx * 5)) * noiseScale;
+                const nx = pt.x + noiseX;
+                const ny = pt.y + noiseY;
+                rawNoisyPoints.push({ x: nx, y: ny });
+
+                if (idx === 0) ctx.moveTo(nx, ny);
+                else ctx.lineTo(nx, ny);
+            });
+            ctx.stroke();
+
+            // Corrected Path (Cyan) using Kalman Filter simulation
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+
+            let kX = rawNoisyPoints[0].x;
+            let kY = rawNoisyPoints[0].y;
+            const kGain = kalmanOn ? 0.2 : 0.8;
+
+            rawNoisyPoints.forEach((pt, idx) => {
+                kX = kX + kGain * (pt.x - kX);
+                kY = kY + kGain * (pt.y - kY);
+
+                if (idx === 0) ctx.moveTo(kX, kY);
+                else ctx.lineTo(kX, kY);
+            });
+            ctx.stroke();
+
+            // Update RMS metrics
+            const rawRms = (noiseScale * 0.8).toFixed(2);
+            const corrRms = (kalmanOn ? noiseScale * 0.08 : noiseScale * 0.5).toFixed(2);
+            document.getElementById('raw-error').innerText = `± ${rawRms} m`;
+            document.getElementById('corrected-error').innerText = `± ${corrRms} m`;
+        }
+
+        // --- LATITUDE DISTORTION VISUALIZER ---
+        let distortionChartInstance = null;
+
+        function updateDistortionVisuals() {
+            const lat = parseFloat(document.getElementById('latitude-slider').value);
+            const rad = toRad(lat);
+
+            const secVal = 1 / Math.cos(rad);
+            const cosVal = Math.cos(rad);
+
+            document.getElementById('lat-display').innerText = `${lat.toFixed(1)}° N (${lat > 60 ? '고위도' : lat > 30 ? '중위도' : '저위도/적도'})`;
+            document.getElementById('merc-factor').innerText = secVal.toFixed(3) + ' 배';
+            document.getElementById('real-factor').innerText = cosVal.toFixed(3) + ` (${(cosVal * 100).toFixed(1)}%)`;
+
+            // Square Size Animation
+            const baseSize = 40;
+            const mercSq = document.getElementById('merc-square');
+            const realSq = document.getElementById('real-square');
+
+            const mSize = Math.min(baseSize * secVal, 75);
+            const rSize = baseSize;
+
+            mercSq.style.width = mSize + 'px';
+            mercSq.style.height = mSize + 'px';
+            realSq.style.width = rSize + 'px';
+            realSq.style.height = rSize + 'px';
+
+            document.getElementById('merc-sq-label').innerText = `확대율 ${secVal.toFixed(2)}x`;
+        }
+
+        function renderDistortionChart() {
+            const ctx = document.getElementById('distortion-chart');
+            if (!ctx) return;
+
+            if (distortionChartInstance) distortionChartInstance.destroy();
+
+            const lats = [0, 15, 30, 45, 60, 75, 80];
+            const mercFactors = lats.map(l => (1 / Math.cos(toRad(l))).toFixed(2));
+            const realFactors = lats.map(l => Math.cos(toRad(l)).toFixed(2));
+
+            distortionChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: lats.map(l => l + '°'),
+                    datasets: [
+                        {
+                            label: '메르카토르 확대 비율 (sec φ)',
+                            data: mercFactors,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: '실제 면적 보정 계수 (cos φ)',
+                            data: realFactors,
+                            borderColor: '#22d3ee',
+                            backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#9ca3af', font: { size: 11 } } }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } },
+                        y: { ticks: { color: '#9ca3af' }, grid: { color: '#1f2937' } }
+                    }
+                }
+            });
+        }
+
+        // Copy Research Tags
+        function copyTags() {
+            const tagsText = Array.from(document.querySelectorAll('.tag-item'))
+                .map(el => el.innerText)
+                .join(' ');
+
+            const tempInput = document.createElement('textarea');
+            tempInput.value = tagsText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            const btnText = document.getElementById('copy-btn-text');
+            btnText.innerText = "복사 완료!";
+            setTimeout(() => { btnText.innerText = "태평양 전체 복사"; }, 2000);
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            // KaTeX Rendering for equations
+            if (window.katex) {
+                document.querySelectorAll('.research-item').forEach(el => {
+                    katex.render("d_{\\text{GC}} = R \\cdot \\Delta\\sigma", el, { throwOnError: false });
+                });
+            }
+            updateCalculations();
+            updateDistortionVisuals();
+        };
+
+        window.onresize = function() {
+            drawWorldMap();
+            updateGpsSimulation();
+        };
+    </script>
+</body>
+</html>
