@@ -2,286 +2,538 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-
-<meta name="viewport"
-content="width=device-width, initial-scale=1.0">
-
-<title>대원 교차점 기반 낮·밤 시간 계산기</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대원 교차점 기반 낮·밤 + GPS 기후·날씨 분석</title>
 <style>
-
 body {
-    font-family:
-        Arial,
-        "Noto Sans KR",
-        sans-serif;
-
+    font-family: Arial, "Noto Sans KR", sans-serif;
     margin: 0;
     padding: 20px;
-
     background: #f2f5f7;
 }
-
 .container {
-
-    max-width: 850px;
-
+    max-width: 920px;
     margin: auto;
-
     background: white;
-
     padding: 30px;
-
     border-radius: 15px;
-
-    box-shadow:
-        0 5px 20px
-        rgba(0,0,0,0.12);
-
+    box-shadow: 0 5px 20px rgba(0,0,0,0.12);
 }
-
-h1 {
-    text-align: center;
+h1 { text-align: center; margin-bottom: 5px; }
+.subtitle { text-align: center; color: #555; margin-bottom: 25px; }
+.panel { margin-top: 24px; padding: 20px; background: #fff; border: 1px solid #e0e5ea; border-radius: 12px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px 20px; }
+.input-group { margin-bottom: 10px; }
+label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 14px; }
+input, select {
+    width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc;
+    border-radius: 8px; font-size: 15px;
 }
-
-.subtitle {
-    text-align: center;
-
-    color: #555;
-
-    margin-bottom: 30px;
-}
-
-.input-group {
-
-    margin-bottom: 20px;
-
-}
-
-label {
-
-    display: block;
-
-    font-weight: bold;
-
-    margin-bottom: 8px;
-
-}
-
-input,
-select {
-
-    width: 100%;
-
-    padding: 12px;
-
-    box-sizing: border-box;
-
-    border:
-        1px solid #ccc;
-
-    border-radius: 8px;
-
-    font-size: 16px;
-
-}
-
 button {
-
-    width: 100%;
-
-    padding: 15px;
-
-    border: none;
-
-    border-radius: 8px;
-
-    background: #1565c0;
-
-    color: white;
-
-    font-size: 18px;
-
-    font-weight: bold;
-
-    cursor: pointer;
-
+    width: 100%; padding: 15px; border: none; border-radius: 8px; background: #1565c0;
+    color: white; font-size: 17px; font-weight: bold; cursor: pointer; margin-top: 10px;
 }
+button:hover { background: #0d47a1; }
+.result { margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px; border-left: 6px solid #1565c0; }
+.result-item { margin: 10px 0; font-size: 16px; }
+.big { font-size: 26px; font-weight: bold; color: #1565c0; }
 
-button:hover {
-
-    background: #0d47a1;
-
+/* 지도 관련 스타일 */
+.map-container { position: relative; width: 100%; margin-top: 10px; }
+#canvasMap {
+    width: 100%; height: 460px; border-radius: 10px; border: 1px solid #d8dee4;
+    background: #aadaff; display: block;
 }
-
-.result {
-
-    margin-top: 30px;
-
-    padding: 20px;
-
-    background: #f8f9fa;
-
-    border-radius: 10px;
-
-    border-left:
-        6px solid #1565c0;
-
+.map-overlay {
+    position: absolute; top: 12px; left: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(4px);
+    padding: 12px 16px; border-radius: 8px;
+    border: 1px solid #ccd4dc;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    font-size: 13px; line-height: 1.5; color: #222; max-width: 80%;
 }
+.map-overlay b { color: #1565c0; font-size: 14px; }
 
-.result-item {
+/* 기후 및 날씨 카드 스타일 */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 12px; }
+.cards > div { padding: 14px; background: #f7f9fb; border-radius: 9px; border: 1px solid #e1e6eb; line-height: 1.6; }
+.small { font-size: 12px; color: #666; margin-top: 8px; }
+.highlight td { font-weight: bold; background: #eef5ff; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { border: 1px solid #ddd; padding: 9px; text-align: center; font-size: 14px; }
+th { background: #1565c0; color: white; }
+canvas.chart-canvas { width: 100%; border: 1px solid #e1e6eb; border-radius: 10px; background: #fff; }
 
-    margin: 12px 0;
-
-    font-size: 17px;
-
+@media(max-width: 650px) {
+    .grid { grid-template-columns: 1fr; }
+    #canvasMap { height: 350px; }
 }
-
-.big {
-
-    font-size: 28px;
-
-    font-weight: bold;
-
-    color: #1565c0;
-
-}
-
-.formula {
-
-    margin-top: 30px;
-
-    padding: 20px;
-
-    background: #eef5ff;
-
-    border-radius: 10px;
-
-}
-
-.note {
-
-    margin-top: 25px;
-
-    padding: 15px;
-
-    background: #fff8e1;
-
-    border-radius: 8px;
-
-}
-
-table {
-
-    width: 100%;
-
-    border-collapse: collapse;
-
-    margin-top: 30px;
-
-}
-
-th,
-td {
-
-    border:
-        1px solid #ddd;
-
-    padding: 10px;
-
-    text-align: center;
-
-}
-
-th {
-
-    background: #1565c0;
-
-    color: white;
-
-}
-
 </style>
-
 </head>
 <body>
+
 <div class="container">
-<h1>🌍 대원·소원 교차점 낮·밤 시간 계산기</h1>
-<p class="subtitle">대원 최고점과 관측 위도의 교차 경도 차를 시간으로 변환하고<br>경도차 → 밤시간 → 24시간 − 밤시간 = 낮시간을 자동 계산합니다.</p>
-<div class="input-group"><label>관측 위도</label><input type="number" id="latitude" value="60" step="0.1" min="-90" max="90"></div>
-<div class="input-group"><label>대원 최고점 위도</label><input type="number" id="vertexLatitude" value="66.5" step="0.1" min="-90" max="90"></div>
-<div class="input-group"><label>대원 최고점 기준 경도</label><input type="number" id="vertexLongitude" value="90" step="0.1" min="-180" max="180"></div>
-<div class="input-group"><label>계절 계산 방식</label>
-<select id="seasonMode">
-<option value="summer">춘분 → 하지 → 추분 (계산값을 밤시간으로 사용)</option>
-<option value="winter">추분 → 동지 → 춘분 (계산값을 낮시간으로 사용)</option>
-</select></div>
-<button onclick="calculate()">계산하기</button>
-<div class="result" id="result">계산 결과가 여기에 표시됩니다.</div>
-<div class="formula">
-<h3>경도 차이를 이용한 밤시간·낮시간 계산 원리</h3>
-<p><strong>① 한쪽 교차점 경도 차</strong><br>Δλ = acos[tan(관측 위도) ÷ tan(대원 최고점 위도)]</p>
-<p><strong>② 양쪽 교차점 전체 경도 차</strong><br>전체 경도 차 = 2 × Δλ</p>
-<p><strong>③ 경도 차를 시간으로 변환</strong><br>시간 = 전체 경도 차 ÷ 15 &nbsp; (지구 360° ÷ 24시간 = 시간당 15°)</p>
-<p><strong>④ 밤시간</strong><br>춘분 → 하지 → 추분 모드: 밤시간 = 계산된 시간</p>
-<p><strong>⑤ 낮시간</strong><br>낮시간 = 24시간 − 밤시간</p>
-<p><strong>검산:</strong> 밤시간 + 낮시간 = 24시간</p>
+<h1>🌍 대원·소원 교차점 낮·밤 + GPS 기후·날씨 분석</h1>
+<p class="subtitle">위도별 평균 낮시간 변화, 입력 GPS의 연간 기후 분석 및 날씨 예보 데이터</p>
+
+<!-- ① 입력 섹션 -->
+<section class="panel">
+<h2>① 위치 및 날짜 입력</h2>
+<div class="grid">
+  <div class="input-group"><label>위도 (°N)</label><input type="number" id="latitude" value="36.8000" step="0.0001" min="-90" max="90"></div>
+  <div class="input-group"><label>경도 (°E)</label><input type="number" id="longitude" value="126.4500" step="0.0001" min="-180" max="180"></div>
+  <div class="input-group"><label>날짜 선택</label><input type="date" id="weatherDate"></div>
+  <div class="input-group"><label>대원 최고점 위도</label><input type="number" id="vertexLatitude" value="66.5" step="0.1" min="-89.9" max="89.9"></div>
+  <div class="input-group"><label>대원 최고점 경도</label><input type="number" id="vertexLongitude" value="90.0" step="0.1" min="-180" max="180"></div>
+  <div class="input-group">
+    <label>계절 계산 방식</label>
+    <select id="seasonMode">
+      <option value="summer">춘분 → 하지 → 추분 (계산값을 밤시간으로 적용)</option>
+      <option value="winter">추분 → 동지 → 춘분 (계산값을 낮시간으로 적용)</option>
+    </select>
+  </div>
 </div>
-<div class="note"><strong>연구 모델 안내</strong><br><br>
-이 계산은 대원과 소원의 교차 경도 차를 시간각으로 환산하는 기하학적 모델입니다. 실제 천문학적 일출·일몰 시간은 태양 적위, 지구 자전축 경사, 대기 굴절 등의 요소를 별도로 고려해야 합니다.</div>
-<h2>경도 차 → 밤시간 → 낮시간 계산 표</h2>
-<table><thead><tr>
-<th>최고점 위도</th><th>관측 위도</th><th>한쪽 경도 차</th><th>전체 경도 차</th><th>밤시간</th><th>24시간 − 밤시간 = 낮시간</th>
-</tr></thead><tbody id="tableBody"></tbody></table>
+<button onclick="calculateAll()">계산 및 지도/기후/날씨 업데이트</button>
+</section>
+
+<!-- ② 계산 결과 -->
+<section class="result" id="result">계산 버튼을 누르시면 교차점 및 낮시간 분석 결과가 출력됩니다.</section>
+
+<!-- ③ 정밀 내장 세계지도 표시 섹션 -->
+<section class="panel">
+<h2>② 정밀 독립형 세계지도 (해안선/국경선 내장)</h2>
+<p class="small">외부 서버에 의존하지 않는 브라우저 고유 정밀 Canvas 베각 드로잉 지도입니다.</p>
+<div class="map-container">
+  <canvas id="canvasMap"></canvas>
+  <div class="map-overlay" id="mapOverlay">지도를 계산하고 있습니다…</div>
 </div>
+</section>
+
+<!-- ④ 기후 데이터 (위도 기반 연간 특징) -->
+<section class="panel">
+<h2>③ 입력 GPS 연간 기후 특징 (기후 데이터)</h2>
+<div id="climateResult">데이터 분석 대기 중...</div>
+</section>
+
+<!-- ⑤ 오늘 날씨 데이터 (Open-Meteo API) -->
+<section class="panel">
+<h2>④ 선택 날짜 기상 예보 (일기예보 데이터)</h2>
+<div id="weatherResult">날씨 데이터를 불러오는 중...</div>
+<p class="small">※ Open-Meteo 글로벌 예보 API를 직접 사용하여 기상 데이터를 실시간으로 수신합니다.</p>
+</section>
+
+<!-- ⑥ 위도별 평균 낮시간 차트 및 표 -->
+<section class="panel">
+<h2>⑤ 위도별 평균 낮시간 변화</h2>
+<canvas id="daylightChart" class="chart-canvas" height="280"></canvas>
+<div id="latitudeTable"></div>
+</section>
+
+</div>
+
 <script>
+// --- 기본 수학 및 시각 계산 함수 ---
 function formatTime(hours) {
-  hours=Math.max(0,Math.min(24,hours));
-  const t=Math.round(hours*3600), h=Math.floor(t/3600), m=Math.floor(t%3600/60), s=t%60;
-  return h+"시간 "+m+"분 "+s+"초";
+    hours = Math.max(0, Math.min(24, hours));
+    const totalSec = Math.round(hours * 3600);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${h}시간 ${m}분 ${s}초`;
 }
-function geometry(latitude,vertex){
-  const r=Math.PI/180, d=Math.tan(vertex*r);
-  if(Math.abs(d)<1e-10) return null;
-  let q=Math.tan(latitude*r)/d;
-  if(q<-1-1e-10||q>1+1e-10) return null;
-  q=Math.max(-1,Math.min(1,q));
-  const one=Math.acos(q)/r, total=2*one, hours=total/15;
-  return {one,total,hours};
+
+function fmtHoursShort(x) {
+    const h = Math.floor(x);
+    const m = Math.round((x - h) * 60);
+    return `${h}시간 ${m}분`;
 }
-function calculate(){
-  const lat=parseFloat(document.getElementById("latitude").value);
-  const vertex=parseFloat(document.getElementById("vertexLatitude").value);
-  const lon=parseFloat(document.getElementById("vertexLongitude").value);
-  const mode=document.getElementById("seasonMode").value;
-  if(!Number.isFinite(lat)||!Number.isFinite(vertex)||!Number.isFinite(lon)){
-    document.getElementById("result").innerHTML="위도와 경도 값을 모두 입력하세요."; return;
-  }
-  const g=geometry(lat,vertex);
-  if(!g){document.getElementById("result").innerHTML="입력값에서는 이 공식에 따른 실수 교차점을 만들 수 없습니다.";return;}
-  const night=mode==="summer"?g.hours:24-g.hours, day=24-night;
-  document.getElementById("result").innerHTML=`
-    <h2>계산 결과</h2>
-    <div class="result-item">관측 위도: <strong>${lat.toFixed(2)}°</strong></div>
-    <div class="result-item">대원 최고점 위도: <strong>${vertex.toFixed(2)}°</strong></div>
-    <div class="result-item">최고점 기준 경도: <strong>${lon.toFixed(2)}°</strong></div>
-    <div class="result-item">한쪽 교차점 경도 차: <strong>${g.one.toFixed(4)}°</strong></div>
-    <div class="result-item">양쪽 교차점 전체 경도 차: <strong>${g.total.toFixed(4)}°</strong></div>
-    <div class="result-item">전체 경도 차 ÷ 15: <strong>${formatTime(g.hours)}</strong></div>
-    <div class="result-item">경도 차로 계산한 밤시간:<div class="big">${formatTime(night)}</div></div>
-    <div class="result-item">24시간 − 밤시간 = 낮시간:<div class="big">${formatTime(day)}</div></div>
-    <div class="result-item"><strong>검산: 밤시간 + 낮시간 = ${formatTime(night+day)} = 24시간</strong></div>`;
-  createTable(lat,mode);
+
+function geometry(latitude, vertex) {
+    const r = Math.PI / 180;
+    const d = Math.tan(vertex * r);
+    if (Math.abs(d) < 1e-10) return null;
+    let q = Math.tan(latitude * r) / d;
+    if (q < -1 - 1e-10 || q > 1 + 1e-10) return null;
+    q = Math.max(-1, Math.min(1, q));
+    const one = Math.acos(q) / r;
+    const total = 2 * one;
+    const hours = total / 15;
+    return { one, total, hours };
 }
-function createTable(lat,mode){
-  const list=[66.5,70.5,74.5,78.5,82.5,86.5,88.5];
-  document.getElementById("tableBody").innerHTML=list.map(v=>{
-    const g=geometry(lat,v);
-    if(!g)return `<tr><td>${v}°</td><td>${lat.toFixed(2)}°</td><td colspan="4">교차 없음</td></tr>`;
-    const night=mode==="summer"?g.hours:24-g.hours, day=24-night;
-    return `<tr><td>${v}°</td><td>${lat.toFixed(2)}°</td><td>${g.one.toFixed(2)}°</td><td>${g.total.toFixed(2)}°</td><td>${formatTime(night)}</td><td>${formatTime(day)}</td></tr>`;
-  }).join("");
+
+function solarDayLength(lat, dec) {
+    const r = Math.PI / 180;
+    const x = -Math.tan(lat * r) * Math.tan(dec * r);
+    if (x >= 1) return 0;
+    if (x <= -1) return 24;
+    return (2 * Math.acos(x) / r) / 15;
 }
-calculate();
+
+// --- Canvas 정밀 해안선 & 국경선 내장 세계지도 드로잉 ---
+function drawWorldMap(lat, lon, vLat, vLon) {
+    const canvas = document.getElementById("canvasMap");
+    const ctx = canvas.getContext("2d");
+    
+    const width = canvas.clientWidth || 850;
+    const height = 460;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    // 해양 배경
+    ctx.fillStyle = "#a8d5ff";
+    ctx.fillRect(0, 0, width, height);
+
+    function toX(lng) { return ((lng + 180) / 360) * width; }
+    function toY(lt) { return ((90 - lt) / 180) * height; }
+
+    // 1. 세부 해안선 및 도서 지역 데이터
+    const detailedContinents = [
+        // 아시아/유럽 본토 (상세 다각형)
+        [[30,70],[40,71],[60,70],[80,73],[100,77],[120,73],[140,66],[170,66],[180,60],[160,55],[140,50],[130,43],[120,32],[108,20],[100,10],[90,22],[80,13],[68,23],[60,25],[50,28],[40,30],[30,32],[26,38],[10,36],[0,44],[-10,36],[-10,43],[-5,48],[5,53],[8,58],[20,62],[25,71],[30,70]],
+        // 한반도 (상세)
+        [[124,38],[128,42],[130,40],[129,35],[126,34],[124,36],[124,38]],
+        // 일본 열도
+        [[140,45],[142,43],[140,36],[136,34],[131,33],[130,31],[132,34],[138,37],[141,41],[140,45]],
+        // 영국/아이슬란드
+        [[-5,50],[-3,58],[-6,57],[-8,52],[-5,50]],
+        [[-22,64],[-14,65],[-15,63],[-23,63],[-22,64]],
+        // 인도네시아/필리핀 영역
+        [[95,5],[105,5],[115,-5],[125,-8],[140,-3],[135,3],[120,15],[100,0],[95,5]],
+        // 아프리카
+        [[-17,35],[-6,36],[10,37],[25,32],[32,31],[43,12],[51,11],[40,-15],[33,-35],[18,-35],[8,-5],[-10,5],[-15,12],[-17,35]],
+        // 마다가스카르
+        [[49,-12],[50,-15],[47,-25],[44,-25],[44,-17],[49,-12]],
+        // 북아메리카
+        [[-168,66],[-140,70],[-120,75],[-80,74],[-60,60],[-65,45],[-75,35],[-80,25],[-90,16],[-105,20],[-117,32],[-125,48],[-160,58],[-168,66]],
+        // 남아메리카
+        [[-80,10],[-60,10],[-35,-5],[-40,-22],[-50,-35],[-68,-55],[-75,-45],[-72,-18],[-80,10]],
+        // 호주 & 뉴질랜드
+        [[114,-22],[128,-14],[142,-11],[153,-28],[148,-38],[138,-35],[115,-34],[114,-22]],
+        [[172,-35],[178,-37],[174,-46],[167,-45],[172,-35]],
+        // 그린란드
+        [[-55,83],[-20,80],[-20,70],[-40,60],[-60,65],[-55,83]]
+    ];
+
+    // 육지 그리기
+    ctx.fillStyle = "#d2f0c7";
+    ctx.strokeStyle = "#5f8d55";
+    ctx.lineWidth = 1;
+
+    detailedContinents.forEach(poly => {
+        ctx.beginPath();
+        poly.forEach((pt, idx) => {
+            const x = toX(pt[0]);
+            const y = toY(pt[1]);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    });
+
+    // 2. 주요 국가별 국경선 (Country Border Lines)
+    const borderLines = [
+        // 한국/중국 국경 (압록강/두만강)
+        [[124,38],[128,42]],
+        // 중국/몽골/러시아
+        [[88,48],[120,53]], [[80,52],[130,52]],
+        // 인도/중국 국경
+        [[75,35],[95,28]],
+        // 미국/캐나다 국경 (49도선)
+        [[-125,49],[-95,49],[-80,45]],
+        // 미국/멕시코 국경
+        [[-117,32.5],[-106,31.8],[-97,26]],
+        // 브라질/아르헨티나/볼리비아 등 남아메리카 내부 국경
+        [[-70,-18],[-58,-20],[-53,-30]],
+        // 서유럽 주요 국경 (프랑스/스페인, 프랑스/독일 등)
+        [[-2,43],[3,42]], [[7,49],[8,53]],
+        // 북아프리카/중동 (사하라 직선 국경 등)
+        [[-17,22],[35,22]], [[25,31],[25,22]],
+        // 칠레/아르헨티나 안데스 국경
+        [[-70,-22],[-73,-50]]
+    ];
+
+    ctx.strokeStyle = "rgba(90, 110, 90, 0.6)";
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([2, 2]); // 국경선 점선 표현
+
+    borderLines.forEach(line => {
+        ctx.beginPath();
+        line.forEach((pt, idx) => {
+            const x = toX(pt[0]);
+            const y = toY(pt[1]);
+            if (idx === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    });
+    ctx.setLineDash([]); // 점선 초기화
+
+    // 3. 경위도 격자선
+    ctx.strokeStyle = "rgba(0,0,0,0.08)";
+    ctx.lineWidth = 1;
+    for (let l = -150; l <= 150; l += 30) {
+        ctx.beginPath(); ctx.moveTo(toX(l), 0); ctx.lineTo(toX(l), height); ctx.stroke();
+    }
+    for (let t = -60; t <= 60; t += 30) {
+        ctx.beginPath(); ctx.moveTo(0, toY(t)); ctx.lineTo(width, toY(t)); ctx.stroke();
+    }
+
+    // 적도 & 본초자오선 강조
+    ctx.strokeStyle = "rgba(0,0,0,0.2)";
+    ctx.beginPath(); ctx.moveTo(0, toY(0)); ctx.lineTo(width, toY(0)); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(toX(0), 0); ctx.lineTo(toX(0), height); ctx.stroke();
+
+    const gpsX = toX(lon);
+    const gpsY = toY(lat);
+
+    // 4. 대원 최고점 및 연결 점선
+    if (Number.isFinite(vLat) && Number.isFinite(vLon)) {
+        const vx = toX(vLon);
+        const vy = toY(vLat);
+
+        ctx.strokeStyle = "#d84315";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(gpsX, gpsY);
+        ctx.lineTo(vx, vy);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 대원 최고점 별표 (★)
+        ctx.fillStyle = "#f57f17";
+        ctx.font = "bold 22px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("★", vx, vy);
+    }
+
+    // 5. 입력 GPS 마커 (빨간 원)
+    ctx.fillStyle = "#d32f2f";
+    ctx.beginPath();
+    ctx.arc(gpsX, gpsY, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 마커 텍스트 라벨
+    ctx.fillStyle = "#000000";
+    ctx.font = "bold 12px Arial, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`📍 GPS (${lat.toFixed(2)}°, ${lon.toFixed(2)}°)`, gpsX + 10, gpsY + 4);
+}
+
+// --- 기후 분석 (위도 기반 연간 특징 데이터) ---
+function climateText(lat, lon) {
+    const a = Math.abs(lat);
+    let zone, season;
+    if (a < 10) zone = "열대 우림/열대 기후권";
+    else if (a < 23.44) zone = "아열대/열대 사바나 기후권";
+    else if (a < 40) zone = "온대 기후권 (4계절 명확)";
+    else if (a < 60) zone = "냉대/고위도 온대 기후권";
+    else zone = "한대/극지방 기후권";
+
+    if (a < 23.44) season = "연중 낮 길이와 일사량의 변화 폭이 매우 작습니다.";
+    else if (a < 40) season = "계절에 따른 일조 시간 및 기온 변화가 뚜렷합니다.";
+    else if (a < 66.56) season = "하계와 동계의 낮 길이 차이가 크게 벌어집니다.";
+    else season = "시기에 따라 백야 현상 또는 극야 현상이 발생합니다.";
+
+    return `
+    <div class="cards">
+      <div><b>입력 위치 좌표</b><br>${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</div>
+      <div><b>위도 기후대 구분</b><br>${zone}</div>
+      <div><b>연간 일조 계절성</b><br>${season}</div>
+    </div>
+    <p class="small">※ 지형, 해발고도, 해류 등의 대기 요소에 따라 지표면의 실제 세부 기후는 달라질 수 있습니다.</p>`;
+}
+
+// --- 날씨 예보 (Open-Meteo API) ---
+function weatherCodeToText(code) {
+    const m = {
+        0: "☀️ 맑음", 1: "🌤 대체로 맑음", 2: "⛅ 구름 조금", 3: "☁️ 흐림",
+        45: "🌫 안개", 48: "🌫 서리 안개", 51: "🌦 약한 이슬비", 53: "🌧 이슬비",
+        55: "🌧 강한 이슬비", 61: "🌧 약한 비", 63: "🌧 비", 65: "🌧 강한 비",
+        71: "🌨 약한 눈", 73: "🌨 눈", 75: "❄️ 강한 눈", 80: "🌦 소나기",
+        81: "🌧 강한 소나기", 82: "⛈ 폭우", 95: "🌩 뇌우", 96: "⛈ 우박 동반 뇌우"
+    };
+    return m[code] || `기상코드 (${code})`;
+}
+
+async function loadWeather(lat, lon, dateStr) {
+    const wEl = document.getElementById("weatherResult");
+    wEl.innerHTML = "Open-Meteo 기상 데이터를 조회하고 있습니다...";
+
+    try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&start_date=${dateStr}&end_date=${dateStr}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,sunrise,sunset&timezone=auto`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("네트워크 응답 오류");
+        const data = await res.json();
+
+        if (!data.daily || !data.daily.time || data.daily.time.length === 0) {
+            throw new Error("데이터 없음");
+        }
+
+        const i = 0;
+        const wCode = data.daily.weather_code[i];
+        const tMax = data.daily.temperature_2m_max[i];
+        const tMin = data.daily.temperature_2m_min[i];
+        const rain = data.daily.precipitation_sum[i];
+        const wind = data.daily.wind_speed_10m_max[i];
+        const sunrise = data.daily.sunrise[i];
+        const sunset = data.daily.sunset[i];
+
+        const dayDurHours = (new Date(sunset) - new Date(sunrise)) / 3600000;
+        const dayDurText = fmtHoursShort(dayDurHours);
+        const srTime = sunrise.includes("T") ? sunrise.split("T")[1] : sunrise;
+        const ssTime = sunset.includes("T") ? sunset.split("T")[1] : sunset;
+
+        const weatherSummary = `${weatherCodeToText(wCode)} | ${tMin}°C ~ ${tMax}°C | 풍속 ${wind}km/h`;
+
+        wEl.innerHTML = `
+        <div class="cards">
+          <div><b>조회 날짜</b><br>${data.daily.time[i]}</div>
+          <div><b>날씨 상태</b><br>${weatherCodeToText(wCode)}</div>
+          <div><b>최고 / 최저 기온</b><br>최고 <b>${tMax}°C</b> / 최저 <b>${tMin}°C</b></div>
+          <div><b>일일 강수량</b><br>${rain} mm</div>
+          <div><b>최대 풍속</b><br>${wind} km/h</div>
+          <div><b>일출 / 일몰 시간</b><br>🌅 ${srTime} / 🌇 ${ssTime}</div>
+          <div><b>실제 낮시간</b><br>☀️ 약 ${dayDurText}</div>
+        </div>`;
+
+        const mapOverlay = document.getElementById("mapOverlay");
+        mapOverlay.innerHTML = `
+        <b>📍 GPS:</b> ${lat.toFixed(4)}°, ${lon.toFixed(4)}°<br>
+        <b>☀️ 실제 낮시간:</b> 약 ${dayDurText}<br>
+        <b>🌦 오늘 날씨 (${dateStr}):</b> ${weatherSummary}`;
+
+    } catch (e) {
+        wEl.innerHTML = `<p style="color: #c62828;">⚠️ 해당 날짜의 예보 데이터를 불러올 수 없습니다. (인터넷 연결 및 날짜 범위를 확인하세요.)</p>`;
+        document.getElementById("mapOverlay").innerHTML = `<b>📍 GPS:</b> ${lat.toFixed(4)}°, ${lon.toFixed(4)}°<br>날씨 정보를 불러올 수 없습니다.`;
+    }
+}
+
+// --- 위도별 차트 및 표 드로잉 ---
+function drawChart(lat) {
+    const c = document.getElementById("daylightChart");
+    const ctx = c.getContext("2d");
+    const W = c.clientWidth || 800, H = 280, dpr = window.devicePixelRatio || 1;
+    c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const p = { l: 45, r: 18, t: 20, b: 35 }, iw = W - p.l - p.r, ih = H - p.t - p.b;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle = "#ccd4dc"; ctx.lineWidth = 1;
+
+    [0, 6, 12, 18, 24].forEach(v => {
+        const y = p.t + ih - (v / 24) * ih;
+        ctx.beginPath(); ctx.moveTo(p.l, y); ctx.lineTo(W - p.r, y); ctx.stroke();
+        ctx.fillStyle = "#666"; ctx.font = "11px Arial"; ctx.fillText(v + "h", 10, y + 4);
+    });
+
+    [-90, -60, -30, 0, 30, 60, 90].forEach(v => {
+        const x = p.l + ((v + 90) / 180) * iw;
+        ctx.fillStyle = "#666"; ctx.font = "11px Arial"; ctx.fillText(v + "°", x - 10, H - 10);
+    });
+
+    [{ d: 0, c: "#777" }, { d: 23.44, c: "#1565c0" }, { d: -23.44, c: "#d84315" }].forEach(s => {
+        ctx.beginPath();
+        for (let i = 0; i <= 180; i++) {
+            const la = -90 + i;
+            const x = p.l + (i / 180) * iw;
+            const y = p.t + ih - (solarDayLength(la, s.d) / 24) * ih;
+            i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+        }
+        ctx.strokeStyle = s.c; ctx.lineWidth = 2; ctx.stroke();
+    });
+
+    const x = p.l + ((lat + 90) / 180) * iw;
+    ctx.strokeStyle = "#111"; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(x, p.t); ctx.lineTo(x, p.t + ih); ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function renderLatitudeTable(lat) {
+    let rows = "";
+    [-60, -45, -30, -15, 0, 15, 30, 45, 60, 66.5, 75].forEach(v => {
+        rows += `<tr><td>${v}°</td><td>${fmtHoursShort(solarDayLength(v, 0))}</td><td>${fmtHoursShort(solarDayLength(v, 23.44))}</td><td>${fmtHoursShort(solarDayLength(v, -23.44))}</td></tr>`;
+    });
+    document.getElementById("latitudeTable").innerHTML = `
+    <table>
+      <thead><tr><th>위도</th><th>춘·추분</th><th>하지 무렵</th><th>동지 무렵</th></tr></thead>
+      <tbody>${rows}<tr class="highlight"><td>입력위도 (${lat.toFixed(2)}°)</td><td>${fmtHoursShort(solarDayLength(lat, 0))}</td><td>${fmtHoursShort(solarDayLength(lat, 23.44))}</td><td>${fmtHoursShort(solarDayLength(lat, -23.44))}</td></tr></tbody>
+    </table>`;
+}
+
+// --- 전체 실행 계산 컨트롤러 ---
+function calculateAll() {
+    const lat = +document.getElementById("latitude").value;
+    const lon = +document.getElementById("longitude").value;
+    const vLat = +document.getElementById("vertexLatitude").value;
+    const vLon = +document.getElementById("vertexLongitude").value;
+    const mode = document.getElementById("seasonMode").value;
+    const dateStr = document.getElementById("weatherDate").value;
+
+    if (![lat, lon, vLat, vLon].every(Number.isFinite) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        alert("올바른 위도(-90~90) 및 경도(-180~180) 값을 입력해주세요.");
+        return;
+    }
+
+    // 1. 대원/소원 기하학 계산
+    const g = geometry(lat, vLat);
+    if (g) {
+        const night = mode === "summer" ? g.hours : 24 - g.hours;
+        const day = 24 - night;
+        document.getElementById("result").innerHTML = `
+        <h2>대원·소원 교차점 계산 결과</h2>
+        <div class="result-item">관측 위치 GPS: <strong>${lat.toFixed(4)}°N, ${lon.toFixed(4)}°E</strong></div>
+        <div class="result-item">대원 최고점: <strong>${vLat.toFixed(2)}°N, ${vLon.toFixed(2)}°E</strong></div>
+        <div class="result-item">한쪽 교차점 경도 차: <strong>${g.one.toFixed(4)}°</strong></div>
+        <div class="result-item">전체 경도 차: <strong>${g.total.toFixed(4)}°</strong></div>
+        <div class="result-item">계산 시간: <strong>${formatTime(g.hours)}</strong></div>
+        <div class="result-item">계산된 밤시간: <span class="big">${formatTime(night)}</span></div>
+        <div class="result-item">계산된 낮시간: <span class="big">${formatTime(day)}</span></div>`;
+    } else {
+        document.getElementById("result").innerHTML = "입력한 좌표 조건에서는 실수 형태의 대원 교차점이 형성되지 않습니다.";
+    }
+
+    // 2. 정밀 지도 드로잉
+    drawWorldMap(lat, lon, vLat, vLon);
+
+    // 3. 기후 특징 데이터 표시
+    document.getElementById("climateResult").innerHTML = climateText(lat, lon);
+
+    // 4. 오늘 일기예보 데이터 불러오기
+    if (dateStr) loadWeather(lat, lon, dateStr);
+
+    // 5. 차트 및 위도 표
+    drawChart(lat);
+    renderLatitudeTable(lat);
+}
+
+// --- 초기화 (오늘 날짜 설정 및 자동 계산) ---
+window.addEventListener("DOMContentLoaded", () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    document.getElementById("weatherDate").value = `${year}-${month}-${day}`;
+
+    calculateAll();
+});
+
+window.addEventListener("resize", () => {
+    const lat = +document.getElementById("latitude").value || 0;
+    const lon = +document.getElementById("longitude").value || 0;
+    const vLat = +document.getElementById("vertexLatitude").value || 0;
+    const vLon = +document.getElementById("vertexLongitude").value || 0;
+    drawWorldMap(lat, lon, vLat, vLon);
+    drawChart(lat);
+});
 </script>
-</body></html>
+</body>
+</html>
