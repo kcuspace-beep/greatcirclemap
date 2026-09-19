@@ -52,6 +52,7 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
   align-items: center;
   justify-content: center;
   transition: transform 0.15s ease-out;
+  transform: rotate(calc(var(--heading, 0) * -1deg));
 }
 .compass-pointer {
   position: absolute;
@@ -199,7 +200,6 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
   .club-gallery img,.club-gallery .wide{height:165px}
   .club-ad h2{font-size:22px}
 }
-
 </style>
 </head>
 <body>
@@ -221,7 +221,6 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
 </header>
 
 <main>
-
   <section class="card club-ad">
     <div class="club-gallery">
       <div>
@@ -277,7 +276,7 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
     <button id="stopBtn" class="light" onclick="stopGPS()" disabled>⏹ GPS 측정 중지</button>
   </section>
 
-  <!-- 휴대폰 나침반 카드 추가 -->
+  <!-- 스마트폰 나침반 카드 -->
   <section class="card">
     <h2 id="title-compass">🧭 스마트폰 나침반</h2>
     <div class="compass-container">
@@ -326,7 +325,7 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
     </p>
   </section>
 
-  <!-- 바다활동에 필요한 사이트 정보 카드 추가 -->
+  <!-- 바다활동 사이트 정보 카드 -->
   <section class="card">
     <h2 id="title-sea-sites">🌊 바다활동에 필요한 사이트 정보</h2>
     <div class="sea-sites-grid">
@@ -353,7 +352,6 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
       </a>
     </div>
   </section>
-
 </main>
 
 <footer id="footer-text">GPS 데이터는 이 페이지의 브라우저에서 직접 측정하며, 별도의 서버로 자동 전송하지 않습니다.</footer>
@@ -539,7 +537,7 @@ const translations = {
     headerDesc: "スマホの現在地を確認し、すぐに共有できます。",
     statusWait: "GPS位置情報を待機中...",
     statusMeasuring: "GPS位置情報を測定中...",
-    statusStopped: "GPS測定를 停止しました。",
+    statusStopped: "GPS測定を停止しました。",
     statusOk: "GPS位置情報が正常に測定されました。",
     coordsFormat: "緯度 {lat} / 経度 {lon}",
     labelLat: "緯度 (Latitude)",
@@ -549,13 +547,13 @@ const translations = {
     labelSpeed: "速度",
     labelTime: "最終更新",
     notSupported: "非対応",
-    startBtn: "📡 現在地の測定を開始",
+    startBtn: "📡 현재지의 測定を開始",
     stopBtn: "⏹ GPS測定を停止",
     titleCompass: "🧭 スマホコンパス",
     compassBtn: "🧭 コンパス開始 / 権限許可",
     compassWaiting: "コンパス待機中",
     compassNotSupported: "方位センサー非対応",
-    dirs: ["北", "北北東", "北東", "東北東", "東", "東南東", "南東", "南南東", "南", "南南西", "南西", "西北西", "西", "西北西", "北西", "北北西"],
+    dirs: ["北", "北北東", "北東", "東北東", "東", "東南東", "南東", "南남東", "南", "南남西", "南西", "西北西", "西", "西北西", "北西", "北北西"],
     titleShare: "📤 位置情報の送信",
     shareBtn: "📲 現在地を共有する",
     copyBtn: "📋 GPS座標をコピー",
@@ -929,27 +927,28 @@ function handleError(error){
   $("stopBtn").disabled = true;
 }
 
-/* 나침반 로직 (Compass Logic) */
+/* 스마트폰 나침반 로직 (Compass Logic) */
 function startCompass() {
   const t = translations[currentLang];
+  
+  // iOS 13+ 권한 동의 처리
   if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS 13+ 권한 요청
     DeviceOrientationEvent.requestPermission()
       .then(permissionState => {
         if (permissionState === 'granted') {
           window.addEventListener('deviceorientation', handleOrientation, true);
           compassActive = true;
         } else {
-          alert('나침반 권한이 거부되었습니다.');
+          alert('나침반 사용 권한이 거부되었습니다.');
         }
       })
       .catch(console.error);
   } else if ('ondeviceorientationabsolute' in window) {
-    // 절대방위 지원 브라우저
-    window.addEventListener('ondeviceorientationabsolute', handleOrientation, true);
+    // 절대 방위 지원 기기 (Android 최신)
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
     compassActive = true;
   } else if ('ondeviceorientation' in window) {
-    // 일반 모바일 브라우저
+    // 일반 모바일 기기
     window.addEventListener('deviceorientation', handleOrientation, true);
     compassActive = true;
   } else {
@@ -960,23 +959,37 @@ function startCompass() {
 function handleOrientation(event) {
   let heading = null;
 
-  // iOS webkitCompassHeading
-  if (event.webkitCompassHeading) {
+  // iOS webkitCompassHeading 처리
+  if (event.webkitCompassHeading !== undefined && event.webkitCompassHeading !== null) {
     heading = event.webkitCompassHeading;
   } else if (event.alpha !== null) {
-    // Android / 표준 alpha (자북 반시계방향 기준 보정)
-    heading = 360 - event.alpha;
+    // Android / Standard Alpha (기울임 보정 적용 계산)
+    const degToRad = Math.PI / 180;
+    const alpha = event.alpha * degToRad;
+    const beta = (event.beta || 0) * degToRad;
+    const gamma = (event.gamma || 0) * degToRad;
+
+    const cA = Math.cos(alpha), sA = Math.sin(alpha);
+    const cB = Math.cos(beta), sB = Math.sin(beta);
+    const cG = Math.cos(gamma), sG = Math.sin(gamma);
+
+    const Vx = -cA * sG - sA * sB * cG;
+    const Vy = -sA * sG + cA * sB * cG;
+
+    let compassHeading = Math.atan2(Vx, Vy) * (180 / Math.PI);
+    if (compassHeading < 0) compassHeading += 360;
+    heading = compassHeading;
   }
 
   if (heading !== null && heading !== undefined) {
-    heading = (heading + 360) % 360; // 0~360 범위 보정
+    heading = (heading + 360) % 360;
     const degInt = Math.round(heading);
     
-    // 나침반 판 회전
-    $("compassDial").style.transform = `rotate(${-heading}deg)`;
+    // UI 업데이트
+    $("compassDial").style.setProperty('--heading', heading);
     $("compassDeg").textContent = `${degInt}°`;
 
-    // 방위 이름 계산 (16방위)
+    // 16방위 표기 계산
     const t = translations[currentLang];
     const dirs = t.dirs || translations.ko.dirs;
     const index = Math.round(heading / 22.5) % 16;
@@ -1076,7 +1089,7 @@ window.addEventListener("load", ()=>{
     setStatus(t.errHttps, "err");
   }
 
-  // 모바일 디바이스인 경우 나침반 자동 시작 시도
+  // 페이지 로드 시 나침반 자동 수신 시도
   startCompass();
 });
 </script>
