@@ -32,6 +32,68 @@ button:disabled{opacity:.45;cursor:not-allowed}
 pre{white-space:pre-wrap;word-break:break-all;background:#f5f7fa;border-radius:12px;padding:12px;font-size:13px}
 footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
 
+/* Compass UI Style */
+.compass-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 15px 0;
+}
+.compass-dial {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 60%, #f0f4f9 100%);
+  border: 8px solid #0b5cff;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 6px 16px rgba(11,92,255,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease-out;
+}
+.compass-pointer {
+  position: absolute;
+  top: 10px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 22px solid #dc2626;
+  z-index: 10;
+}
+.compass-mark {
+  position: absolute;
+  font-weight: 800;
+  font-size: 14px;
+  color: #172033;
+}
+.compass-mark.n { top: 8px; color: #dc2626; font-size: 16px; }
+.compass-mark.s { bottom: 8px; }
+.compass-mark.e { right: 12px; }
+.compass-mark.w { left: 12px; }
+.compass-needle {
+  width: 6px;
+  height: 140px;
+  background: linear-gradient(to bottom, #dc2626 50%, #64748b 50%);
+  border-radius: 4px;
+}
+.compass-info {
+  margin-top: 12px;
+  text-align: center;
+}
+.compass-deg {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0b5cff;
+}
+.compass-dir {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 700;
+}
+
 /* Marine Sites Section Style */
 .sea-sites-grid {
   display: grid;
@@ -42,7 +104,7 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
 .sea-site-card {
   display: flex;
   flex-direction: column;
-  justify: space-between;
+  justify-content: space-between;
   align-items: center;
   text-align: center;
   background: #f8fafc;
@@ -215,6 +277,26 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
     <button id="stopBtn" class="light" onclick="stopGPS()" disabled>⏹ GPS 측정 중지</button>
   </section>
 
+  <!-- 휴대폰 나침반 카드 추가 -->
+  <section class="card">
+    <h2 id="title-compass">🧭 스마트폰 나침반</h2>
+    <div class="compass-container">
+      <div class="compass-pointer"></div>
+      <div id="compassDial" class="compass-dial">
+        <span class="compass-mark n">N</span>
+        <span class="compass-mark e">E</span>
+        <span class="compass-mark s">S</span>
+        <span class="compass-mark w">W</span>
+        <div class="compass-needle"></div>
+      </div>
+      <div class="compass-info">
+        <div id="compassDeg" class="compass-deg">--°</div>
+        <div id="compassDir" class="compass-dir">나침반 대기 중</div>
+      </div>
+    </div>
+    <button id="compassBtn" class="secondary" onclick="startCompass()">🧭 나침반 시작 / 권한 허용</button>
+  </section>
+
   <section class="card">
     <h2 id="title-share">📤 위치 전송</h2>
     <button id="shareBtn" class="green" onclick="shareLocation()" disabled>📲 내 위치 공유하기</button>
@@ -280,6 +362,7 @@ footer{text-align:center;color:#7b8494;font-size:12px;padding:8px 16px 24px}
 let watchId = null;
 let currentPosition = null;
 let currentLang = 'ko';
+let compassActive = false;
 
 const translations = {
   ko: {
@@ -300,6 +383,11 @@ const translations = {
     notSupported: "지원 안 됨",
     startBtn: "📡 현재 위치 측정 시작",
     stopBtn: "⏹ GPS 측정 중지",
+    titleCompass: "🧭 스마트폰 나침반",
+    compassBtn: "🧭 나침반 시작 / 권한 허용",
+    compassWaiting: "나침반 대기 중",
+    compassNotSupported: "방향 센서 미지원",
+    dirs: ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"],
     titleShare: "📤 위치 전송",
     shareBtn: "📲 내 위치 공유하기",
     copyBtn: "📋 GPS 좌표 복사",
@@ -351,6 +439,11 @@ const translations = {
     notSupported: "Not Supported",
     startBtn: "📡 Start GPS Measurement",
     stopBtn: "⏹ Stop GPS",
+    titleCompass: "🧭 Smartphone Compass",
+    compassBtn: "🧭 Start Compass / Grant Permission",
+    compassWaiting: "Compass Waiting",
+    compassNotSupported: "Orientation sensor not supported",
+    dirs: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"],
     titleShare: "📤 Send Location",
     shareBtn: "📲 Share My Location",
     copyBtn: "📋 Copy GPS Coordinates",
@@ -402,6 +495,11 @@ const translations = {
     notSupported: "Không hỗ trợ",
     startBtn: "📡 Bắt đầu đo GPS",
     stopBtn: "⏹ Dừng đo GPS",
+    titleCompass: "🧭 La Bàn Điện Thoại",
+    compassBtn: "🧭 Bật la bàn / Cấp quyền",
+    compassWaiting: "Đang chờ la bàn",
+    compassNotSupported: "Cảm biến hướng không được hỗ trợ",
+    dirs: ["Bắc", "Bắc Đông Bắc", "Đông Bắc", "Đông Đông Bắc", "Đông", "Đông Đông Nam", "Đông Nam", "Nam Đông Nam", "Nam", "Nam Tây Nam", "Tây Nam", "Tây Tây Nam", "Tây", "Tây Tây Bắc", "Tây Bắc", "Bắc Tây Bắc"],
     titleShare: "📤 Chia Sẻ Vị Trí",
     shareBtn: "📲 Chia sẻ vị trí của tôi",
     copyBtn: "📋 Sao chép tọa độ GPS",
@@ -441,7 +539,7 @@ const translations = {
     headerDesc: "スマホの現在地を確認し、すぐに共有できます。",
     statusWait: "GPS位置情報を待機中...",
     statusMeasuring: "GPS位置情報を測定中...",
-    statusStopped: "GPS測定を停止しました。",
+    statusStopped: "GPS測定를 停止しました。",
     statusOk: "GPS位置情報が正常に測定されました。",
     coordsFormat: "緯度 {lat} / 経度 {lon}",
     labelLat: "緯度 (Latitude)",
@@ -453,6 +551,11 @@ const translations = {
     notSupported: "非対応",
     startBtn: "📡 現在地の測定を開始",
     stopBtn: "⏹ GPS測定を停止",
+    titleCompass: "🧭 スマホコンパス",
+    compassBtn: "🧭 コンパス開始 / 権限許可",
+    compassWaiting: "コンパス待機中",
+    compassNotSupported: "方位センサー非対応",
+    dirs: ["北", "北北東", "北東", "東北東", "東", "東南東", "南東", "南南東", "南", "南南西", "南西", "西北西", "西", "西北西", "北西", "北北西"],
     titleShare: "📤 位置情報の送信",
     shareBtn: "📲 現在地を共有する",
     copyBtn: "📋 GPS座標をコピー",
@@ -504,6 +607,11 @@ const translations = {
     notSupported: "不支持",
     startBtn: "📡 开始测量当前位置",
     stopBtn: "⏹ 停止测量GPS",
+    titleCompass: "🧭 手机指南针",
+    compassBtn: "🧭 开启指南针 / 授予权限",
+    compassWaiting: "指南针等待中",
+    compassNotSupported: "不支持方向传感器",
+    dirs: ["北", "东北偏北", "东北", "东北偏东", "东", "东南偏东", "东南", "东南偏南", "南", "西南偏南", "西南", "西南偏西", "西", "西北偏西", "西北", "西北偏北"],
     titleShare: "📤 位置发送",
     shareBtn: "📲 分享我的位置",
     copyBtn: "📋 复制GPS坐标",
@@ -537,7 +645,6 @@ const translations = {
     copyAlert: "已复制GPS坐标。",
     shareFallbackAlert: "由于不支持直接分享，已复制位置信息到剪贴板。"
   },
-
   es: {
     title: "Enviar mi ubicación GPS",
     headerTitle: "📍 Enviar mi ubicación GPS",
@@ -551,6 +658,11 @@ const translations = {
     labelAltitude: "Altitud", labelSpeed: "Velocidad", labelTime: "Última actualización",
     notSupported: "No compatible",
     startBtn: "📡 Iniciar GPS", stopBtn: "⏹ Detener GPS",
+    titleCompass: "🧭 Brújula del Smartphone",
+    compassBtn: "🧭 Iniciar brújula / Permitir",
+    compassWaiting: "Esperando brújula",
+    compassNotSupported: "Sensor de orientación no compatible",
+    dirs: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
     titleShare: "📤 Enviar ubicación", shareBtn: "📲 Compartir mi ubicación",
     copyBtn: "📋 Copiar coordenadas GPS", smsBtn: "💬 Enviar por SMS",
     noteShare: "Abre el menú de compartir del teléfono para enviar el enlace de ubicación.",
@@ -591,6 +703,11 @@ const translations = {
     labelAltitude: "Altitude", labelSpeed: "Vitesse", labelTime: "Dernière mise à jour",
     notSupported: "Non pris en charge",
     startBtn: "📡 Démarrer le GPS", stopBtn: "⏹ Arrêter le GPS",
+    titleCompass: "🧭 Boussole Smartphone",
+    compassBtn: "🧭 Démarrer la boussole / Autoriser",
+    compassWaiting: "Boussole en attente",
+    compassNotSupported: "Capteur d'orientation non pris en charge",
+    dirs: ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSO", "SO", "OSO", "O", "ONO", "NO", "NNO"],
     titleShare: "📤 Envoyer la position", shareBtn: "📲 Partager ma position",
     copyBtn: "📋 Copier les coordonnées GPS", smsBtn: "💬 Envoyer par SMS",
     noteShare: "Le bouton ouvre le menu de partage du téléphone pour envoyer le lien de position.",
@@ -608,7 +725,7 @@ const translations = {
     errHttps: "Attention : le GPS peut être bloqué sans HTTPS.",
     mapPlaceholder: "<div style='font-family:sans-serif;text-align:center;padding:100px 20px;color:#667085'>La carte apparaîtra après la mesure GPS.</div>",
     msgTemplate: "📍 Ma position actuelle\nLatitude : {lat}\nLongitude : {lon}\nPrécision : ~{accuracy} m\nHeure : {time}\n\n🗺️ Carte :\n{url}",
-    shareTitle: "Ma position GPS actuelle", copyAlert: "Coordonnées GPS copiées.",
+    shareTitle: "Ma position GPS actuelle", copyAlert: "Coordennées GPS copiées.",
     shareFallbackAlert: "Le partage direct n'est pas pris en charge ; la position a été copiée.",
     clubBadge: "DEPUIS 2018 · ADHÉSION", clubTitle: "🏄 Club de Sports Nautiques de Mallipo · Équipe SUP",
     clubDesc: "Rejoignez notre équipe SUP pour des excursions en paddleboard de Mallipo vers Cheollipo, l'île de Nangsae et Baekripo.",
@@ -631,6 +748,11 @@ const translations = {
     labelAltitude: "ระดับความสูง", labelSpeed: "ความเร็ว", labelTime: "อัปเดตล่าสุด",
     notSupported: "ไม่รองรับ",
     startBtn: "📡 เริ่มวัด GPS", stopBtn: "⏹ หยุด GPS",
+    titleCompass: "🧭 เข็มทิศสมาร์ทโฟน",
+    compassBtn: "🧭 เริ่มเข็มทิศ / อนุญาตสิทธิ์",
+    compassWaiting: "กำลังรอเข็มทิศ",
+    compassNotSupported: "ไม่รองรับเซ็นเซอร์ทิศทาง",
+    dirs: ["เหนือ", "ตะวันออกเฉียงเหนือค่อนเหนือ", "ตะวันออกเฉียงเหนือ", "ตะวันออกเฉียงเหนือค่อนตะวันออก", "ตะวันออก", "ตะวันออกเฉียงใต้ค่อนตะวันออก", "ตะวันออกเฉียงใต้", "ตะวันออกเฉียงใต้ค่อนใต้", "ใต้", "ตะวันตกเฉียงใต้ค่อนใต้", "ตะวันตกเฉียงใต้", "ตะวันตกเฉียงใต้ค่อนตะวันตก", "ตะวันตก", "ตะวันตกเฉียงเหนือค่อนตะวันตก", "ตะวันตกเฉียงเหนือ", "ตะวันตกเฉียงเหนือค่อนเหนือ"],
     titleShare: "📤 ส่งตำแหน่ง", shareBtn: "📲 แชร์ตำแหน่งของฉัน",
     copyBtn: "📋 คัดลอกพิกัด GPS", smsBtn: "💬 ส่งทาง SMS",
     noteShare: "ปุ่มแชร์จะเปิดเมนูแชร์ของโทรศัพท์เพื่อส่งลิงก์ตำแหน่ง",
@@ -686,6 +808,10 @@ function changeLanguage(lang){
 
   $("startBtn").textContent = t.startBtn;
   $("stopBtn").textContent = t.stopBtn;
+
+  if($("title-compass")) $("title-compass").textContent = t.titleCompass || "🧭 스마트폰 나침반";
+  if($("compassBtn")) $("compassBtn").textContent = t.compassBtn || "🧭 나침반 시작 / 권한 허용";
+  if(!compassActive && $("compassDir")) $("compassDir").textContent = t.compassWaiting || "나침반 대기 중";
 
   $("title-share").textContent = t.titleShare;
   $("shareBtn").textContent = t.shareBtn;
@@ -803,6 +929,61 @@ function handleError(error){
   $("stopBtn").disabled = true;
 }
 
+/* 나침반 로직 (Compass Logic) */
+function startCompass() {
+  const t = translations[currentLang];
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 13+ 권한 요청
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+          compassActive = true;
+        } else {
+          alert('나침반 권한이 거부되었습니다.');
+        }
+      })
+      .catch(console.error);
+  } else if ('ondeviceorientationabsolute' in window) {
+    // 절대방위 지원 브라우저
+    window.addEventListener('ondeviceorientationabsolute', handleOrientation, true);
+    compassActive = true;
+  } else if ('ondeviceorientation' in window) {
+    // 일반 모바일 브라우저
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    compassActive = true;
+  } else {
+    $("compassDir").textContent = t.compassNotSupported || "방향 센서 미지원";
+  }
+}
+
+function handleOrientation(event) {
+  let heading = null;
+
+  // iOS webkitCompassHeading
+  if (event.webkitCompassHeading) {
+    heading = event.webkitCompassHeading;
+  } else if (event.alpha !== null) {
+    // Android / 표준 alpha (자북 반시계방향 기준 보정)
+    heading = 360 - event.alpha;
+  }
+
+  if (heading !== null && heading !== undefined) {
+    heading = (heading + 360) % 360; // 0~360 범위 보정
+    const degInt = Math.round(heading);
+    
+    // 나침반 판 회전
+    $("compassDial").style.transform = `rotate(${-heading}deg)`;
+    $("compassDeg").textContent = `${degInt}°`;
+
+    // 방위 이름 계산 (16방위)
+    const t = translations[currentLang];
+    const dirs = t.dirs || translations.ko.dirs;
+    const index = Math.round(heading / 22.5) % 16;
+    $("compassDir").textContent = dirs[index];
+  }
+}
+
 function getShareText(){
   if(!currentPosition) return "";
   const c = currentPosition.coords;
@@ -894,6 +1075,9 @@ window.addEventListener("load", ()=>{
     const t = translations[currentLang];
     setStatus(t.errHttps, "err");
   }
+
+  // 모바일 디바이스인 경우 나침반 자동 시작 시도
+  startCompass();
 });
 </script>
 </body>
