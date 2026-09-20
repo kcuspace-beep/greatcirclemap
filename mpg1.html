@@ -14,7 +14,10 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Noto Sans KR",sans-serif;color:var(--ink);background:#f5fbff;line-height:1.6}
 button{font:inherit;cursor:pointer}
-.hero{background:linear-gradient(135deg,#04396f,#078bd6);color:white;padding:48px 20px 55px;position:relative;overflow:hidden}
+.lang-selector-wrap{display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.lang-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:4px 10px;border-radius:12px;font-size:13px;font-weight:bold;transition:.2s}
+.lang-btn:hover, .lang-btn.active{background:#fff;color:var(--deep)}
+.hero{background:linear-gradient(135deg,#04396f,#078bd6);color:white;padding:30px 20px 55px;position:relative;overflow:hidden}
 .hero:after{content:"";position:absolute;inset:auto -10% -90px;height:180px;background:#f5fbff;border-radius:50% 50% 0 0/100% 100% 0 0}
 .wrap{max-width:1100px;margin:auto}
 .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:7px 14px;border-radius:999px;font-weight:700}
@@ -48,119 +51,431 @@ section{margin:45px auto;max-width:1100px}
 .emergency{background:linear-gradient(135deg,#8f1d1d,#e74747);color:white;border-radius:26px;padding:30px}
 .emergency .btn{margin-top:8px}
 .footer{background:#062f5c;color:#d8edff;padding:35px 20px;text-align:center}
+.contact-info{background:rgba(255,255,255,.1);border-radius:16px;padding:16px;margin-bottom:20px;display:inline-block;border:1px solid rgba(255,255,255,.2)}
+.contact-info strong{font-size:18px;color:#fff}
+.contact-info a{color:#64b5f6;text-decoration:none;font-weight:bold}
 .tags{opacity:.85;font-size:14px}
 .disclaimer{font-size:13px;opacity:.78;margin-top:18px}
-@media(max-width:600px){.coords{grid-template-columns:1fr}.hero{padding-top:35px}section{margin:34px auto}.location{padding:22px}}
+@media(max-width:600px){.coords{grid-template-columns:1fr}.hero{padding-top:25px}section{margin:34px auto}.location{padding:22px}}
 </style>
 </head>
 <body>
 <header class="hero">
   <div class="wrap">
-    <span class="badge">🌊 수상안전 리더 캠페인</span>
-    <h1>내 위치 전송하기</h1>
-    <p>내 위치를 알고, 신속하게 보내고, 구조될 때까지 안전을 유지하세요.</p>
-    <div class="hero-note">GPS + 휴대전화 + 방수백 + 지도 + 나침반 = 수상안전의 기본 준비</div>
+    <div class="lang-selector-wrap">
+      <button class="lang-btn active" onclick="changeLanguage('ko', event)">한국어</button>
+      <button class="lang-btn" onclick="changeLanguage('en', event)">English</button>
+      <button class="lang-btn" onclick="changeLanguage('ja', event)">日本語</button>
+      <button class="lang-btn" onclick="changeLanguage('zh', event)">中文</button>
+      <button class="lang-btn" onclick="changeLanguage('vi', event)">Tiếng Việt</button>
+      <button class="lang-btn" onclick="changeLanguage('id', event)">Bahasa Indonesia</button>
+    </div>
+    <span class="badge" data-i18n="badge">🌊 수상안전 리더 캠페인</span>
+    <h1 data-i18n="hero_title">내 위치 전송하기</h1>
+    <p data-i18n="hero_sub">내 위치를 알고, 신속하게 보내고, 구조될 때까지 안전을 유지하세요.</p>
+    <div class="hero-note" data-i18n="hero_note">GPS + 휴대전화 + 방수백 + 지도 + 나침반 = 수상안전의 기본 준비</div>
   </div>
 </header>
 
 <main>
 <section>
-  <h2 class="section-title">왜 위치 전송이 중요한가요?</h2>
-  <p class="section-sub">수상 사고에서는 “어디에 있는가”를 빠르게 전달하는 것이 구조 요청의 핵심 정보가 될 수 있습니다.</p>
+  <h2 class="section-title" data-i18n="sec1_title">왜 위치 전송이 중요한가요?</h2>
+  <p class="section-sub" data-i18n="sec1_sub">수상 사고에서는 “어디에 있는가”를 빠르게 전달하는 것이 구조 요청의 핵심 정보가 될 수 있습니다.</p>
   <div class="grid">
-    <div class="card"><div class="icon">🌬️</div><h3>바람·조류</h3><p>예상보다 빠르게 이동하거나 출발 지점에서 멀어질 수 있습니다.</p></div>
-    <div class="card"><div class="icon">🛶</div><h3>장비 고장</h3><p>패들, 엔진, 보트 등 장비 문제가 발생하면 표류할 수 있습니다.</p></div>
-    <div class="card"><div class="icon">🧭</div><h3>방향 상실</h3><p>해상과 갯벌에서는 주변 지형만으로 위치를 판단하기 어려울 수 있습니다.</p></div>
-    <div class="card"><div class="icon">❄️</div><h3>저체온증</h3><p>추운 계절에는 구조가 늦어질수록 체온 유지가 더욱 중요해집니다.</p></div>
+    <div class="card"><div class="icon">🌬️</div><h3 data-i18n="c1_t">바람·조류</h3><p data-i18n="c1_d">예상보다 빠르게 이동하거나 출발 지점에서 멀어질 수 있습니다.</p></div>
+    <div class="card"><div class="icon">🛶</div><h3 data-i18n="c2_t">장비 고장</h3><p data-i18n="c2_d">패들, 엔진, 보트 등 장비 문제가 발생하면 표류할 수 있습니다.</p></div>
+    <div class="card"><div class="icon">🧭</div><h3 data-i18n="c3_t">방향 상실</h3><p data-i18n="c3_d">해상과 갯벌에서는 주변 지형만으로 위치를 판단하기 어려울 수 있습니다.</p></div>
+    <div class="card"><div class="icon">❄️</div><h3 data-i18n="c4_t">저체온증</h3><p data-i18n="c4_d">추운 계절에는 구조가 늦어질수록 체온 유지가 더욱 중요해집니다.</p></div>
   </div>
 </section>
 
 <section class="location">
-  <h2>📍 지금 내 위치 확인하기</h2>
-  <p>휴대전화의 위치 권한을 허용하면 현재 GPS 좌표를 확인할 수 있습니다. 위치 정보는 이 페이지에서 별도 서버로 전송하지 않습니다.</p>
+  <h2 data-i18n="sec2_title">📍 지금 내 위치 확인하기</h2>
+  <p data-i18n="sec2_sub">휴대전화의 위치 권한을 허용하면 현재 GPS 좌표를 확인할 수 있습니다. 위치 정보는 이 페이지에서 별도 서버로 전송하지 않습니다.</p>
   <div class="coords">
-    <div class="coord"><small>위도 Latitude</small><strong id="lat">--</strong></div>
-    <div class="coord"><small>경도 Longitude</small><strong id="lon">--</strong></div>
+    <div class="coord"><small data-i18n="lat_label">위도 Latitude</small><strong id="lat">--</strong></div>
+    <div class="coord"><small data-i18n="lon_label">경도 Longitude</small><strong id="lon">--</strong></div>
   </div>
   <div class="actions">
-    <button class="btn primary" onclick="getLocation()">📍 현재 위치 확인</button>
-    <button class="btn blue" onclick="copyCoords()">📋 GPS 복사</button>
-    <button class="btn green" onclick="shareLocation()">📤 위치 공유</button>
-    <button class="btn orange" onclick="openMap()">🗺️ 지도 보기</button>
-    <button class="btn primary" onclick="openCompass()">🧭 나침반</button>
+    <button class="btn primary" onclick="getLocation()" data-i18n="btn_get">📍 현재 위치 확인</button>
+    <button class="btn blue" onclick="copyCoords()" data-i18n="btn_copy">📋 GPS 복사</button>
+    <button class="btn green" onclick="shareLocation()" data-i18n="btn_share">📤 위치 공유</button>
+    <button class="btn orange" onclick="openMap()" data-i18n="btn_map">🗺️ 지도 보기</button>
+    <button class="btn primary" onclick="openCompass()" data-i18n="btn_compass">🧭 나침반</button>
   </div>
-  <div class="status" id="status">위치 확인 버튼을 눌러 시작하세요.</div>
+  <div class="status" id="status" data-i18n="status_init">위치 확인 버튼을 눌러 시작하세요.</div>
 </section>
 
 <section>
-  <h2 class="section-title">🚨 위급 상황에서는 이렇게</h2>
+  <h2 class="section-title" data-i18n="sec3_title">🚨 위급 상황에서는 이렇게</h2>
   <div class="card steps">
-    <div class="step"><b>위험 상황을 인지</b><br>표류, 체력 저하, 장비 고장, 고립 등 위험을 느끼면 무리한 이동을 줄입니다.</div>
-    <div class="step"><b>내 위치 확인</b><br>GPS로 현재 위도·경도를 확인합니다.</div>
-    <div class="step"><b>위치 전송</b><br>동료·가족에게 위치를 먼저 공유합니다.</div>
-    <div class="step"><b>구조 요청</b><br>필요하면 119 등 적절한 긴급 구조기관에 상황과 위치를 전달합니다.</div>
-    <div class="step"><b>부력과 체온 유지</b><br>구명조끼를 착용하고 불필요한 이동을 줄입니다.</div>
-    <div class="step"><b>구조대가 올 때까지</b><br>가능하면 위치를 유지하고 주변 사람에게 신호를 보냅니다.</div>
+    <div class="step" data-i18n="step1"><b>위험 상황을 인지</b><br>표류, 체력 저하, 장비 고장, 고립 등 위험을 느끼면 무리한 이동을 줄입니다.</div>
+    <div class="step" data-i18n="step2"><b>내 위치 확인</b><br>GPS로 현재 위도·경도를 확인합니다.</div>
+    <div class="step" data-i18n="step3"><b>위치 전송</b><br>동료·가족에게 위치를 먼저 공유합니다.</div>
+    <div class="step" data-i18n="step4"><b>구조 요청</b><br>필요하면 119 등 적절한 긴급 구조기관에 상황과 위치를 전달합니다.</div>
+    <div class="step" data-i18n="step5"><b>부력과 체온 유지</b><br>구명조끼를 착용하고 불필요한 이동을 줄입니다.</div>
+    <div class="step" data-i18n="step6"><b>구조대가 올 때까지</b><br>가능하면 위치를 유지하고 주변 사람에게 신호를 보냅니다.</div>
   </div>
 </section>
 
 <section>
-  <h2 class="section-title">📱 휴대전화 방수백 체크리스트</h2>
+  <h2 class="section-title" data-i18n="sec4_title">📱 휴대전화 방수백 체크리스트</h2>
   <div class="checklist">
-    <div class="check"><b>✓</b>실제 수상 활동에 적합한 방수 성능 확인</div>
-    <div class="check"><b>✓</b>휴대전화 크기와 호환성 확인</div>
-    <div class="check"><b>✓</b>방수백 안에서 화면 터치가 가능한지 확인</div>
-    <div class="check"><b>✓</b>스트랩·목걸이 등 이탈 방지 구조 확인</div>
-    <div class="check"><b>✓</b>구명조끼 착용 상태에서도 꺼내기 쉬운지 확인</div>
-    <div class="check"><b>✓</b>실제 활동 전에 누수 테스트 실시</div>
+    <div class="check"><b>✓</b><span data-i18n="chk1">실제 수상 활동에 적합한 방수 성능 확인</span></div>
+    <div class="check"><b>✓</b><span data-i18n="chk2">휴대전화 크기와 호환성 확인</span></div>
+    <div class="check"><b>✓</b><span data-i18n="chk3">방수백 안에서 화면 터치가 가능한지 확인</span></div>
+    <div class="check"><b>✓</b><span data-i18n="chk4">스트랩·목걸이 등 이탈 방지 구조 확인</span></div>
+    <div class="check"><b>✓</b><span data-i18n="chk5">구명조끼 착용 상태에서도 꺼내기 쉬운지 확인</span></div>
+    <div class="check"><b>✓</b><span data-i18n="chk6">실제 활동 전에 누수 테스트 실시</span></div>
   </div>
 </section>
 
 <section>
-  <h2 class="section-title">🌊 활동별 안전 포인트</h2>
+  <h2 class="section-title" data-i18n="sec5_title">🌊 활동별 안전 포인트</h2>
   <div class="grid">
-    <div class="card"><h3>🏄 패들보드</h3><p>바람·조류에 의한 표류에 대비해 GPS, 지도, 나침반과 동료 위치 공유를 준비합니다.</p></div>
-    <div class="card"><h3>🛶 카약</h3><p>방향을 잃기 쉬운 상황에 대비해 출발 전 항로와 귀환 예정시간을 공유합니다.</p></div>
-    <div class="card"><h3>🎣 낚시·고무보트</h3><p>엔진이나 장비 고장으로 표류할 수 있으므로 통신수단과 위치 확인 방법을 준비합니다.</p></div>
-    <div class="card"><h3>🦀 갯벌·해루질</h3><p>물때와 귀환 시간을 확인하고, 갯골·수위 상승·저체온증 위험에 대비합니다.</p></div>
+    <div class="card"><h3 data-i18n="act1_t">🏄 패들보드</h3><p data-i18n="act1_d">바람·조류에 의한 표류에 대비해 GPS, 지도, 나침반과 동료 위치 공유를 준비합니다.</p></div>
+    <div class="card"><h3 data-i18n="act2_t">🛶 카약</h3><p data-i18n="act2_d">방향을 잃기 쉬운 상황에 대비해 출발 전 항로와 귀환 예정시간을 공유합니다.</p></div>
+    <div class="card"><h3 data-i18n="act3_t">🎣 낚시·고무보트</h3><p data-i18n="act3_d">엔진이나 장비 고장으로 표류할 수 있으므로 통신수단과 위치 확인 방법을 준비합니다.</p></div>
+    <div class="card"><h3 data-i18n="act4_t">🦀 갯벌·해루질</h3><p data-i18n="act4_d">물때와 귀환 시간을 확인하고, 갯골·수위 상승·저체온증 위험에 대비합니다.</p></div>
   </div>
 </section>
 
 <section>
-  <div class="alert">
+  <div class="alert" data-i18n="alert_text">
     <strong>⚠️ 중요한 원칙</strong><br>
     위치를 전송하는 것만으로 안전이 보장되는 것은 아닙니다. 구명조끼, 기상·물때 확인, 동행자 공유, 적절한 활동 범위 설정과 같은 기본 안전수칙을 함께 지켜야 합니다.
   </div>
 </section>
 
 <section class="emergency">
-  <h2>🆘 긴급 구조 요청</h2>
-  <p>실제 긴급상황에서는 즉시 적절한 긴급 구조기관에 연락하고, 가능한 경우 자신의 GPS 위치와 현재 상황을 함께 전달하세요.</p>
-  <button class="btn primary" onclick="emergencyMessage()">📋 긴급 메시지 만들기</button>
+  <h2 data-i18n="sec6_title">🆘 긴급 구조 요청</h2>
+  <p data-i18n="sec6_sub">실제 긴급상황에서는 즉시 적절한 긴급 구조기관에 연락하고, 가능한 경우 자신의 GPS 위치와 현재 상황을 함께 전달하세요.</p>
+  <button class="btn primary" onclick="emergencyMessage()" data-i18n="btn_emg">📋 긴급 메시지 만들기</button>
   <div id="emergencyOutput" style="margin-top:15px"></div>
 </section>
 
 <section>
-  <h2 class="section-title">🎯 캠페인 실천</h2>
+  <h2 class="section-title" data-i18n="sec7_title">🎯 캠페인 실천</h2>
   <div class="grid">
-    <div class="card"><h3>출발 전</h3><p>물때·기상·항로·귀환 예정시간을 확인하고 동료에게 공유합니다.</p></div>
-    <div class="card"><h3>활동 중</h3><p>휴대전화는 방수 상태로 휴대하고 배터리와 통신 상태를 확인합니다.</p></div>
-    <div class="card"><h3>위급 시</h3><p><b>위치 확인 → 위치 전송 → 구조 요청 → 부력·체온 유지</b> 순서로 대응합니다.</p></div>
+    <div class="card"><h3 data-i18n="camp1_t">출발 전</h3><p data-i18n="camp1_d">물때·기상·항로·귀환 예정시간을 확인하고 동료에게 공유합니다.</p></div>
+    <div class="card"><h3 data-i18n="camp2_t">활동 중</h3><p data-i18n="camp2_d">휴대전화는 방수 상태로 휴대하고 배터리와 통신 상태를 확인합니다.</p></div>
+    <div class="card"><h3 data-i18n="camp3_t">위급 시</h3><p data-i18n="camp3_d"><b>위치 확인 → 위치 전송 → 구조 요청 → 부력·체온 유지</b> 순서로 대응합니다.</p></div>
   </div>
 </section>
 </main>
 
 <footer class="footer">
   <div class="wrap">
-    <strong>수상안전 리더 캠페인</strong>
-    <p>내 위치를 알고 · 내 위치를 보내고 · 구조될 때까지 안전을 유지합니다.</p>
-    <div class="tags">#수상안전 #수상안전리더 #내위치전송 #GPS안전 #해양안전 #패들보드안전 #카약안전 #갯벌안전 #해루질안전 #응급구조</div>
-    <div class="disclaimer">이 웹페이지는 안전교육을 위한 도구입니다. GPS 정확도와 통신 가능 여부는 환경에 따라 달라질 수 있습니다. 실제 긴급상황에서는 공식 긴급 구조기관의 안내를 따르세요.</div>
+    <div class="contact-info">
+      <strong data-i18n="badacamp_title">🏄‍♂️ 바다캠프에서 배우는 해양레저스포츠</strong><br>
+      <span data-i18n="badacamp_contact">문의: </span><a href="tel:01032586747">010-3258-6747</a>
+    </div>
+
+    <p><strong data-i18n="ft_title">수상안전 리더 캠페인</strong></p>
+    <p data-i18n="ft_sub">내 위치를 알고 · 내 위치를 보내고 · 구조될 때까지 안전을 유지합니다.</p>
+    <div class="tags" data-i18n="ft_tags">#수상안전 #수상안전리더 #내위치전송 #GPS안전 #해양안전 #패들보드안전 #카약안전 #갯벌안전 #해루질안전 #응급구조</div>
+    <div class="disclaimer" data-i18n="ft_disclaimer">이 웹페이지는 안전교육을 위한 도구입니다. GPS 정확도와 통신 가능 여부는 환경에 따라 달라질 수 있습니다. 실제 긴급상황에서는 공식 긴급 구조기관의 안내를 따르세요.</div>
   </div>
 </footer>
 
 <script>
 let current = null;
+let currentLang = 'ko';
+
+const i18n = {
+  ko: {
+    badge: "🌊 수상안전 리더 캠페인",
+    hero_title: "내 위치 전송하기",
+    hero_sub: "내 위치를 알고, 신속하게 보내고, 구조될 때까지 안전을 유지하세요.",
+    hero_note: "GPS + 휴대전화 + 방수백 + 지도 + 나침반 = 수상안전의 기본 준비",
+    sec1_title: "왜 위치 전송이 중요한가요?",
+    sec1_sub: "수상 사고에서는 “어디에 있는가”를 빠르게 전달하는 것이 구조 요청의 핵심 정보가 될 수 있습니다.",
+    c1_t: "바람·조류", c1_d: "예상보다 빠르게 이동하거나 출발 지점에서 멀어질 수 있습니다.",
+    c2_t: "장비 고장", c2_d: "패들, 엔진, 보트 등 장비 문제가 발생하면 표류할 수 있습니다.",
+    c3_t: "방향 상실", c3_d: "해상과 갯벌에서는 주변 지형만으로 위치를 판단하기 어려울 수 있습니다.",
+    c4_t: "저체온증", c4_d: "추운 계절에는 구조가 늦어질수록 체온 유지가 더욱 중요해집니다.",
+    sec2_title: "📍 지금 내 위치 확인하기",
+    sec2_sub: "휴대전화의 위치 권한을 허용하면 현재 GPS 좌표를 확인할 수 있습니다. 위치 정보는 이 페이지에서 별도 서버로 전송하지 않습니다.",
+    lat_label: "위도 Latitude", lon_label: "경도 Longitude",
+    btn_get: "📍 현재 위치 확인", btn_copy: "📋 GPS 복사", btn_share: "📤 위치 공유", btn_map: "🗺️ 지도 보기", btn_compass: "🧭 나침반",
+    status_init: "위치 확인 버튼을 눌러 시작하세요.",
+    sec3_title: "🚨 위급 상황에서는 이렇게",
+    step1: "<b>위험 상황을 인지</b><br>표류, 체력 저하, 장비 고장, 고립 등 위험을 느끼면 무리한 이동을 줄입니다.",
+    step2: "<b>내 위치 확인</b><br>GPS로 현재 위도·경도를 확인합니다.",
+    step3: "<b>위치 전송</b><br>동료·가족에게 위치를 먼저 공유합니다.",
+    step4: "<b>구조 요청</b><br>필요하면 119 등 적절한 긴급 구조기관에 상황과 위치를 전달합니다.",
+    step5: "<b>부력과 체온 유지</b><br>구명조끼를 착용하고 불필요한 이동을 줄입니다.",
+    step6: "<b>구조대가 올 때까지</b><br>가능하면 위치를 유지하고 주변 사람에게 신호를 보냅니다.",
+    sec4_title: "📱 휴대전화 방수백 체크리스트",
+    chk1: "실제 수상 활동에 적합한 방수 성능 확인", chk2: "휴대전화 크기와 호환성 확인", chk3: "방수백 안에서 화면 터치가 가능한지 확인",
+    chk4: "스트랩·목걸이 등 이탈 방지 구조 확인", chk5: "구명조끼 착용 상태에서도 꺼내기 쉬운지 확인", chk6: "실제 활동 전에 누수 테스트 실시",
+    sec5_title: "🌊 활동별 안전 포인트",
+    act1_t: "🏄 패들보드", act1_d: "바람·조류에 의한 표류에 대비해 GPS, 지도, 나침반과 동료 위치 공유를 준비합니다.",
+    act2_t: "🛶 카약", act2_d: "방향을 잃기 쉬운 상황에 대비해 출발 전 항로와 귀환 예정시간을 공유합니다.",
+    act3_t: "🎣 낚시·고무보트", act3_d: "엔진이나 장비 고장으로 표류할 수 있으므로 통신수단과 위치 확인 방법을 준비합니다.",
+    act4_t: "🦀 갯벌·해루질", act4_d: "물때와 귀환 시간을 확인하고, 갯골·수위 상승·저체온증 위험에 대비합니다.",
+    alert_text: "<strong>⚠️ 중요한 원칙</strong><br>위치를 전송하는 것만으로 안전이 보장되는 것은 아닙니다. 구명조끼, 기상·물때 확인, 동행자 공유, 적절한 활동 범위 설정과 같은 기본 안전수칙을 함께 지켜야 합니다.",
+    sec6_title: "🆘 긴급 구조 요청",
+    sec6_sub: "실제 긴급상황에서는 즉시 적절한 긴급 구조기관에 연락하고, 가능한 경우 자신의 GPS 위치와 현재 상황을 함께 전달하세요.",
+    btn_emg: "📋 긴급 메시지 만들기",
+    sec7_title: "🎯 캠페인 실천",
+    camp1_t: "출발 전", camp1_d: "물때·기상·항로·귀환 예정시간을 확인하고 동료에게 공유합니다.",
+    camp2_t: "활동 중", camp2_d: "휴대전화는 방수 상태로 휴대하고 배터리와 통신 상태를 확인합니다.",
+    camp3_t: "위급 시", camp3_d: "<b>위치 확인 → 위치 전송 → 구조 요청 → 부력·체온 유지</b> 순서로 대응합니다.",
+    badacamp_title: "🏄‍♂️ 바다캠프에서 배우는 해양레저스포츠",
+    badacamp_contact: "문의: ",
+    ft_title: "수상안전 리더 캠페인",
+    ft_sub: "내 위치를 알고 · 내 위치를 보내고 · 구조될 때까지 안전을 유지합니다.",
+    ft_tags: "#수상안전 #수상안전리더 #내위치전송 #GPS안전 #해양안전 #패들보드안전 #카약안전 #갯벌안전 #해루질안전 #응급구조",
+    ft_disclaimer: "이 웹페이지는 안전교육을 위한 도구입니다. GPS 정확도와 통신 가능 여부는 환경에 따라 달라질 수 있습니다. 실제 긴급상황에서는 공식 긴급 구조기관의 안내를 따르세요."
+  },
+  en: {
+    badge: "🌊 Water Safety Leader Campaign",
+    hero_title: "Send My Location",
+    hero_sub: "Know your position, send it quickly, and stay safe until rescued.",
+    hero_note: "GPS + Phone + Waterproof Bag + Map + Compass = Basic Safety Gear",
+    sec1_title: "Why is Location Sharing Important?",
+    sec1_sub: "In water accidents, quickly sharing 'where you are' is key for rescue.",
+    c1_t: "Wind & Currents", c1_d: "You may drift faster or farther than expected.",
+    c2_t: "Equipment Failure", c2_d: "Broken paddles, engines, or boats can leave you stranded.",
+    c3_t: "Disorientation", c3_d: "It's hard to tell direction using landmarks in open sea or tidal flats.",
+    c4_t: "Hypothermia", c4_d: "Maintaining body temperature is vital if rescue is delayed in cold weather.",
+    sec2_title: "📍 Check My Current Location",
+    sec2_sub: "Allow location access to view GPS coordinates. Data is not sent to any server.",
+    lat_label: "Latitude", lon_label: "Longitude",
+    btn_get: "📍 Get Location", btn_copy: "📋 Copy GPS", btn_share: "📤 Share Location", btn_map: "🗺️ View Map", btn_compass: "🧭 Compass",
+    status_init: "Press the button to check your location.",
+    sec3_title: "🚨 In Case of Emergency",
+    step1: "<b>Recognize Danger</b><br>Reduce risky movement if adrift, exhausted, or stranded.",
+    step2: "<b>Check Location</b><br>Get your latitude and longitude via GPS.",
+    step3: "<b>Send Location</b><br>Share location with companions or family first.",
+    step4: "<b>Request Rescue</b><br>Contact rescue authorities (e.g., 911/119) with coordinates.",
+    step5: "<b>Stay Afloat & Warm</b><br>Wear a life vest and stay still to conserve energy.",
+    step6: "<b>Wait for Help</b><br>Maintain position and signal nearby people if possible.",
+    sec4_title: "📱 Waterproof Phone Bag Checklist",
+    chk1: "Check waterproof rating for water activities", chk2: "Ensure phone size compatibility", chk3: "Test touch screen functionality inside bag",
+    chk4: "Check lanyard and secure lock mechanism", chk5: "Ensure easy access while wearing a life jacket", chk6: "Perform a leak test before actual use",
+    sec5_title: "🌊 Safety Tips by Activity",
+    act1_t: "🏄 Paddleboarding", act1_d: "Prepare GPS, map, compass, and share location against drift.",
+    act2_t: "🛶 Kayaking", act2_d: "Share your planned route and return time before departure.",
+    act3_t: "🎣 Boating / Fishing", act3_d: "Prepare communication tools in case of engine or gear failure.",
+    act4_t: "🦀 Tidal Flat Gathering", act4_d: "Check tide times, rising water, and hypothermia risks.",
+    alert_text: "<strong>⚠️ Important Principle</strong><br>Sending your location alone does not guarantee safety. Always follow basic rules: life jacket, weather check, buddy system.",
+    sec6_title: "🆘 SOS Emergency Request",
+    sec6_sub: "Contact emergency services immediately and share your GPS location if possible.",
+    btn_emg: "📋 Create Emergency Message",
+    sec7_title: "🎯 Campaign Action Plan",
+    camp1_t: "Before Departure", camp1_d: "Check tides, weather, routes, and estimated return time.",
+    camp2_t: "During Activity", camp2_d: "Keep phone waterproofed, check battery and cellular signal.",
+    camp3_t: "In Emergency", camp3_d: "<b>Check GPS → Send Location → Call Rescue → Stay Afloat/Warm</b>",
+    badacamp_title: "🏄‍♂️ Marine Leisure Sports at Bada Camp",
+    badacamp_contact: "Contact: ",
+    ft_title: "Water Safety Leader Campaign",
+    ft_sub: "Know your location · Send your location · Stay safe until rescued.",
+    ft_tags: "#WaterSafety #GPSafety #MarineSafety #Paddleboard #Kayaking #Rescue",
+    ft_disclaimer: "This tool is for safety education. GPS accuracy depends on environment. In emergencies, follow official instructions."
+  },
+  ja: {
+    badge: "🌊 水上安全リーダーキャンペーン",
+    hero_title: "現在地を送信する",
+    hero_sub: "現在地を把握し、迅速に送信し、救助されるまで安全を維持しましょう。",
+    hero_note: "GPS + スマホ + 防水バッグ + 地図 + コンパス = 基本の safe 準備",
+    sec1_title: "왜 위치 전송이 중요한가요?",
+    sec1_sub: "水上事故では「どこにいるか」を素早く伝えることが救助の鍵となります。",
+    c1_t: "風・潮", c1_d: "予想より早く移動したり、出発地から離れることがあります。",
+    c2_t: "装備故障", c2_d: "パドルやエンジンの故障により漂流する恐れがあります。",
+    c3_t: "方向喪失", c3_d: "海上や干潟では 주변 지형만으로 위치 판단이 어려울 수 있습니다.",
+    c4_t: "低体温症", c4_d: "寒い季節は救助が遅れるほど体温維持が重要になります。",
+    sec2_title: "📍 現在地を確認する",
+    sec2_sub: "位置権限を許可するとGPS coordinates を確認できます。 サーバーへ送信されません。",
+    lat_label: "緯度 Latitude", lon_label: "経度 Longitude",
+    btn_get: "📍 現在地を取得", btn_copy: "📋 GPSをコピー", btn_share: "📤 位置を共有", btn_map: "🗺️ 地図を見る", btn_compass: "🧭 コンパス",
+    status_init: "ボタンを押して現在地を取得してください。",
+    sec3_title: "🚨 緊急時の instructions",
+    step1: "<b>危険を察知</b><br>漂流や exhaustion を感じたら無理な移動を控えます。",
+    step2: "<b>位置確認</b><br>GPSで Latitude / Longitude を確認します。",
+    step3: "<b>位置送信</b><br>仲間や家族に位置を共有します。",
+    step4: "<b>救助要請</b><br>119などの緊急救助機関に連絡します。",
+    step5: "<b>体温/浮力維持</b><br>ライフジャケット를 착용하고 이동을 줄입니다.",
+    step6: "<b>救助を待つ</b><br>可能な限り位置を維持し Signal を送ります。",
+    sec4_title: "📱 スマホ防水バッグチェックリスト",
+    chk1: "防水性能を確認", chk2: "スマホサイズとの compatibility を確認", chk3: "バッグ越し screen touch を確認",
+    chk4: "Strap など 落下防止構造 check", chk5: "ライフジャケット着用時も出し入れしやすいか確認", chk6: "事前 leaks test 実施",
+    sec5_title: "🌊 Activity 別 Safety Points",
+    act1_t: "🏄 SUP", act1_d: "風や流 drift に備え GPS/map/compass を準備.",
+    act2_t: "🛶 カヤック", act2_d: "出発前に Route と return time を share.",
+    act3_t: "🎣 ボート/釣り", act3_d: "Engine failure に備え communication 手段 prepare.",
+    act4_t: "🦀 干潟", act4_d: "潮 tide time と water level rise に caution.",
+    alert_text: "<strong>⚠️ 重要 notice</strong><br>位置送信 guide 만으로 safety 가 guaranteed 되지 않습니다. Lifejacket 착용 등 기본 수칙을 준수하세요.",
+    sec6_title: "🆘 緊急救助 Request",
+    sec6_sub: "緊急 words 에는 即시 救助機関 Contact 및 GPS Send.",
+    btn_emg: "📋 Emergency Msg 作成",
+    sec7_title: "🎯 Action Campaign",
+    camp1_t: "出発前", camp1_d: "Tide, Weather, Route share.",
+    camp2_t: "活動中", camp2_d: "Waterproof Mobile keep & Battery check.",
+    camp3_t: "緊急時", camp3_d: "<b>GPS check → Location send → Rescue Call → Stay safe</b>",
+    badacamp_title: "🏄‍♂️ バダキャンプで学ぶマリンレジャー sports",
+    badacamp_contact: "お問い合わせ: ",
+    ft_title: "水上安全 Leader Campaign",
+    ft_sub: "位置確認 · 位置送信 · 安全維持.",
+    ft_tags: "#水上安全 #GPS #マリン safe",
+    ft_disclaimer: "教育用 Tool 입니다. Emergency 에는 Official Guidance 를 따르세요."
+  },
+  zh: {
+    badge: "🌊 水上安全领袖活动",
+    hero_title: "发送我的位置",
+    hero_sub: "了解您的位置，快速发送，保持安全直到获救。",
+    hero_note: "GPS + 手机 + 防水袋 + 地图 + 指南针 = 基础安全准备",
+    sec1_title: "为什么位置发送很重要？",
+    sec1_sub: "在水上事故中，快速传达“你在哪里”是救援的关键信息。",
+    c1_t: "风与水流", c1_d: "您可能会比预想更快地漂移或远离出发点。",
+    c2_t: "设备故障", c2_d: "船桨、发动机或船只故障可能会导致漂流。",
+    c3_t: "迷失方向", c3_d: "在海上和滩涂，仅凭周围地形很难判断位置。",
+    c4_t: "失温症", c4_d: "在寒冷季节，救援延迟越久，保持体温越重要。",
+    sec2_title: "📍 确认我当前的位置",
+    sec2_sub: "允许位置权限即可查看 GPS 坐标。位置信息不会发送到服务器。",
+    lat_label: "纬度 Latitude", lon_label: "经度 Longitude",
+    btn_get: "📍 获取当前位置", btn_copy: "📋 复制 GPS", btn_share: "📤 分享位置", btn_map: "🗺️ 查看地图", btn_compass: "🧭 指南针",
+    status_init: "点击按钮开始获取位置。",
+    sec3_title: "🚨 紧急情况应对",
+    step1: "<b>识别危险</b><br>如果感到漂流、体力不支或设备故障，减少不必要的移动。",
+    step2: "<b>确认位置</b><br>通过 GPS 确认当前的纬度和经度。",
+    step3: "<b>发送位置</b><br>首先与同行者或家人分享位置。",
+    step4: "<b>请求救援</b><br>必要时向 119 等救援机构提供具体位置。",
+    step5: "<b>保持浮力与体温</b><br>穿好救生衣，减少体力消耗。",
+    step6: "<b>等待救援</b><br>尽量保持原位并向周围人员发出信号。",
+    sec4_title: "📱 手机防水袋检查清单",
+    chk1: "确认防水性能适合实际水上活动", chk2: "确认与手机尺寸兼容", chk3: "测试防水袋内屏幕触控",
+    chk4: "检查挂绳和防脱落结构", chk5: "确保穿救生衣时也方便取出", chk6: "实际使用前进行漏水测试",
+    sec5_title: "🌊 各项活动安全要点",
+    act1_t: "🏄 浆板 (SUP)", act1_d: "准备好 GPS、地图、指南针并与同行者分享位置。",
+    act2_t: "🛶 皮划艇", act2_d: "出发前分享预定路线和预计返回时间。",
+    act3_t: "🎣 钓鱼 / 橡皮艇", act3_d: "准备好通讯工具，防范发动机或设备故障。",
+    act4_t: "🦀 滩涂 / 赶海", act4_d: "确认潮汐时间和返回时间，警惕水位上涨与失温。",
+    alert_text: "<strong>⚠️ 重要原则</strong><br>仅发送位置并不能保证绝对安全。必须遵守穿戴救生衣、确认天气潮汐等基本安全规则。",
+    sec6_title: "🆘 紧急救援请求",
+    sec6_sub: "在实际紧急情况下，请立即联系救援机构并提供 GPS 坐标。",
+    btn_emg: "📋 生成紧急信息",
+    sec7_title: "🎯 活动践行",
+    camp1_t: "出发前", camp1_d: "确认潮汐、天气、路线及预计返回时间。",
+    camp2_t: "活动中", camp2_d: "手机保持防水状态，检查电量与信号。",
+    camp3_t: "紧急时", camp3_d: "<b>确认位置 → 发送位置 → 请求救援 → 保持 safe</b>",
+    badacamp_title: "🏄‍♂️ 在大海营地 (Bada Camp) 学习水上休闲运动",
+    badacamp_contact: "咨询: ",
+    ft_title: "水上安全领袖活动",
+    ft_sub: "知晓位置 · 发送位置 · 保持 safe 直至获救。",
+    ft_tags: "#水上安全 #GPS安全 #海洋安全 #浆板 #赶海",
+    ft_disclaimer: "本网页为安全教育工具。GPS 精度取决于环境。紧急情况下请遵循官方救援指导。"
+  },
+  vi: {
+    badge: "🌊 Chiến dịch Lãnh đạo An toàn dưới Nước",
+    hero_title: "Gửi vị trí của tôi",
+    hero_sub: "Biết vị trí, gửi nhanh chóng và giữ an toàn cho đến khi được cứu hộ.",
+    hero_note: "GPS + Điện thoại + Túi chống nước + Bản đồ + La bàn = Chuẩn bị an toàn cơ bản",
+    sec1_title: "Tại sao gửi vị trí lại quan trọng?",
+    sec1_sub: "Trong tai nạn dưới nước, việc truyền đạt nhanh chóng 'bạn đang ở đâu' là thông tin then chốt để cứu hộ.",
+    c1_t: "Gió & Dòng chảy", c1_d: "Bạn có thể di chuyển nhanh hơn dự kiến hoặc trôi xa khỏi điểm xuất phát.",
+    c2_t: "Hỏng hóc thiết bị", c2_d: "Các sự cố như gãy mái chèo, hỏng động cơ có thể khiến bạn bị trôi dạt.",
+    c3_t: "Mất phương hướng", c3_d: "Trên biển hoặc bãi bồi, rất khó xác định vị trí chỉ bằng địa hình xung quanh.",
+    c4_t: "Hạ thân nhiệt", c4_d: "Trong mùa lạnh, cứu hộ càng chậm thì việc giữ ấm cơ thể càng trở nên quan trọng.",
+    sec2_title: "📍 Xác nhận vị trí hiện tại của tôi",
+    sec2_sub: "Cho phép truy cập vị trí trên điện thoại để xem tọa độ GPS. Thông tin vị trí không được gửi đến máy chủ riêng.",
+    lat_label: "Vĩ độ Latitude", lon_label: "Kinh độ Longitude",
+    btn_get: "📍 Kiểm tra vị trí", btn_copy: "📋 Sao chép GPS", btn_share: "📤 Chia sẻ vị trí", btn_map: "🗺️ Xem bản đồ", btn_compass: "🧭 La bàn",
+    status_init: "Nhấn nút kiểm tra vị trí để bắt đầu.",
+    sec3_title: "🚨 Báo động trong tình huống khẩn cấp",
+    step1: "<b>Nhận biết nguy hiểm</b><br>Nếu cảm thấy bị trôi, kiệt sức, hỏng thiết bị, hãy hạn chế di chuyển quá sức.",
+    step2: "<b>Kiểm tra vị trí</b><br>Xác định vĩ độ và kinh độ hiện tại bằng GPS.",
+    step3: "<b>Gửi vị trí</b><br>Chia sẻ vị trí cho bạn đồng hành hoặc gia đình trước.",
+    step4: "<b>Yêu cầu cứu hộ</b><br>Gửi vị trí và tình trạng cho cơ quan cứu hộ khẩn cấp (như 119/112).",
+    step5: "<b>Duy trì sức nâng & thân nhiệt</b><br>Mặc áo phao và hạn chế di chuyển không cần thiết.",
+    step6: "<b>Chờ đội cứu hộ đến</b><br>Duy trì vị trí nếu có thể 및 ra hiệu cho người xung quanh.",
+    sec4_title: "📱 Danh sách kiểm tra túi chống nước điện thoại",
+    chk1: "Kiểm tra khả năng chống nước phù hợp với hoạt động", chk2: "Kiểm tra kích thước tương thích với điện thoại", chk3: "Kiểm tra khả năng cảm ứng màn hình qua túi",
+    chk4: "Kiểm tra dây đeo và khóa an toàn", chk5: "Đảm bảo dễ lấy ra ngay cả khi đang mặc áo phao", chk6: "Thực hiện kiểm tra rò rỉ nước trước khi dùng",
+    sec5_title: "🌊 Điểm an toàn theo từng hoạt động",
+    act1_t: "🏄 Chèo sub (Paddleboard)", act1_d: "Chuẩn bị GPS, bản đồ, la bàn và chia sẻ vị trí để phòng trôi dạt.",
+    act2_t: "🛶 Chèo thuyền Kayak", act2_d: "Chia sẻ lộ trình và thời gian dự kiến trở về trước khi xuất phát.",
+    act3_t: "🎣 Câu cá / Thuyền cao su", act3_d: "Chuẩn bị phương tiện liên lạc để phòng hỏng động cơ.",
+    act4_t: "🦀 Bắt hải sản bãi bồi", act4_d: "Kiểm tra thủy triều, nguy cơ nước dâng và hạ thân nhiệt.",
+    alert_text: "<strong>⚠️ Nguyên tắc quan trọng</strong><br>Chỉ gửi vị trí không đảm bảo an toàn tuyệt đối. Phải luôn tuân thủ các quy tắc an toàn cơ bản như mặc áo phao, kiểm tra thời tiết.",
+    sec6_title: "🆘 Yêu cầu cứu hộ khẩn cấp",
+    sec6_sub: "Trong tình huống khẩn cấp, hãy liên hệ ngay cơ quan cứu hộ và gửi tọa độ GPS.",
+    btn_emg: "📋 Tạo tin nhắn khẩn cấp",
+    sec7_title: "🎯 Thực hành chiến dịch",
+    camp1_t: "Trước khi đi", camp1_d: "Kiểm tra thủy triều, thời tiết, lộ trình và chia sẻ với bạn đồng hành.",
+    camp2_t: "Khi hoạt động", camp2_d: "Giữ điện thoại trong túi chống nước, kiểm tra pin và sóng.",
+    camp3_t: "Khi khẩn cấp", camp3_d: "<b>Kiểm tra vị trí → Gửi vị trí → Gọi cứu hộ → Giữ an toàn</b>",
+    badacamp_title: "🏄‍♂️ Học thể thao giải trí biển tại Bada Camp",
+    badacamp_contact: "Liên hệ: ",
+    ft_title: "Chiến dịch Lãnh đạo An toàn dưới Nước",
+    ft_sub: "Biết vị trí · Gửi vị trí · Giữ an toàn cho đến khi được cứu hộ.",
+    ft_tags: "#AnToanDuoiNuoc #ViTriGPS #AnToanTrenBien #Paddleboard #Kayak #CuuHoKhanCap",
+    ft_disclaimer: "Trang web này là công cụ giáo dục an toàn. Độ chính xác GPS phụ thuộc vào môi trường. Trong tình huống khẩn cấp, hãy theo hướng dẫn của cơ quan cứu hộ."
+  },
+  id: {
+    badge: "🌊 Kampanye Pemimpin Keselamatan Air",
+    hero_title: "Kirim Lokasi Saya",
+    hero_sub: "Ketahui lokasi Anda, kirim dengan cepat, dan tetap aman hingga diselamatkan.",
+    hero_note: "GPS + Ponsel + Tas Tahan Air + Peta + Kompas = Persiapan Keselamatan Dasar",
+    sec1_title: "Mengapa Pengiriman Lokasi Itu Penting?",
+    sec1_sub: "Dalam kecelakaan di air, menyampaikan 'di mana Anda berada' dengan cepat adalah informasi kunci untuk penyelamatan.",
+    c1_t: "Angin & Arus", c1_d: "Anda mungkin hanyut lebih cepat atau lebih jauh dari yang diperkirakan.",
+    c2_t: "Kerusakan Alat", c2_d: "Dayung patah atau mesin mati dapat menyebabkan Anda terombang-ambing.",
+    c3_t: "Kehilangan Arah", c3_d: "Di laut atau dataran lumpur, sulit menentukan lokasi hanya dari bentang alam sekitar.",
+    c4_t: "Hipotermia", c4_d: "Saat cuaca dingin, semakin lama penyelamatan, menjaga suhu tubuh semakin krusial.",
+    sec2_title: "📍 Periksa Lokasi Saya Sekarang",
+    sec2_sub: "Izinkan akses lokasi pada ponsel untuk melihat koordinat GPS. Informasi lokasi tidak dikirim ke server luar.",
+    lat_label: "Garintang Latitude", lon_label: "Garis Bujur Longitude",
+    btn_get: "📍 Cek Lokasi Saat Ini", btn_copy: "📋 Salin GPS", btn_share: "📤 Bagikan Lokasi", btn_map: "🗺️ Lihat Peta", btn_compass: "🧭 Kompas",
+    status_init: "Tekan tombol cek lokasi untuk memulai.",
+    sec3_title: "🚨 Tindakan Dalam Keadaan Darurat",
+    step1: "<b>Kenali Bahaya</b><br>Kurangi gerakan berlebih jika hanyut, kelelahan, atau alat rusak.",
+    step2: "<b>Cek Lokasi</b><br>Periksa garis lintang dan bujur saat ini menggunakan GPS.",
+    step3: "<b>Kirim Lokasi</b><br>Bagikan lokasi ke rekan atau keluarga terlebih dahulu.",
+    step4: "<b>Minta Bantuan</b><br>Hubungi tim penyelamat darurat (seperti 112/119) dengan koordinat Anda.",
+    step5: "<b>Jaga Apungan & Suhu</b><br>Gunakan pelampung dan kurangi gerakan yang tidak perlu.",
+    step6: "<b>Tunggu Bantuan</b><br>Pertahankan posisi jika memungkinkan dan beri sinyal ke sekitar.",
+    sec4_title: "📱 Daftar Periksa Tas Tahan Air HP",
+    chk1: "Periksa performa tahan air yang sesuai untuk aktivitas air", chk2: "Pastikan ukuran sesuai dengan ponsel Anda", chk3: "Uji fungsi layar sentuh dari luar tas",
+    chk4: "Periksa tali gantungan dan pengunci agar tidak lepas", chk5: "Pastikan mudah diambil saat memakai jaket pelampung", chk6: "Lakukan tes kebocoran sebelum digunakan",
+    sec5_title: "🌊 Poin Keselamatan Per Aktivitas",
+    act1_t: "🏄 Paddleboard", act1_d: "Siapkan GPS, peta, kompas, dan bagikan lokasi untuk mengantisipasi hanyut.",
+    act2_t: "🛶 Kayak", act2_d: "Bagikan rute dan perkiraan waktu kembali sebelum berangkat.",
+    act3_t: "🎣 Memancing / Perahu Karet", act3_d: "Siapkan alat komunikasi untuk mengantisipasi mesin mati.",
+    act4_t: "🦀 Cari Kerang di Lumpur", act4_d: "Cek waktu pasang surut, risiko air naik, dan hipotermia.",
+    alert_text: "<strong>⚠️ Prinsip Penting</strong><br>Mengirim lokasi saja tidak menjamin keselamatan. Selalu patuhi aturan dasar seperti memakai pelampung dan cek cuaca.",
+    sec6_title: "🆘 Permintaan Bantuan Darurat",
+    sec6_sub: "Dalam situasi darurat, segera hubungi tim SAR/penyelamat dan kirim koordinat GPS Anda.",
+    btn_emg: "📋 Buat Pesan Darurat",
+    sec7_title: "🎯 Aksi Kampanye",
+    camp1_t: "Sebelum Berangkat", camp1_d: "Cek pasang surut, cuaca, rute, dan bagikan ke rekan.",
+    camp2_t: "Saat Aktivitas", camp2_d: "Simpan ponsel dalam tas tahan air, cek baterai dan sinyal.",
+    camp3_t: "Saat Darurat", camp3_d: "<b>Cek GPS → Kirim Lokasi → Panggil SAR → Tetap Aman</b>",
+    badacamp_title: "🏄‍♂️ Belajar Olahraga Rekreasi Laut di Bada Camp",
+    badacamp_contact: "Kontak: ",
+    ft_title: "Kampanye Pemimpin Keselamatan Air",
+    ft_sub: "Ketahui lokasi · Kirim lokasi · Tetap aman hingga diselamatkan.",
+    ft_tags: "#KeselamatanAir #GPSKeselamatan #Paddleboard #Kayak #PenyelamatanDarurat",
+    ft_disclaimer: "Halaman web ini adalah alat edukasi keselamatan. Akurasi GPS tergantung lingkungan. Dalam keadaan darurat, ikuti instruksi resmi."
+  }
+};
+
+function changeLanguage(lang, event){
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+  if(event && event.target){
+    event.target.classList.add('active');
+  }
+
+  const dict = i18n[lang] || i18n['ko'];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if(dict[key]){
+      el.innerHTML = dict[key];
+    }
+  });
+}
 
 function setStatus(msg){ document.getElementById('status').textContent = msg; }
 
@@ -190,7 +505,7 @@ function requireLocation(){
 }
 
 function locationText(){
-  return `현재 위치\\n위도: ${current.lat.toFixed(6)}°\\n경도: ${current.lon.toFixed(6)}°\\n지도: https://www.google.com/maps?q=${current.lat},${current.lon}`;
+  return `현재 위치\n위도: ${current.lat.toFixed(6)}°\n경도: ${current.lon.toFixed(6)}°\n지도: https://www.google.com/maps?q=${current.lat},${current.lon}`;
 }
 
 async function copyCoords(){
@@ -235,7 +550,7 @@ function openCompass(){
 
 async function emergencyMessage(){
   if(!requireLocation()) return;
-  const text=`[수상안전 긴급 위치]\\n현재 위치: ${current.lat.toFixed(6)}°, ${current.lon.toFixed(6)}°\\n지도: https://www.google.com/maps?q=${current.lat},${current.lon}\\n상황: 수상활동 중 도움이 필요합니다.\\n구명조끼 착용 여부: 확인 필요`;
+  const text=`[수상안전 긴급 위치]\n현재 위치: ${current.lat.toFixed(6)}°, ${current.lon.toFixed(6)}°\n지도: https://www.google.com/maps?q=${current.lat},${current.lon}\n상황: 수상활동 중 도움이 필요합니다.\n구명조끼 착용 여부: 확인 필요`;
   document.getElementById('emergencyOutput').innerHTML=
     `<div style="background:rgba(255,255,255,.14);padding:16px;border-radius:14px;white-space:pre-line">${text}</div>`;
   try{ await navigator.clipboard.writeText(text); setStatus('긴급 메시지를 만들고 클립보드에 복사했습니다.'); }catch(e){}
