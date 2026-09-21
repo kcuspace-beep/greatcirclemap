@@ -223,6 +223,8 @@
     .btn-danger { background: var(--danger); color: white; }
     .btn-dark { background: #172033; color: white; }
     .btn-light { background: #eef2f7; color: var(--text-main); }
+    .btn-location { background: #7c3aed; color: #fff; white-space: nowrap; }
+    .btn-location:hover { background: #6d28d9; }
 
     /* 나침반 & 음성 기능 섹션 */
     .compass-dial {
@@ -361,6 +363,7 @@
         <div class="input-row">
           <input type="text" id="city1-input" data-i18n-ph="phSearchCity1" placeholder="장소 검색 (예: 서울역)" value="현재 위치">
           <button class="btn-secondary" onclick="searchCity(1)" data-i18n="btnSearch">검색</button>
+          <button id="myLocationBtn" class="btn-location" onclick="getMyLocationOnce()" data-i18n="btnMyLocation">📍 내 위치 확인</button>
         </div>
         <div class="input-row">
           <input type="number" id="lat1-input" step="0.00001" data-i18n-ph="phLat" placeholder="위도" value="37.55472">
@@ -489,6 +492,7 @@
       phLat: "위도",
       phLon: "경도",
       btnSearch: "검색",
+      btnMyLocation: "📍 내 위치 확인",
       sec3Title: "🧭 나침반 & 음성 브리핑 / 명령",
       titleCompass: "실시간 모바일 나침반",
       lblHeading: "현재 진행 방위:",
@@ -559,6 +563,7 @@
       phLat: "Latitude",
       phLon: "Longitude",
       btnSearch: "Search",
+      btnMyLocation: "📍 Get My Location",
       sec3Title: "🧭 Compass & Voice Briefing / Commands",
       titleCompass: "Live Mobile Compass",
       lblHeading: "Current Heading:",
@@ -629,6 +634,7 @@
       phLat: "Vĩ độ",
       phLon: "Kinh độ",
       btnSearch: "Tìm kiếm",
+      btnMyLocation: "📍 Xác định vị trí của tôi",
       sec3Title: "🧭 La bàn & Báo cáo / Lệnh giọng nói",
       titleCompass: "La bàn di động trực tiếp",
       lblHeading: "Hướng hiện tại:",
@@ -724,6 +730,30 @@
   function setStatus(text, type){
     $("status").textContent = text;
     $("dot").className = "dot " + type;
+  }
+
+  function getMyLocationOnce(){
+    if(!navigator.geolocation){
+      setStatus(i18n[currentLang].errNoSupport, "err");
+      alert(i18n[currentLang].errNoSupport);
+      return;
+    }
+    const btn = $("myLocationBtn");
+    if(btn) btn.disabled = true;
+    setStatus(i18n[currentLang].statusSearching, "wait");
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        updatePosition(position);
+        $("city1-input").value = i18n[currentLang].defaultStartName;
+        if(btn) btn.disabled = false;
+      },
+      error => {
+        handleError(error);
+        if(btn) btn.disabled = false;
+        alert($("status").textContent);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
   }
 
   function startGPS(){
