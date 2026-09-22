@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국가 중심 세계지도의 수학적 원리 논문 및 실시간 시뮬레이터</title>
+    
+    <!-- MathJax for LaTeX Rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Prism.js for Code Highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <!-- Chart.js for Live Graph Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #1a365d;
+            --secondary-color: #2b6cb0;
+            --accent-color: #c53030;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.75;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 40px auto;
+            background: var(--card-bg);
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 30px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.1rem;
+            line-height: 1.3;
+            margin-bottom: 15px;
+            word-break: keep-all;
+        }
+
+        .author {
+            font-size: 1.05rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .abstract {
+            background-color: #ebf8ff;
+            border-left: 4px solid var(--secondary-color);
+            padding: 20px 25px;
+            margin-bottom: 40px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .abstract h3 {
+            margin-top: 0;
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+        }
+
+        h2 {
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 1.5rem;
+        }
+
+        p, li {
+            font-size: 1.05rem;
+            word-break: keep-all;
+        }
+
+        .simulator-box {
+            background-color: #f8fafc;
+            border: 2px solid var(--secondary-color);
+            border-radius: 10px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .controls label {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .controls input[type="range"] {
+            flex-grow: 1;
+        }
+
+        .chart-container {
+            position: relative;
+            margin-bottom: 25px;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            min-height: 300px;
+        }
+
+        .code-container {
+            position: relative;
+            margin: 25px 0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-color);
+        }
+
+        .tags-container {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            background-color: #edf2f7;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>국가 중심 세계지도(Country-Centered Map)의 수학적 원리:<br>최고점 대원, 대원의 대칭 대원, 그리고 적도의 삼각함수적 대칭 관계 증명</h1>
+        <div class="author">수학적 구면기하학 및 지도학 연구 논문</div>
+    </header>
+
+    <section class="abstract">
+        <h3>요약 (Abstract)</h3>
+        <p>본 연구는 임의의 국가를 중심에 두는 구면 투영 기반의 국가 중심 세계지도에서 형성되는 <strong>최고점 대원(Great Circle with Maximum Peak)</strong>, <strong>대원의 대칭 대원($-Z$ Great Circle)</strong>, 그리고 <strong>적도(Equator)</strong> 사이의 공간 수학적 관계를 명확히 규명하고 이를 정밀 증명한다.</p>
+    </section>
+
+    <!-- LIVE INTERACTIVE GRAPH SECTION -->
+    <section>
+        <h2>웹 인터랙티브 그래프 시뮬레이터</h2>
+        <p>아래 슬라이더를 조절하여 대원의 최고점 위도($\phi_{\max}$) 변화에 따른 원본 좌표계와 평행이동 좌표계에서의 적도 및 대원 그래프를 실시간으로 확인하세요.</p>
+        
+        <div class="simulator-box">
+            <div class="controls">
+                <label for="phiSlider">최고점 위도 ($\phi_{\max}$): <span id="phiVal">45</span>°</label>
+                <input type="range" id="phiSlider" min="10" max="80" value="45" step="1">
+            </div>
+
+            <div class="chart-container">
+                <canvas id="chart1"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="chart2"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>1. 서론 (Introduction)</h2>
+        <p>특정 국가나 지점을 중심에 두는 <strong>국가 중심 세계지도</strong>에서는 투영 중심점의 변환에 따라 지구상의 대원(Great Circle) 및 적도선이 직교좌표계 상에서 정현파(Sine wave) 형태의 곡선으로 변환된다.</p>
+    </section>
+
+    <section>
+        <h2>2. 구면좌표계 변환 및 나피에르 법칙</h2>
+        <p>$$\cos\lambda = \frac{\cos x}{\cos\phi} \quad \implies \quad \lambda = \arccos\left(\frac{\cos x}{\cos\phi}\right)$$</p>
+        <p>$$V_g(x) = A_g \sin(x + \delta)$$</p>
+        <p>대원의 최고점 기준 $f(x) = 0$이 되는 변환 좌표계에서 적도 그래프는 다음과 같이 유도됩니다.</p>
+        <p>$$\therefore E_g(x) = -f(x) - \phi_{\max}$$</p>
+    </section>
+
+    <section>
+        <h2>3. Python 오프라인 시뮬레이션 코드</h2>
+        <div class="code-container">
+            <button class="copy-btn" onclick="copyCode()">코드 복사</button>
+            <pre><code class="language-python" id="python-code">import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_spherical_projections():
+    x = np.linspace(0, 2 * np.pi, 1000)
+    phi_peak_deg = 45.0
+    phi_peak = np.radians(phi_peak_deg)
+    
+    V_g = phi_peak * np.sin(x)
+    G_minus = -V_g
+    E_g = -V_g
+    
+    f_x = V_g - phi_peak
+    E_g_shifted = -f_x - phi_peak
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    
+    ax1.plot(x, np.degrees(V_g), 'r-', label=r'Great Circle $V_g(x)$')
+    ax1.plot(x, np.degrees(E_g), 'b-', label=r'Equator $E_g(x) = -V_g(x)$')
+    ax1.plot(x, np.degrees(G_minus), 'g--', label=r'$-Z$ Antipodal $G_-(x)$')
+    ax1.set_title("1. Original Coordinates")
+    ax1.legend()
+    ax1.grid(True)
+    
+    ax2.plot(x, np.degrees(f_x), 'r-', label=r'Shifted Great Circle $f(x)$')
+    ax2.plot(x, np.degrees(E_g_shifted), 'b-', label=r'Equator $E_g(x)$')
+    ax2.set_title("2. Transformed Coordinates (Peak at $y=0$)")
+    ax2.legend()
+    ax2.grid(True)
+    
+    plt.tight_layout()
+    plt.show()
+
+if __name__ == "__main__":
+    plot_spherical_projections()</code></pre>
+        </div>
+    </section>
+
+    <div class="tags-container">
+        <span class="tag">#국가중심세계지도</span>
+        <span class="tag">#구면삼각법</span>
+        <span class="tag">#나피에르법칙</span>
+        <span class="tag">#대원</span>
+        <span class="tag">#적도그래프</span>
+        <span class="tag">#공간기하학</span>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Spherical Geometry & Map Projection Research.</p>
+    </footer>
+</div>
+
+<!-- JavaScript for Interactive Graphs -->
+<script>
+    function copyCode() {
+        const codeText = document.getElementById('python-code').innerText;
+        navigator.clipboard.writeText(codeText).then(() => {
+            const btn = document.querySelector('.copy-btn');
+            btn.innerText = '복사 완료!';
+            setTimeout(() => { btn.innerText = '코드 복사'; }, 2000);
+        });
+    }
+
+    let chart1 = null;
+    let chart2 = null;
+
+    function generateData(phiPeakDeg) {
+        const labels = [];
+        const V_g = [];
+        const E_g = [];
+        const G_minus = [];
+        const f_x = [];
+        const E_g_shifted = [];
+
+        const points = 100;
+        // 문법 오류 수정: i = 0 초기화 추가
+        for (let i = 0; i <= points; i++) {
+            const x = (i / points) * 2 * Math.PI;
+            labels.push((x / Math.PI).toFixed(2) + "π");
+
+            const v_val = phiPeakDeg * Math.sin(x);
+            const e_val = -v_val;
+            const fx_val = v_val - phiPeakDeg;
+            const e_shifted = -fx_val - phiPeakDeg;
+
+            V_g.push(v_val);
+            E_g.push(e_val);
+            G_minus.push(e_val);
+            f_x.push(fx_val);
+            E_g_shifted.push(e_shifted);
+        }
+        return { labels, V_g, E_g, G_minus, f_x, E_g_shifted };
+    }
+
+    function initCharts() {
+        const ctx1 = document.getElementById('chart1').getContext('2d');
+        const ctx2 = document.getElementById('chart2').getContext('2d');
+        const data = generateData(45);
+
+        chart1 = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    { label: 'Great Circle V_g(x)', data: data.V_g, borderColor: '#c53030', borderWidth: 2, pointRadius: 0 },
+                    { label: 'Equator E_g(x)', data: data.E_g, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 0 },
+                    { label: '-Z Antipodal G_-(x)', data: data.G_minus, borderColor: '#38a169', borderDash: [5,5], borderWidth: 1.5, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { title: { display: true, text: '1. 원본 위도 좌표계 (Original Coordinates)' } },
+                scales: { y: { title: { display: true, text: '위도 y (°)' } }, x: { title: { display: true, text: '거리각 x (rad)' } } }
+            }
+        });
+
+        chart2 = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    { label: 'Shifted Great Circle f(x)', data: data.f_x, borderColor: '#c53030', borderWidth: 2, pointRadius: 0 },
+                    { label: 'Equator E_g(x) (y=0 변환계)', data: data.E_g_shifted, borderColor: '#2b6cb0', borderWidth: 2, pointRadius: 0 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { title: { display: true, text: '2. 최고점 y=0 평행이동 변환 좌표계 (Peak at y=0)' } },
+                scales: { y: { title: { display: true, text: '변환 위도 y\' (°)' } }, x: { title: { display: true, text: '거리각 x (rad)' } } }
+            }
+        });
+    }
+
+    function updateCharts(phiPeak) {
+        if (!chart1 || !chart2) return;
+        
+        const data = generateData(phiPeak);
+        
+        chart1.data.labels = data.labels;
+        chart1.data.datasets[0].data = data.V_g;
+        chart1.data.datasets[1].data = data.E_g;
+        chart1.data.datasets[2].data = data.G_minus;
+        chart1.update();
+
+        chart2.data.labels = data.labels;
+        chart2.data.datasets[0].data = data.f_x;
+        chart2.data.datasets[1].data = data.E_g_shifted;
+        chart2.update();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initCharts();
+
+        document.getElementById('phiSlider').addEventListener('input', function(e) {
+            const val = e.target.value;
+            document.getElementById('phiVal').innerText = val;
+            updateCharts(parseFloat(val));
+        });
+    });
+</script>
+
+</body>
+</html>
