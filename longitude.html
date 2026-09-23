@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국가 중심 세계지도와 대원의 수학적 원리</title>
+<style>
+:root{
+  --navy:#082b52; --blue:#0b66c3; --cyan:#22b8cf; --light:#f1f7fc;
+  --ink:#16324f; --muted:#60758b; --line:#c9dced; --accent:#ef4444;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans KR",sans-serif;background:#edf4fa;color:var(--ink);line-height:1.55}
+header{background:linear-gradient(120deg,#06264a,#0c579c);color:white;padding:42px 6%;position:relative;overflow:hidden}
+header:after{content:"";position:absolute;width:340px;height:340px;border:1px solid #ffffff33;border-radius:50%;right:-90px;top:-160px;box-shadow:0 0 0 35px #ffffff08,0 0 0 70px #ffffff08}
+header h1{margin:0 0 10px;font-size:clamp(28px,4vw,52px);letter-spacing:-1px}
+header p{margin:0;max-width:900px;color:#d8ebff;font-size:clamp(14px,2vw,20px)}
+.container{width:min(1400px,92%);margin:28px auto}
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;background:white;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 20px #173d5b10}
+label{font-weight:700;font-size:14px}
+input,button,select{font:inherit}
+input{width:105px;padding:10px;border:1px solid #b9cde0;border-radius:9px}
+button{border:0;border-radius:9px;padding:11px 15px;background:var(--blue);color:#fff;font-weight:700;cursor:pointer}
+button.secondary{background:#e5eff8;color:var(--navy)}
+button:hover{filter:brightness(.94)}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;margin-top:20px}
+.card{background:white;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 5px 20px #173d5b0b;min-width:0}
+.span-4{grid-column:span 4}.span-6{grid-column:span 6}.span-8{grid-column:span 8}.span-12{grid-column:span 12}
+.card h2{font-size:21px;margin:0 0 15px;color:var(--navy)}
+.card h3{font-size:16px;margin:18px 0 8px;color:var(--blue)}
+.badge{display:inline-block;background:#e4f2ff;color:#07579f;border-radius:30px;padding:4px 10px;font-size:12px;font-weight:700;margin:3px}
+.formula{background:#f5f9fd;border-left:4px solid var(--cyan);padding:13px 15px;border-radius:8px;font-family:"Times New Roman",serif;font-size:20px;overflow:auto}
+.note{font-size:13px;color:var(--muted)}
+canvas{width:100%;height:auto;border-radius:12px;background:linear-gradient(#fafdff,#edf6fd);border:1px solid #d5e5f2}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:12px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border-bottom:1px solid #dce8f2;padding:9px;text-align:left}
+th{background:#eef6fd;color:var(--navy)}
+pre{background:#0d2035;color:#d8f3ff;padding:16px;border-radius:12px;overflow:auto;font-size:12px;line-height:1.55}
+.tags{display:flex;gap:8px;flex-wrap:wrap}
+.tag{background:#e9f1ff;color:#145aa0;padding:6px 10px;border-radius:20px;font-size:12px}
+footer{margin-top:35px;background:#06264a;color:#d6e9fb;padding:28px 6%;text-align:center;font-size:13px}
+@media(max-width:900px){.span-4,.span-6,.span-8{grid-column:span 12}.toolbar{align-items:flex-start}header{padding:32px 5%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>국가 중심 세계지도와 대원의 수학적 원리</h1>
+  <p>이동하는 북극점·남극점에 따른 경도 대원의 변화와 구면 좌표변환 모델</p>
+</header>
+
+<main class="container">
+  <section class="toolbar">
+    <div><label for="poleLat">새로운 북극점 위도(°)</label><br><input id="poleLat" type="number" value="35.26" min="-90" max="90" step="0.01"></div>
+    <div><label for="poleLon">새로운 북극점 경도(°)</label><br><input id="poleLon" type="number" value="45" min="-180" max="180" step="0.01"></div>
+    <div><label for="meridians">표시할 경도 대원 간격</label><br>
+      <select id="meridians"><option value="30">30°</option><option value="45" selected>45°</option><option value="60">60°</option><option value="90">90°</option></select>
+    </div>
+    <div style="align-self:end"><button onclick="drawAll()">지도 다시 계산</button> <button class="secondary" onclick="resetInputs()">초기값</button></div>
+  </section>
+
+  <section class="grid">
+    <article class="card span-4">
+      <h2>1. 구면 좌표와 기본 공식</h2>
+      <p>반지름 R인 구면에서 위도 φ, 경도 λ를 3차원 좌표로 변환합니다.</p>
+      <div class="formula">x = R cosφ cosλ</div><br>
+      <div class="formula">y = R cosφ sinλ</div><br>
+      <div class="formula">z = R sinφ</div>
+      <p class="note">각도는 계산 과정에서 라디안으로 변환합니다.</p>
+    </article>
+
+    <article class="card span-4">
+      <h2>2. 위도 소원과 경도 대원</h2>
+      <div class="formula">Lφ = 2πR cosφ</div>
+      <p>위도원의 원주는 위도에 따라 코사인 비율로 감소합니다.</p>
+      <div class="formula">Lgreat circle = 2πR</div>
+      <p>구면 위의 대원은 중심을 통과하므로 반지름 R인 원입니다.</p>
+      <div class="formula">Lmeridian = πR</div>
+      <p class="note">북극에서 남극까지의 자오선 길이입니다.</p>
+    </article>
+
+    <article class="card span-4">
+      <h2>3. 새로운 극점 벡터</h2>
+      <p>새로운 북극점의 단위벡터를 p로 정의합니다.</p>
+      <div class="formula">p = (cosφp cosλp, cosφp sinλp, sinφp)</div>
+      <p>새로운 남극점은 다음과 같습니다.</p>
+      <div class="formula">s = −p</div>
+      <p class="note">극점의 이동은 좌표계 회전 또는 새로운 위도·경도 체계의 정의로 해석할 수 있습니다.</p>
+    </article>
+
+    <article class="card span-6">
+      <h2>4. 3차원 구면 위의 새로운 경도 대원</h2>
+      <canvas id="globe" width="720" height="520"></canvas>
+      <div class="legend">
+        <span><span class="dot" style="background:#ef4444"></span>새로운 북극점</span>
+        <span><span class="dot" style="background:#2563eb"></span>새로운 남극점</span>
+        <span><span class="dot" style="background:#0b66c3"></span>새로운 경도 대원</span>
+      </div>
+      <p class="note">구면은 정교한 지구 지도 투영이 아닌, 좌표변환 원리를 설명하는 개념적 시각화입니다.</p>
+    </article>
+
+    <article class="card span-6">
+      <h2>5. 기존 경위도 지도에 표시</h2>
+      <canvas id="map" width="720" height="520"></canvas>
+      <p class="note">새로운 경도 대원의 3차원 점을 기존 위도·경도 좌표로 역변환해 그립니다. 경도 ±180° 경계에서는 선을 분리합니다.</p>
+    </article>
+
+    <article class="card span-6">
+      <h2>6. 극점의 사인·코사인 성분</h2>
+      <canvas id="sincos" width="720" height="400"></canvas>
+      <p class="note">z = R sinφ는 수직 성분, ρ = R cosφ는 수평면에서의 거리 성분입니다.</p>
+    </article>
+
+    <article class="card span-6">
+      <h2>7. 위도별 원주 비율</h2>
+      <table>
+        <thead><tr><th>위도</th><th>cos(위도)</th><th>원주 비율</th></tr></thead>
+        <tbody id="latitudeTable"></tbody>
+      </table>
+      <p class="note">위도원 원주 = 적도 원주 × cos(위도)입니다.</p>
+    </article>
+
+    <article class="card span-12">
+      <h2>8. 새로운 경도 대원의 수학적 정의</h2>
+      <div class="formula">r(φ′, λ′) = R [cosφ′ · u(λ′) + sinφ′ · p]</div>
+      <p>여기서 p는 새로운 북극점 방향, u(λ′)는 새로운 적도면 안의 방향 벡터입니다.</p>
+      <h3>새로운 적도면</h3>
+      <div class="formula">p · r = 0</div>
+      <h3>회전 행렬 표현</h3>
+      <div class="formula">r′ = Qr, &nbsp; QᵀQ = I, &nbsp; det(Q) = 1</div>
+    </article>
+
+    <article class="card span-12">
+      <h2>9. Python 계산 모델</h2>
+      <p>아래 코드는 동일한 수학적 모델을 Python과 NumPy로 계산할 때 사용할 수 있는 핵심 부분입니다.</p>
+      <pre><code>import numpy as np
+
+R = 1.0
+pole_lat_deg = 35.26
+pole_lon_deg = 45.0
+
+phi = np.radians(pole_lat_deg)
+lam = np.radians(pole_lon_deg)
+
+p = np.array([
+    np.cos(phi) * np.cos(lam),
+    np.cos(phi) * np.sin(lam),
+    np.sin(phi)
+])
+
+print("New north pole:", p)
+print("New south pole:", -p)
+
+# New great-circle point:
+# r = R * (cos(phi_new) * u + sin(phi_new) * p)</code></pre>
+      <p class="note">웹페이지는 JavaScript Canvas로 즉시 시각화하고, Python 코드는 연구용 수치 계산과 확장 분석에 사용할 수 있습니다.</p>
+    </article>
+
+    <article class="card span-12">
+      <h2>10. 연구 결론과 확장 방향</h2>
+      <div class="grid" style="margin-top:0">
+        <div class="card span-4"><h3>대원의 보존</h3><p>구면 위의 대원은 극점 이동 후에도 구면의 중심을 통과하는 원으로 정의됩니다.</p></div>
+        <div class="card span-4"><h3>평면 투영의 변화</h3><p>같은 대원도 기존 경위도 지도에서는 곡선으로 표현될 수 있습니다.</p></div>
+        <div class="card span-4"><h3>GPS 항로 연구</h3><p>좌표변환과 대원 최단거리 계산을 실제 GPS 경로 분석에 결합할 수 있습니다.</p></div>
+      </div>
+      <h3>연구 태그</h3>
+      <div class="tags">
+        <span class="tag">#국가중심세계지도</span><span class="tag">#구면기하학</span>
+        <span class="tag">#대원과소원</span><span class="tag">#경도대원</span>
+        <span class="tag">#극점이동</span><span class="tag">#좌표변환</span>
+        <span class="tag">#지도투영</span><span class="tag">#사인코사인함수</span>
+        <span class="tag">#GPS항로</span><span class="tag">#Python수학모델</span>
+      </div>
+    </article>
+  </section>
+</main>
+
+<footer>
+  국가 중심 세계지도 개발자 정경식 · 함께 연구할 전문가를 환영합니다 · cuspace@naver.com
+</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const TAU = Math.PI * 2;
+
+function vecCross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function norm(a){return Math.sqrt(dot(a,a))}
+function normalize(a){let n=norm(a);return a.map(v=>v/n)}
+function add(a,b){return a.map((v,i)=>v+b[i])}
+function scale(a,s){return a.map(v=>v*s)}
+
+function basis(latDeg,lonDeg){
+  const lat=latDeg*Math.PI/180, lon=lonDeg*Math.PI/180;
+  const p=[Math.cos(lat)*Math.cos(lon),Math.cos(lat)*Math.sin(lon),Math.sin(lat)];
+  let ref=Math.abs(p[2])>.99?[1,0,0]:[0,0,1];
+  const e1=normalize(vecCross(ref,p));
+  const e2=normalize(vecCross(p,e1));
+  return {p,e1,e2};
+}
+function pointOnGreatCircle(phi,lon,b){
+  const u=add(scale(b.e1,Math.cos(lon)),scale(b.e2,Math.sin(lon)));
+  return scale(add(scale(u,Math.cos(phi)),scale(b.p,Math.sin(phi))),1);
+}
+function oldLatLon(v){
+  const lon=Math.atan2(v[1],v[0])*180/Math.PI;
+  const lat=Math.atan2(v[2],Math.sqrt(v[0]*v[0]+v[1]*v[1]))*180/Math.PI;
+  return {lat,lon};
+}
+function project3D(v,w,h){
+  // Fixed oblique view for a clear conceptual globe
+  const yaw=-0.55, pitch=0.30;
+  let x=v[0]*Math.cos(yaw)-v[1]*Math.sin(yaw);
+  let y=v[0]*Math.sin(yaw)+v[1]*Math.cos(yaw);
+  let z=v[2];
+  let yy=y*Math.cos(pitch)-z*Math.sin(pitch);
+  let zz=y*Math.sin(pitch)+z*Math.cos(pitch);
+  const s=Math.min(w,h)*.36;
+  return [w/2+x*s,h/2-zz*s];
+}
+function clearCanvas(id){
+  const c=$(id),ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height);
+  return {c,ctx,w:c.width,h:c.height};
+}
+function drawGlobe(b,step){
+  const {ctx,w,h}=clearCanvas("globe");
+  ctx.fillStyle="#f5fbff";ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle="#b5d4e8";ctx.lineWidth=1;
+  for(let lat=-75;lat<=75;lat+=15){
+    let path=[];
+    for(let lon=-180;lon<=180;lon+=3){
+      const p=[Math.cos(lat*Math.PI/180)*Math.cos(lon*Math.PI/180),Math.cos(lat*Math.PI/180)*Math.sin(lon*Math.PI/180),Math.sin(lat*Math.PI/180)];
+      path.push(project3D(p,w,h));
+    }
+    ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.stroke();
+  }
+  for(let lon=0;lon<360;lon+=15){
+    let path=[];
+    for(let lat=-90;lat<=90;lat+=3){
+      const p=[Math.cos(lat*Math.PI/180)*Math.cos(lon*Math.PI/180),Math.cos(lat*Math.PI/180)*Math.sin(lon*Math.PI/180),Math.sin(lat*Math.PI/180)];
+      path.push(project3D(p,w,h));
+    }
+    ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.stroke();
+  }
+  for(let lon=0;lon<360;lon+=step){
+    let path=[];
+    for(let i=0;i<=360;i++){
+      const p=pointOnGreatCircle(-Math.PI/2+i*Math.PI/360,lon*Math.PI/180,b);
+      path.push(project3D(p,w,h));
+    }
+    ctx.strokeStyle="#0b66c3";ctx.lineWidth=2;
+    ctx.beginPath();path.forEach((p,i)=>i?ctx.lineTo(...p):ctx.moveTo(...p));ctx.stroke();
+  }
+  const np=project3D(b.p,w,h),sp=project3D(scale(b.p,-1),w,h);
+  ctx.fillStyle="#ef4444";ctx.beginPath();ctx.arc(...np,7,0,TAU);ctx.fill();
+  ctx.fillStyle="#2563eb";ctx.beginPath();ctx.arc(...sp,7,0,TAU);ctx.fill();
+  ctx.fillStyle="#16324f";ctx.font="bold 14px Arial";ctx.fillText("새 북극점",np[0]+10,np[1]-10);ctx.fillText("새 남극점",sp[0]+10,sp[1]+20);
+}
+function drawMap(b,step){
+  const {ctx,w,h}=clearCanvas("map");
+  ctx.fillStyle="#fafdff";ctx.fillRect(0,0,w,h);
+  const X=lon=>(lon+180)/360*w, Y=lat=>(90-lat)/180*h;
+  ctx.strokeStyle="#d6e5f0";ctx.lineWidth=1;
+  for(let lon=-180;lon<=180;lon+=30){ctx.beginPath();ctx.moveTo(X(lon),0);ctx.lineTo(X(lon),h);ctx.stroke()}
+  for(let lat=-90;lat<=90;lat+=30){ctx.beginPath();ctx.moveTo(0,Y(lat));ctx.lineTo(w,Y(lat));ctx.stroke()}
+  for(let lon=0;lon<360;lon+=step){
+    ctx.strokeStyle="#ef4444";ctx.lineWidth=2;ctx.beginPath();
+    let previous=null;
+    for(let i=0;i<=720;i++){
+      const p=pointOnGreatCircle(-Math.PI/2+i*Math.PI/720,lon*Math.PI/180,b);
+      const q=oldLatLon(p);
+      if(previous!==null && Math.abs(q.lon-previous)>180){ctx.stroke();ctx.beginPath()}
+      const px=X(q.lon),py=Y(q.lat);
+      if(i===0 || previous!==null && Math.abs(q.lon-previous)>180)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+      previous=q.lon;
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle="#16324f";ctx.font="12px Arial";
+  [-180,-120,-60,0,60,120,180].forEach(lon=>ctx.fillText(lon+"°",X(lon)-12,h-8));
+  [-90,-45,0,45,90].forEach(lat=>ctx.fillText(lat+"°",5,Y(lat)+4));
+}
+function drawSinCos(){
+  const {ctx,w,h}=clearCanvas("sincos");
+  ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
+  const x=t=>(t+90)/180*w, y=v=>h/2-v*(h*.39);
+  ctx.strokeStyle="#cbd5e1";ctx.lineWidth=1;
+  for(let t=-90;t<=90;t+=30){ctx.beginPath();ctx.moveTo(x(t),0);ctx.lineTo(x(t),h);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(0,h/2);ctx.lineTo(w,h/2);ctx.stroke();
+  function plot(fn,color){
+    ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();
+    for(let t=-90;t<=90;t++){
+      const px=x(t),py=y(fn(t*Math.PI/180));
+      t===-90?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+  plot(Math.sin,"#2563eb");plot(Math.cos,"#f97316");
+  ctx.fillStyle="#2563eb";ctx.font="bold 13px Arial";ctx.fillText("z = sin(latitude)",15,22);
+  ctx.fillStyle="#f97316";ctx.fillText("ρ = cos(latitude)",15,42);
+}
+function fillTable(){
+  const rows=[0,30,45,60,90].map(lat=>{
+    const ratio=Math.cos(lat*Math.PI/180);
+    return `<tr><td>${lat}°</td><td>${ratio.toFixed(4)}</td><td>${(ratio*100).toFixed(2)}%</td></tr>`;
+  }).join("");
+  $("latitudeTable").innerHTML=rows;
+}
+function drawAll(){
+  const lat=Number($("poleLat").value),lon=Number($("poleLon").value),step=Number($("meridians").value);
+  if(!Number.isFinite(lat)||lat<-90||lat>90||!Number.isFinite(lon)||lon<-180||lon>180){alert("위도는 -90~90°, 경도는 -180~180° 범위로 입력하세요.");return}
+  const b=basis(lat,lon);
+  drawGlobe(b,step);drawMap(b,step);drawSinCos();fillTable();
+}
+function resetInputs(){$("poleLat").value=35.26;$("poleLon").value=45;$("meridians").value=45;drawAll()}
+drawAll();
+</script>
+</body>
+</html>
