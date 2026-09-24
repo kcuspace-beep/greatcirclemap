@@ -135,6 +135,34 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 @media(max-width:1100px){main{grid-template-columns:280px 1fr}.right{display:none}}
 @media(max-width:720px){body{overflow:auto;height:auto}header{height:auto;flex-wrap:wrap}main{height:auto;grid-template-columns:1fr}.left,.right{display:block}.mapWrap{height:60vh}}
 </style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<style>
+  /* Interactive base-map layer */
+  #leafletMap{
+    position:absolute;
+    inset:0;
+    z-index:1;
+    display:none;
+    background:#081522;
+  }
+  #mapCanvas{position:relative;z-index:2;}
+  #leafletMap .leaflet-control-attribution{font-size:9px;}
+  .map-layer-note{
+    font-size:10px;
+    color:var(--muted);
+    line-height:1.45;
+    margin-top:6px;
+  }
+  .layer-active{
+    border-color:var(--cyan)!important;
+    box-shadow:0 0 0 1px rgba(77,216,255,.25);
+  }
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+
 </head>
 <body>
 
@@ -218,6 +246,25 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
       </optgroup>
     </select>
     
+
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid #173c59">
+      <label style="color:var(--cyan);font-size:12px;font-weight:700" for="baseMapSelect">
+        🗺️ 지도 배경 선택
+      </label>
+      <select id="baseMapSelect" onchange="changeBaseMap(this.value)">
+        <option value="custom">기존 국가 중심 세계지도 (Canvas)</option>
+        <option value="osm">OpenStreetMap</option>
+        <option value="topo">OpenTopoMap</option>
+        <option value="esri">Esri 위성지도</option>
+      </select>
+      <div class="map-layer-note" id="baseMapDescription">
+        기존 국가 중심 세계지도와 GPS 표시 기능을 사용합니다.
+      </div>
+      <button class="secondary" style="margin-top:7px" onclick="fitBaseMapToCenter()">
+        선택한 지도 중심 맞추기
+      </button>
+    </div>
+
     <div class="projection-info" id="projectionInfo">
       <div class="projection-info-title" id="projectionInfoTitle">투영법 설명</div>
       <div class="projection-info-name" id="projectionInfoName">Natural Earth</div>
@@ -265,6 +312,7 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
     <span class="value" id="centerReadout"></span>
   </div>
   <div class="mapWrap" id="mapWrap">
+    <div id="leafletMap" aria-label="선택한 지도 배경"></div>
     <canvas id="mapCanvas"></canvas>
     
     <div class="zoom-controls">
@@ -993,6 +1041,170 @@ function focusCountry(country,lock=true){if(!country)return;selectedCountry=coun
 function clearCountryFocus(){selectedCountry=null;countryFocusLocked=false;render();}
 function drawCountryFocus(country,w,h){if(!country||!country.rings?.length)return;const all=[];country.rings.forEach(r=>r.forEach(c=>all.push(c)));if(!all.length)return;const minLon=Math.min(...all.map(c=>c[0])),maxLon=Math.max(...all.map(c=>c[0])),minLat=Math.min(...all.map(c=>c[1])),maxLat=Math.max(...all.map(c=>c[1]));const lonSpan=Math.max(.01,maxLon-minLon),latSpan=Math.max(.01,maxLat-minLat),scale=Math.min(w*.76/lonSpan,h*.76/latSpan),cx=(minLon+maxLon)/2,cy=(minLat+maxLat)/2;ctx.save();ctx.fillStyle="rgba(2,11,20,.78)";ctx.fillRect(0,0,w,h);ctx.lineJoin="round";country.rings.forEach((ring,idx)=>{ctx.beginPath();ring.forEach((c,i)=>{const x=w/2+(c[0]-cx)*scale,y=h/2-(c[1]-cy)*scale;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();ctx.fillStyle=idx===0?"rgba(30,120,190,.42)":"rgba(30,120,190,.30)";ctx.fill();ctx.strokeStyle="rgba(77,216,255,.95)";ctx.lineWidth=Math.max(1.5,Math.min(5,zoomLevel*.5));ctx.stroke();});ctx.strokeStyle="rgba(255,212,90,.35)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(w/2,18);ctx.lineTo(w/2,h-18);ctx.moveTo(18,h/2);ctx.lineTo(w-18,h/2);ctx.stroke();ctx.fillStyle="#ffd45a";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText(countryDisplayName(country),w/2,24);ctx.font="10px sans-serif";ctx.fillStyle="#9db8cd";ctx.fillText(`국경 형상 · ${country.iso3||""} · Natural Earth`,w/2,h-10);ctx.restore();}
 
+
+// -------------------------------------------------------------
+// 지도 배경 선택 기능: OpenStreetMap / OpenTopoMap / Esri 위성지도
+// -------------------------------------------------------------
+let leafletMap = null;
+let leafletLayers = {};
+let leafletRouteLayer = null;
+let leafletWaypointLayer = null;
+let selectedBaseMap = "custom";
+
+const baseMapDescriptions = {
+  custom: "기존 국가 중심 세계지도와 GPS 표시 기능을 사용합니다.",
+  osm: "도로, 도시, 해안선, 지명 중심의 OpenStreetMap입니다.",
+  topo: "등고선과 지형 표현을 포함하는 OpenTopoMap입니다.",
+  esri: "Esri World Imagery 기반의 위성영상 지도입니다."
+};
+
+function initLeafletBaseMap(){
+  if(typeof L === "undefined") {
+    console.warn("Leaflet library is not available.");
+    return;
+  }
+  if(leafletMap) return;
+
+  leafletMap = L.map("leafletMap", {
+    zoomControl: false,
+    worldCopyJump: true,
+    attributionControl: true
+  }).setView([36.78,126.15], 5);
+
+  leafletLayers.osm = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }
+  );
+
+  leafletLayers.topo = L.tileLayer(
+    "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom: 17,
+      attribution: 'Map data &copy; OpenStreetMap contributors, SRTM | Map style &copy; OpenTopoMap'
+    }
+  );
+
+  leafletLayers.esri = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      maxZoom: 19,
+      attribution: 'Tiles &copy; Esri'
+    }
+  );
+
+  L.control.zoom({position:"topright"}).addTo(leafletMap);
+}
+
+
+function greatCircleLatLonPoints(count=180){
+  const a=v(parseFloat($("aLat")?.value)||0,parseFloat($("aLon")?.value)||0);
+  const bb=v(parseFloat($("bLat")?.value)||0,parseFloat($("bLon")?.value)||0);
+  const angle=Math.acos(clamp(dot(a,bb)));
+  if(!Number.isFinite(angle) || angle < 1e-10 || Math.abs(Math.PI-angle)<1e-10) return [];
+  const sinA=Math.sin(angle), points=[];
+  for(let i=0;i<=count;i++){
+    const t=i/count;
+    const p=add(
+      scale(a,Math.sin((1-t)*angle)/sinA),
+      scale(bb,Math.sin(t*angle)/sinA)
+    );
+    const q=sph(p);
+    points.push([q.lat,q.lon]);
+  }
+  return points;
+}
+
+function updateLeafletGreatCircle(){
+  if(!leafletMap || typeof L === "undefined") return;
+  if(leafletRouteLayer){ leafletMap.removeLayer(leafletRouteLayer); leafletRouteLayer=null; }
+  if(leafletWaypointLayer){ leafletMap.removeLayer(leafletWaypointLayer); leafletWaypointLayer=null; }
+
+  const route=greatCircleLatLonPoints(180);
+  if(!route.length) return;
+
+  leafletRouteLayer=L.polyline(route,{
+    color:"#ff7a18",
+    weight:4,
+    opacity:0.95,
+    lineCap:"round",
+    lineJoin:"round"
+  }).addTo(leafletMap);
+
+  const aLat=Number($("aLat")?.value)||0, aLon=Number($("aLon")?.value)||0;
+  const bLat=Number($("bLat")?.value)||0, bLon=Number($("bLon")?.value)||0;
+  leafletWaypointLayer=L.layerGroup().addTo(leafletMap);
+
+  const waypointCount=10;
+  const pts=greatCircleLatLonPoints(waypointCount);
+  pts.forEach((p,i)=>{
+    const isStart=i===0, isEnd=i===pts.length-1;
+    const marker=L.circleMarker(p,{
+      radius:isStart||isEnd?7:4.5,
+      color:isStart?"#38bdf8":isEnd?"#fb7185":"#facc15",
+      weight:2,
+      fillColor:isStart?"#0ea5e9":isEnd?"#ef4444":"#facc15",
+      fillOpacity:0.95
+    });
+    const label=isStart?"출발점 A":isEnd?"도착점 B":`웨이포인트 ${i}`;
+    marker.bindTooltip(label,{direction:"top",offset:[0,-4]});
+    marker.bindPopup(`${label}<br>위도: ${p[0].toFixed(6)}°<br>경도: ${p[1].toFixed(6)}°`);
+    marker.addTo(leafletWaypointLayer);
+  });
+
+  const bounds=L.latLngBounds([[aLat,aLon],[bLat,bLon]]);
+  // 대원항로가 추가된 뒤에도 사용자가 선택한 현재 확대 수준은 유지합니다.
+  if(selectedBaseMap!=="custom" && leafletRouteLayer){
+    leafletMap.fitBounds(bounds.pad(0.35),{animate:false,maxZoom:7});
+  }
+}
+
+function changeBaseMap(type){
+  selectedBaseMap = type;
+  const select = $("baseMapSelect");
+  const desc = $("baseMapDescription");
+  if(desc) desc.textContent = baseMapDescriptions[type] || "";
+
+  initLeafletBaseMap();
+
+  const leafletMapEl = $("leafletMap");
+  const canvasEl = $("mapCanvas");
+
+  if(type === "custom"){
+    leafletMapEl.style.display = "none";
+    canvasEl.style.display = "block";
+    setTimeout(()=>{ if(typeof resize === "function") resize(); render(); }, 50);
+    return;
+  }
+
+  canvasEl.style.display = "none";
+  leafletMapEl.style.display = "block";
+
+  Object.values(leafletLayers).forEach(layer => {
+    if(leafletMap.hasLayer(layer)) leafletMap.removeLayer(layer);
+  });
+  if(leafletLayers[type]) leafletLayers[type].addTo(leafletMap);
+  updateLeafletGreatCircle();
+
+  fitBaseMapToCenter();
+  setTimeout(()=>leafletMap.invalidateSize(), 100);
+}
+
+function fitBaseMapToCenter(){
+  if(!leafletMap) initLeafletBaseMap();
+  if(!leafletMap) return;
+
+  const lat = Number($("lat")?.value);
+  const lon = Number($("lon")?.value);
+  const safeLat = Number.isFinite(lat) ? Math.max(-85, Math.min(85, lat)) : 36.78;
+  const safeLon = Number.isFinite(lon) ? Math.max(-180, Math.min(180, lon)) : 126.15;
+
+  leafletMap.setView([safeLat, safeLon], leafletMap.getZoom() || 5, {animate:false});
+  setTimeout(()=>leafletMap.invalidateSize(), 100);
+}
+
 function render(){
   const s=getState(), w=canvas.clientWidth, h=canvas.clientHeight;
   ctx.clearRect(0,0,w,h);
@@ -1528,7 +1740,10 @@ window.addEventListener("resize", () => {
   resizeIntroCanvas();
 });
 
-["lat","lon","mode","offset","projection","aLat","aLon","bLat","bLon"].forEach(id=>$(id).addEventListener("input",render));
+["lat","lon","mode","offset","projection","aLat","aLon","bLat","bLon"].forEach(id=>$(id).addEventListener("input",()=>{
+  render();
+  if(selectedBaseMap!=="custom") updateLeafletGreatCircle();
+}));
 
 changeLanguage("ko");
 resize();
@@ -1537,6 +1752,16 @@ calculateGreatCircle();
 loadCountryBoundaries();
 loop();
 requestAnimationFrame(renderIntroGlobe);
+
+document.addEventListener("DOMContentLoaded", () => {
+  initLeafletBaseMap();
+  updateLeafletGreatCircle();
+  const select = $("baseMapSelect");
+  if(select) select.value = "custom";
+  const desc = $("baseMapDescription");
+  if(desc) desc.textContent = baseMapDescriptions.custom;
+});
+
 </script>
 </body>
 </html>
