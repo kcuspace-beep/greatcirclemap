@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0b5cff" />
-  <title>통합 GPS 경로 분석 & 웨이포인트 네비게이터</title>
+  <title>통합 GPS 경로 분석 & 모바일 위치 자동 보고 네비게이터</title>
 
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -41,8 +41,8 @@
       box-shadow: 0 4px 12px rgba(11, 92, 255, 0.15);
       position: relative;
     }
-    header h1 { margin: 0 0 6px; font-size: 24px; font-weight: 800; }
-    header p { margin: 0; opacity: 0.9; font-size: 14px; }
+    header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
+    header p { margin: 0; opacity: 0.9; font-size: 13px; }
 
     .lang-selector-wrapper {
       position: absolute;
@@ -93,6 +93,30 @@
     .dot.wait { background: var(--warning); }
     .dot.err { background: var(--danger); }
 
+    /* 주기 보고 전용 패널 */
+    .report-panel {
+      background: #f0fdf4;
+      border: 2px solid #22c55e;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .report-panel.active {
+      animation: pulse-border 2s infinite;
+    }
+    @keyframes pulse-border {
+      0% { border-color: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      70% { border-color: #16a34a; box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+      100% { border-color: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+
+    .timer-display {
+      font-size: 24px;
+      font-weight: 900;
+      color: #15803d;
+      font-family: monospace;
+    }
+
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
     .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
@@ -111,7 +135,6 @@
     .ad-desc { font-size: 14px; color: #334155; margin-bottom: 12px; }
     .ad-phone { display: inline-flex; align-items: center; gap: 8px; background: #ffffff; color: #0284c7; font-size: 16px; font-weight: 800; padding: 6px 14px; border-radius: 30px; border: 1px solid #bae6fd; text-decoration: none; }
 
-    /* 입력 박스 및 버튼 */
     .parse-box, .loc-card {
       background: #f8fafc;
       border: 1px solid var(--border-color);
@@ -153,7 +176,6 @@
     .res-card b { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
     .res-card span { font-size: 16px; font-weight: 800; color: #0f172a; }
 
-    /* 지도 및 컨트롤 영역 */
     #map { height: 500px; border-radius: 12px; border: 1px solid var(--border-color); }
     .map-controls { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center; }
 
@@ -167,13 +189,6 @@
     .legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-muted); margin-top: 10px; align-items: center; }
     .line-sample-gpx { width: 24px; height: 4px; background: #ef4444; border-radius: 2px; }
     .line-sample-wp { width: 24px; height: 4px; background: #0b5cff; border-radius: 2px; }
-
-    .listening { animation: pulse 1.5s infinite; background: var(--success) !important; }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-      70% { box-shadow: 0 0 0 12px rgba(22, 163, 74, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-    }
 
     @media(max-width: 768px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -192,35 +207,71 @@
       <option value="vi">Tiếng Việt</option>
     </select>
   </div>
-  <h1 data-i18n="headerTitle">📍 통합 GPS 경로 분석 & 웨이포인트 네비게이터</h1>
-  <p data-i18n="headerSub">GPS 경로 파일(GPX, GeoJSON) 불러오기, 3가지 배경 지도, 웨이포인트 계산 및 음성 안내</p>
+  <h1 data-i18n="headerTitle">📍 통합 GPS 경로 분석 & 모바일 위치 보고 시스템</h1>
+  <p data-i18n="headerSub">백그라운드 지속 보장 5분 자동 위치 보고, GPX 계산 및 다국어 네비게이터</p>
 </header>
 
 <main>
-  <!-- 1. GPS 상태 및 내 위치 -->
+  <!-- 1. GPS 상태 및 내 위치 & 5분 자동 보고 -->
   <section class="card">
-    <h2 data-i18n="sec1Title">📡 출발점 및 실시간 GPS 측정</h2>
+    <h2 data-i18n="sec1Title">📡 실시간 GPS 측정 & 5분 자동 위치 보고 설정</h2>
+    
     <div class="status-bar">
       <span id="dot" class="dot wait"></span>
       <span id="status" data-i18n="statusReady">GPS 위치 측정이 준비되었습니다.</span>
     </div>
 
+    <!-- 5분 전용 주기 보고 패널 -->
+    <div id="reportPanel" class="report-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div>
+          <b style="font-size:16px; color:#15803d;">⏱️ 5분 주기 백그라운드 자동 보고</b>
+          <div style="font-size:12px; color:#166534; margin-top:2px;">
+            화면이 꺼지거나 백그라운드 상태에서도 5분마다 위치를 측정하고 전송/브리핑합니다.
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px; color:#166534;">다음 자동 보고까지:</div>
+          <div id="timerDisplay" class="timer-display">05:00</div>
+        </div>
+      </div>
+      
+      <div class="input-row" style="margin-top:12px;">
+        <label style="font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+          보고 주기(분): 
+          <select id="intervalSelect" style="padding:4px 8px; font-weight:bold;">
+            <option value="1">1분</option>
+            <option value="3">3분</option>
+            <option value="5" selected>5분 (추천)</option>
+            <option value="10">10분</option>
+          </select>
+        </label>
+        <button id="startAutoReportBtn" class="btn-success" onclick="toggleAutoReport()">🚀 5분 자동 보고 시작</button>
+        <button id="manualTriggerBtn" class="btn-secondary" onclick="executeLocationReport()">⚡ 지금 즉시 보고</button>
+      </div>
+
+      <!-- 서버/텔레그램 Webhook URL 설정 (선택사항) -->
+      <div style="margin-top:10px;">
+        <input type="text" id="webhookUrlInput" placeholder="서버 수신 Webhook URL (선택 사항: 예 - https://api.myserver.com/location)" style="font-size:12px; width:100%;">
+      </div>
+    </div>
+
     <div class="input-row">
-      <button id="startBtn" class="btn-primary" onclick="startGPS()" data-i18n="btnStartGps">📡 실시간 GPS 측정 시작</button>
-      <button id="stopBtn" class="btn-light" onclick="stopGPS()" disabled data-i18n="btnStopGps">⏹ 중지</button>
+      <button id="startBtn" class="btn-primary" onclick="startGPS()" data-i18n="btnStartGps">📡 GPS 계속 추적 시작</button>
+      <button id="stopBtn" class="btn-light" onclick="stopGPS()" disabled data-i18n="btnStopGps">⏹ 추적 중지</button>
       <button id="shareBtn" class="btn-success" onclick="shareLocation()" disabled data-i18n="btnShareLoc">📲 내 위치 공유</button>
-      <button id="smsBtn" class="btn-dark" onclick="openSMS()" disabled data-i18n="btnSms">💬 SMS 전송</button>
+      <button id="smsBtn" class="btn-dark" onclick="openSMS()" disabled data-i18n="btnSms">💬 SMS 수동 전송</button>
     </div>
 
     <div class="grid-4" style="margin-top: 12px;">
       <div class="res-card"><b data-i18n="lblMyLat">내 위도</b><span id="lat-val">--</span></div>
       <div class="res-card"><b data-i18n="lblMyLon">내 경도</b><span id="lon-val">--</span></div>
       <div class="res-card"><b data-i18n="lblAccuracy">정확도</b><span id="acc-val">--</span></div>
-      <div class="res-card"><b data-i18n="lblTime">측정 시간</b><span id="time-val">--</span></div>
+      <div class="res-card"><b data-i18n="lblTime">최종 측정 시간</b><span id="time-val">--</span></div>
     </div>
   </section>
 
-  <!-- 만리포 패들보드 투어 광고 카드 -->
+  <!-- 광고 카드 -->
   <section class="card ad-card">
     <div class="ad-container">
       <img src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=600&q=80" alt="만리포 패들보드 투어" class="ad-image">
@@ -243,7 +294,6 @@
     <h2 data-i18n="sec2Title">📂 1. GPS 파일 로드 및 조난자 좌표 설정</h2>
     
     <div class="grid-2">
-      <!-- 파일 로드 -->
       <div class="parse-box">
         <h3 style="margin-top:0; font-size:15px;">📁 경로 파일 불러오기 (GPX, GeoJSON, KML, CSV)</h3>
         <input id="fileInput" type="file" accept=".gpx,.geojson,.json,.kml,.csv,.txt" style="margin-bottom: 8px;" />
@@ -254,7 +304,6 @@
         <div id="fileStatus" style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">파일을 선택한 뒤 '지도에 표시'를 눌러 주세요.</div>
       </div>
 
-      <!-- 텍스트 파싱 -->
       <div class="parse-box">
         <h3 style="margin-top:0; font-size:15px;" data-i18n="lblParseMsg">📋 조난자 수신 메시지 파싱</h3>
         <textarea id="gps-paste-input" data-i18n-ph="phPasteText" placeholder="예: 위도 36.7821, 경도 126.1423 또는 구글맵 링크 등"></textarea>
@@ -265,7 +314,6 @@
       </div>
     </div>
 
-    <!-- 출발지 & 도착지 좌표 연동 -->
     <div class="grid-2" style="margin-top: 16px;">
       <div class="loc-card">
         <h3 style="margin:0 0 8px; font-size:15px;" data-i18n="titleStartLoc">📍 출발지 (내 위치 / 구조대)</h3>
@@ -298,7 +346,6 @@
   <section class="card">
     <h2 data-i18n="sec4Title">🗺️ 지도 화면 & 웨이포인트 경로 표시</h2>
 
-    <!-- 지도 컨트롤 -->
     <div class="map-controls">
       <label style="font-weight:700; font-size:14px;">🗺️ 배경 지도 유형:</label>
       <select id="baseMap" style="width: auto; flex: 0 1 200px;" onchange="changeBaseMap(this.value)">
@@ -314,7 +361,6 @@
       <input type="number" id="wpCountInput" value="5" min="1" max="50" style="width: 70px;" oninput="updateAll()">
     </div>
 
-    <!-- 요약 상태 정보 -->
     <div class="grid-4" style="margin-bottom: 12px;">
       <div class="res-card"><b>파일 경로 거리</b><span id="fileDist">0 km</span></div>
       <div class="res-card"><b data-i18n="lblTotalDist">직선 계산 거리</b><span id="resDist">—</span></div>
@@ -322,14 +368,12 @@
       <div class="res-card"><b data-i18n="lblFirstWp">첫 번째 웨이포인트</b><span id="resNextWp" style="font-size: 13px;">—</span></div>
     </div>
 
-    <!-- 지도 표시 영역 -->
     <div id="map"></div>
     <div class="legend">
       <span><span class="line-sample-gpx"></span> 불러온 GPS 파일 경로</span>
       <span><span class="line-sample-wp"></span> 대원항로 계산 웨이포인트 경로</span>
     </div>
 
-    <!-- 웨이포인트 정보 테이블 -->
     <div class="table-container">
       <table>
         <thead>
@@ -350,7 +394,6 @@
   <section class="card">
     <h2 data-i18n="sec3Title">🧭 나침반 & 음성 브리핑 / 명령</h2>
     <div class="grid-2">
-      <!-- 모바일 나침반 -->
       <div style="text-align: center; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
         <h4 style="margin: 0;" data-i18n="titleCompass">실시간 모바일 나침반</h4>
         <div class="compass-dial">
@@ -360,7 +403,6 @@
         <button class="btn-light" onclick="requestCompassPermission()" style="margin-top: 8px; font-size: 12px;" data-i18n="btnEnableCompass">나침반 센서 활성화</button>
       </div>
 
-      <!-- 음성 명령 & 브리핑 -->
       <div style="display: flex; flex-direction: column; justify-content: space-between; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid var(--border-color);">
         <div>
           <h4 style="margin: 0 0 8px;" data-i18n="titleVoiceCtrl">음성 제어 & 브리핑</h4>
@@ -369,9 +411,9 @@
         </div>
         <div>
           <label style="font-size: 13px; font-weight: 600;">
-            <input type="checkbox" id="auto-brief-toggle" onchange="toggleAutoBriefing(this)"> <span data-i18n="lblAutoBrief">5분 주기 음성 자동 브리핑</span>
+            <input type="checkbox" id="auto-brief-toggle" checked> <span>보고 시 자동 음성 브리핑 연동</span>
           </label>
-          <button class="btn-success" style="width: 100%; margin-top: 6px;" onclick="speakCurrentStatus()" data-i18n="btnHearBrief">📢 현재 위치 브리핑 들기</button>
+          <button class="btn-success" style="width: 100%; margin-top: 6px;" onclick="speakCurrentStatus()" data-i18n="btnHearBrief">📢 현재 위치 브리핑 듣기</button>
         </div>
       </div>
     </div>
@@ -382,21 +424,21 @@
   // --- 다국어 Dictionary ---
   const i18n = {
     ko: {
-      headerTitle: "📍 통합 GPS 경로 분석 & 웨이포인트 네비게이터",
-      headerSub: "GPS 경로 파일(GPX, GeoJSON) 불러오기, 3가지 배경 지도, 웨이포인트 계산 및 음성 안내",
-      sec1Title: "📡 출발점 및 실시간 GPS 측정",
+      headerTitle: "📍 통합 GPS 경로 분석 & 모바일 위치 보고 시스템",
+      headerSub: "백그라운드 지속 보장 5분 자동 위치 보고, GPX 계산 및 다국어 네비게이터",
+      sec1Title: "📡 실시간 GPS 측정 & 5분 자동 위치 보고 설정",
       statusReady: "GPS 위치 측정이 준비되었습니다.",
       statusSearching: "GPS 위치를 측정 중...",
       statusStopped: "GPS 측정을 중지했습니다.",
       statusSuccess: "GPS 위치가 정상 수신되었습니다.",
-      btnStartGps: "📡 실시간 GPS 측정 시작",
-      btnStopGps: "⏹ 중지",
+      btnStartGps: "📡 GPS 계속 추적 시작",
+      btnStopGps: "⏹ 추적 중지",
       btnShareLoc: "📲 내 위치 공유",
-      btnSms: "💬 SMS 전송",
+      btnSms: "💬 SMS 수동 전송",
       lblMyLat: "내 위도",
       lblMyLon: "내 경도",
       lblAccuracy: "정확도",
-      lblTime: "측정 시간",
+      lblTime: "최종 측정 시간",
       sec2Title: "📂 1. GPS 파일 로드 및 조난자 좌표 설정",
       lblParseMsg: "📋 조난자 수신 메시지 파싱",
       phPasteText: "예: 위도 36.7821, 경도 126.1423 또는 구글맵 링크 등",
@@ -424,27 +466,26 @@
       btnStartVoice: "🎤 음성 명령 시작하기",
       btnListeningVoice: "🎙️ 음성 듣는 중...",
       txtVoiceHelp: '"경로 계산", "음성 브리핑" 등을 명령하세요.',
-      lblAutoBrief: "5분 주기 음성 자동 브리핑",
-      btnHearBrief: "📢 현재 위치 브리핑 들기",
+      btnHearBrief: "📢 현재 위치 브리핑 듣기",
       wpStart: "출발지(내 위치)",
       wpDest: "도착지(목적지)"
     },
     en: {
-      headerTitle: "📍 Integrated GPS Route & Waypoint Navigator",
-      headerSub: "Load GPS files (GPX, GeoJSON), 3 Base Maps, Waypoint calculation & Voice guidance",
-      sec1Title: "📡 Origin & Live GPS Measurement",
+      headerTitle: "📍 GPS Route Analysis & Mobile Location Reporting",
+      headerSub: "Background 5-Min Location Report, GPX Calculation & Multi-language Navigator",
+      sec1Title: "📡 Live GPS & 5-Min Auto Location Report",
       statusReady: "GPS measurement ready.",
       statusSearching: "Measuring GPS position...",
       statusStopped: "GPS measurement stopped.",
       statusSuccess: "GPS position received.",
-      btnStartGps: "📡 Start Live GPS",
+      btnStartGps: "📡 Start GPS Tracking",
       btnStopGps: "⏹ Stop",
-      btnShareLoc: "📲 Share My Location",
+      btnShareLoc: "📲 Share Location",
       btnSms: "💬 Send SMS",
       lblMyLat: "My Lat",
       lblMyLon: "My Lon",
       lblAccuracy: "Accuracy",
-      lblTime: "Time",
+      lblTime: "Last Updated",
       sec2Title: "📂 1. Load GPS File & Parse Coordinates",
       lblParseMsg: "📋 Parse Received Message",
       phPasteText: "e.g. Lat 36.7821, Lon 126.1423 or Google Maps link",
@@ -472,7 +513,6 @@
       btnStartVoice: "🎤 Start Voice Command",
       btnListeningVoice: "🎙️ Listening...",
       txtVoiceHelp: 'Say "Calculate route" or "Voice briefing".',
-      lblAutoBrief: "5-min Interval Auto Briefing",
       btnHearBrief: "📢 Listen Briefing",
       wpStart: "Start (My Loc)",
       wpDest: "Destination"
@@ -509,7 +549,7 @@
   let calculatedWaypoints = [];
   let fileRoutePoints = [];
 
-  // --- 1. Map Initialization (Leaflet) ---
+  // --- 지도 설정 (Leaflet) ---
   const map = L.map('map', { worldCopyJump: true }).setView([36.78, 126.14], 11);
 
   const tileSources = {
@@ -537,7 +577,189 @@
   let fileStartMarker = null;
   let fileEndMarker = null;
 
-  // --- 2. GPS 파일 파싱 기능 ---
+  // =========================================================================
+  // 🔥 [고도화] 백그라운드 5분 주기 위치 보고 엔진 (iOS Safari/Android 절전 회피)
+  // =========================================================================
+  let isAutoReporting = false;
+  let timerWorker = null;
+  let wakeLock = null;
+  let secondsRemaining = 300;
+  let reportIntervalMinutes = 5;
+  let audioCtx = null;
+
+  // 1) Web Worker 코드를 inline Blob으로 생성 (브라우저 백그라운드 타이머 차단 우회)
+  function createTimerWorker() {
+    const workerCode = `
+      let timer = null;
+      let seconds = 300;
+      
+      self.onmessage = function(e) {
+        if (e.data.command === 'start') {
+          seconds = e.data.interval * 60;
+          if(timer) clearInterval(timer);
+          timer = setInterval(() => {
+            seconds--;
+            self.postMessage({ type: 'tick', seconds: seconds });
+            if (seconds <= 0) {
+              seconds = e.data.interval * 60;
+              self.postMessage({ type: 'report' });
+            }
+          }, 1000);
+        } else if (e.data.command === 'stop') {
+          if(timer) clearInterval(timer);
+          timer = null;
+        }
+      };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    return new Worker(URL.createObjectURL(blob));
+  }
+
+  // 2) 백그라운드 태스크 강제 종료 방지용 무음 오디오 하트비트
+  function startSilentAudioHeartbeat() {
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      gain.gain.value = 0.001; // 거의 무음에 가까운 소리
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+    } catch (e) {
+      console.log("Audio Heartbeat 미지원:", e);
+    }
+  }
+
+  // 3) 화면 화면 잠금 방지 (Wake Lock API)
+  async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        console.log("Wake Lock 오류:", err);
+      }
+    }
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock) {
+      wakeLock.release().then(() => { wakeLock = null; });
+    }
+  }
+
+  // 자동 보고 토글 버튼
+  function toggleAutoReport() {
+    if (!isAutoReporting) {
+      startAutoReport();
+    } else {
+      stopAutoReport();
+    }
+  }
+
+  function startAutoReport() {
+    reportIntervalMinutes = parseInt($('intervalSelect').value) || 5;
+    secondsRemaining = reportIntervalMinutes * 60;
+
+    // Web Worker 시작
+    if (!timerWorker) {
+      timerWorker = createTimerWorker();
+      timerWorker.onmessage = function(e) {
+        if (e.data.type === 'tick') {
+          secondsRemaining = e.data.seconds;
+          updateTimerUI(secondsRemaining);
+        } else if (e.data.type === 'report') {
+          executeLocationReport();
+        }
+      };
+    }
+
+    timerWorker.postMessage({ command: 'start', interval: reportIntervalMinutes });
+    
+    // 백그라운드 유지 및 위치 측정 개시
+    startGPS();
+    startSilentAudioHeartbeat();
+    requestWakeLock();
+
+    isAutoReporting = true;
+    $('reportPanel').classList.add('active');$('startAutoReportBtn').textContent = '⏹ 자동 보고 중지';
+    $('startAutoReportBtn').className = 'btn-danger';
+    
+    // 시작 시 1회 즉시 보고
+    executeLocationReport();
+  }
+
+  function stopAutoReport() {
+    if (timerWorker) {
+      timerWorker.postMessage({ command: 'stop' });
+    }
+    releaseWakeLock();
+
+    isAutoReporting = false;
+    $('reportPanel').classList.remove('active');$('startAutoReportBtn').textContent = `🚀 ${reportIntervalMinutes}분 자동 보고 시작`;
+    $('startAutoReportBtn').className = 'btn-success';$('timerDisplay').textContent = "05:00";
+    setStatus("자동 보고가 중지되었습니다.", "");
+  }
+
+  function updateTimerUI(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    $('timerDisplay').textContent = `${m}:${s}`;
+  }
+
+  // 4) 위치 측정 후 서버/웹훅 전송 및 브리핑 실행
+  function executeLocationReport() {
+    // 위치를 1회 단독 측정하여 최신 좌표 보장
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          updatePosition(pos);
+          onReportSuccess(pos);
+        },
+        (err) => {
+          setStatus("위치 수신 실패, 이전 좌표로 보고", "err");
+          if(currentPosition) onReportSuccess(currentPosition);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  }
+
+  function onReportSuccess(pos) {
+    const lat = pos.coords.latitude.toFixed(5);
+    const lon = pos.coords.longitude.toFixed(5);
+    const timeStr = new Date().toLocaleTimeString();
+
+    setStatus(`[${timeStr}] 주기 위치 보고 완료 (${lat}, ${lon})`, "ok");
+
+    // A. 웹훅/서버 URL 전송
+    const webhookUrl = $('webhookUrlInput').value.trim();
+    if (webhookUrl) {
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lon,
+          accuracy: pos.coords.accuracy,
+          timestamp: new Date().toISOString()
+        })
+      }).catch(e => console.log('웹훅 전송 오류:', e));
+    }
+
+    // B. 자동 음성 브리핑 연동
+    if ($('auto-brief-toggle').checked) {
+      speakCurrentStatus();
+    }
+  }
+
+  // =========================================================================
+  // GPS 일반 추적 및 파일 처리 기능
+  // =========================================================================
   function parseGPX(text) {
     const xml = new DOMParser().parseFromString(text, 'application/xml');
     return [...xml.querySelectorAll('trkpt, rtept, wpt')].map(node => ({
@@ -611,7 +833,6 @@
       renderFileRoute();
       $('fileStatus').textContent = `${file.name} (${points.length}개 좌표 로드 완료)`;
       
-      // 출발/도착지에 파일 시작과 끝좌표 자동 입력 가능
       $('lat1-input').value = points[0].lat.toFixed(5);$('lon1-input').value = points[0].lon.toFixed(5);
       $('lat2-input').value = points[points.length - 1].lat.toFixed(5);$('lon2-input').value = points[points.length - 1].lon.toFixed(5);
       
@@ -650,7 +871,7 @@
     fitAllBounds();
   }
 
-  // --- 3. 연산 & 웨이포인트 산출 ---
+  // --- 웨이포인트 연산 ---
   function haversineDistance(lat1, lon1, lat2, lon2) {
     const dLat = rad(lat2 - lat1);
     const dLon = rad(lon2 - lon1);
@@ -753,7 +974,7 @@
     }
   }
 
-  // --- 4. 기타 유틸 (GPS 측정, 나침반, 음성) ---
+  // --- 유틸리티 및 센서/GPS 관련 기능 ---
   function setStatus(text, type){
     $("status").textContent = text;
     $("dot").className = "dot " + type;
@@ -762,10 +983,10 @@
   function startGPS(){
     if(!navigator.geolocation) return setStatus("GPS 미지원 브라우저입니다.", "err");
     if(watchId !== null) navigator.geolocation.clearWatch(watchId);
-    setStatus("GPS 위치 측정 중...", "wait");
+    setStatus("GPS 위치 계속 측정 중...", "wait");
     $("startBtn").disabled = true; $("stopBtn").disabled = false;
-    watchId = navigator.geolocation.watchPosition(updatePosition, () => setStatus("GPS 오류 발생", "err"), {
-      enableHighAccuracy: true, timeout: 15000
+    watchId = navigator.geolocation.watchPosition(updatePosition, () => setStatus("GPS 수신 오류", "err"), {
+      enableHighAccuracy: true, timeout: 15000, maximumAge: 0
     });
   }
 
@@ -783,7 +1004,7 @@
     $("lon-val").textContent = c.longitude.toFixed(6) + "°";
     $("acc-val").textContent = `±${Math.round(c.accuracy)}m`;
     $("time-val").textContent = new Date(pos.timestamp).toLocaleTimeString();
-    setStatus("GPS 수신 정상", "ok");
+    setStatus("GPS 수신 정상 완료", "ok");
     $("shareBtn").disabled = $("smsBtn").disabled = false;
     $("lat1-input").value = c.latitude.toFixed(5);
     $("lon1-input").value = c.longitude.toFixed(5);
@@ -806,7 +1027,7 @@
   }
 
   function getMyLocationOnce(){
-    navigator.geolocation.getCurrentPosition(updatePosition);
+    navigator.geolocation.getCurrentPosition(updatePosition, null, { enableHighAccuracy: true });
   }
 
   async function searchCity(index) {
@@ -874,7 +1095,7 @@
   }
 
   function shareLocation(){
-    const text = `📍 출발 위치: https://www.google.com/maps?q=${$("lat1-input").value},${$("lon1-input").value}`;
+    const text = `📍 현재 위치: https://www.google.com/maps?q=${$("lat1-input").value},${$("lon1-input").value}`;
     if(navigator.share) navigator.share({ title: '위치 공유', text: text });
   }
 
