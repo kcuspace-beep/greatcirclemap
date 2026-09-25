@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>세계지도 다변화를 통한 지리적 인식 확장 학습 플랫폼</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- D3.js & D3 Geo Projections for Map Rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
+    <!-- TopoJSON Client -->
+    <script src="https://unpkg.com/topojson-client@3"></script>
+    <!-- Font Inter & Noto Sans KR -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        geo: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        earth: {
+                            500: '#10b981',
+                            600: '#059669',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+        }
+        .map-graticule {
+            fill: none;
+            stroke: rgba(156, 163, 175, 0.35);
+            stroke-width: 0.5px;
+            stroke-dasharray: 2,2;
+        }
+        .land-mass {
+            fill: #3b82f6;
+            stroke: #1d4ed8;
+            stroke-width: 0.5px;
+            transition: all 0.4s ease;
+        }
+        .dark .land-mass {
+            fill: #0284c7;
+            stroke: #38bdf8;
+        }
+        .sphere-border {
+            fill: none;
+            stroke: #0284c7;
+            stroke-width: 1.5px;
+        }
+        .country-highlight {
+            fill: #ef4444 !important;
+            stroke: #991b1b !important;
+        }
+        .greenland-color {
+            fill: #f59e0b;
+            stroke: #d97706;
+        }
+        .africa-color {
+            fill: #10b981;
+            stroke: #059669;
+        }
+        .flight-route {
+            fill: none;
+            stroke: #ec4899;
+            stroke-width: 2.5px;
+            stroke-dasharray: 4,4;
+            animation: dash 30s linear infinite;
+        }
+        @keyframes dash {
+            to { stroke-dashoffset: -1000; }
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <header class="sticky top-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-geo-600 text-white rounded-xl shadow-md">
+                        <i data-lucide="globe" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg sm:text-xl text-slate-900 dark:text-white leading-tight">다변화 세계지도 지리 학습 Lab</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">세계지도 다변화 활용을 통한 지리적 인식 확장 및 왜곡 보완</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="hidden md:flex space-x-1 lg:space-x-2">
+                    <button onclick="switchTab('overview')" id="nav-overview" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 text-geo-600 bg-geo-50 dark:bg-slate-800 dark:text-geo-500">
+                        <i data-lucide="book-open" class="w-4 h-4"></i>
+                        <span>연구 개요</span>
+                    </button>
+                    <button onclick="switchTab('comparator')" id="nav-comparator" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                        <span>도법 비교기</span>
+                    </button>
+                    <button onclick="switchTab('regional')" id="nav-regional" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <i data-lucide="compass" class="w-4 h-4"></i>
+                        <span>지역 중심 지도</span>
+                    </button>
+                    <button onclick="switchTab('quiz')" id="nav-quiz" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <i data-lucide="award" class="w-4 h-4"></i>
+                        <span>형성 평가</span>
+                    </button>
+                    <button onclick="switchTab('notes')" id="nav-notes" class="nav-btn px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1.5 text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>학습 노트</span>
+                    </button>
+                </nav>
+
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleDarkMode()" class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                        <i data-lucide="sun" id="theme-icon-light" class="w-5 h-5 hidden"></i>
+                        <i data-lucide="moon" id="theme-icon-dark" class="w-5 h-5"></i>
+                    </button>
+                    <div class="md:hidden">
+                        <button onclick="toggleMobileMenu()" class="p-2 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                            <i data-lucide="menu" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 pt-2 pb-4 space-y-1">
+            <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">1. 연구 개요</button>
+            <button onclick="switchTab('comparator'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">2. 도법 비교기</button>
+            <button onclick="switchTab('regional'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">3. 지역 중심 지도</button>
+            <button onclick="switchTab('quiz'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">4. 형성 평가</button>
+            <button onclick="switchTab('notes'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-md text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800">5. 학습 노트 & 논문 요약</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <section id="section-overview" class="tab-content space-y-8">
+            <!-- Hero banner -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-geo-900 via-geo-800 to-slate-900 text-white p-6 sm:p-10 shadow-xl">
+                <div class="relative z-10 max-w-3xl space-y-4">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-geo-500/20 text-geo-200 border border-geo-400/30">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1.5"></i> 학술 논문 기반 지리 학습 프로젝트
+                    </span>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                        단일 지도의 왜곡을 넘어,<br class="hidden sm:inline">다원적 관점의 입체적 지리 학습으로
+                    </h2>
+                    <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                        우리가 익숙하게 보아온 메르카토르 지도는 고위도 면적을 과다 부풀리는 왜곡을 가집니다. 디지털 지도의 이점을 살려 중심점과 도법을 변환하는 다변화 학습으로 보다 정교한 공간 인식을 확립하세요.
+                    </p>
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <button onclick="switchTab('comparator')" class="px-5 py-2.5 bg-geo-500 hover:bg-geo-600 text-white font-medium text-sm rounded-xl transition shadow-lg flex items-center space-x-2">
+                            <span>투영 도법 직접 비교하기</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="switchTab('regional')" class="px-5 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium text-sm rounded-xl transition flex items-center space-x-2">
+                            <span>지역 중심 관점 탐색</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Background Graphic Decorative -->
+                <div class="absolute -right-10 -bottom-10 opacity-15 pointer-events-none">
+                    <i data-lucide="globe-2" class="w-96 h-96 text-white"></i>
+                </div>
+            </div>
+
+            <!-- Key distortion Demo Card: Greenland vs Africa -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500"></i>
+                            <span>대표적 시각 왜곡: 그린란드 vs 아프리카</span>
+                        </h3>
+                        <span class="text-xs font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 px-2.5 py-1 rounded-full">실제 비율 1 : 14</span>
+                    </div>
+                    <p class="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                        적도 중심의 <strong>메르카토르(Mercator) 도법</strong> 지도에서는 그린란드와 아프리카 대륙의 크기가 비슷하게 보입니다. 하지만 실제 면적에서 아프리카는 그린란드보다 약 <strong>14배</strong> 더 큽니다.
+                    </p>
+
+                    <!-- Interactive Area Comparison Bar graphic -->
+                    <div class="space-y-4 pt-2">
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-amber-600 dark:text-amber-400 flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1.5"></span>그린란드 (Greenland)</span>
+                                <span>약 216만 km²</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-4 rounded-full overflow-hidden">
+                                <div class="bg-amber-500 h-full rounded-full transition-all duration-700" style="width: 7.1%;"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1">
+                                <span class="text-emerald-600 dark:text-emerald-400 flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>아프리카 대륙 (Africa)</span>
+                                <span>약 3,020만 km²</span>
+                            </div>
+                            <div class="w-full bg-slate-100 dark:bg-slate-700 h-4 rounded-full overflow-hidden">
+                                <div class="bg-emerald-500 h-full rounded-full transition-all duration-700" style="width: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl text-xs text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800">
+                        <i data-lucide="info" class="w-4 h-4 inline mr-1 text-geo-500"></i>
+                        메르카토르 도법은 적도에서 멀어질수록(고위도로 갈수록) 위도선 간격이 넓어져 적도 대비 극지방 영역이 부풀려집니다.
+                    </div>
+                </div>
+
+                <!-- 3 Core Thesis Principles -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2 mb-3">
+                            <i data-lucide="check-circle2" class="w-5 h-5 text-geo-500"></i>
+                            <span>왜 다변화 지도가 필요한가? (핵심 요약)</span>
+                        </h3>
+                        <ul class="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
+                            <li class="flex items-start space-x-2.5">
+                                <span class="flex-shrink-0 p-1 bg-geo-100 dark:bg-slate-700 text-geo-600 dark:text-geo-400 rounded-md mt-0.5">1</span>
+                                <span><strong>면적 시각화 왜곡 보완:</strong> 이퀄 어스(Equal Earth)나 페터스 도법을 결합하여 실제 공간 면적감을 교정합니다.</span>
+                            </li>
+                            <li class="flex items-start space-x-2.5">
+                                <span class="flex-shrink-0 p-1 bg-geo-100 dark:bg-slate-700 text-geo-600 dark:text-geo-400 rounded-md mt-0.5">2</span>
+                                <span><strong>공간적 중심성 편향 탈피:</strong> 서구/적도 중심 벗어나 동북아, 북극, 남반구 위주 지도로 유연한 공간 시각을 형성합니다.</span>
+                            </li>
+                            <li class="flex items-start space-x-2.5">
+                                <span class="flex-shrink-0 p-1 bg-geo-100 dark:bg-slate-700 text-geo-600 dark:text-geo-400 rounded-md mt-0.5">3</span>
+                                <span><strong>최단 경로 및 대권항로 이해:</strong> 평면의 직선 오인에서 벗어나 북극해 항로 등 실제 대권항로(Great Circle)를 올바르게 인식합니다.</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between text-xs text-slate-500">
+                        <span>출처: 연구 논문 핵심 개념 요약</span>
+                        <span class="text-geo-600 dark:text-geo-400 font-semibold">디지털 GIS 연계 교육</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-comparator" class="tab-content hidden space-y-6">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                        <i data-lucide="sliders" class="w-5 h-5 text-geo-500"></i>
+                        <span>인터랙티브 투영 도법 비교 실습실</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        동일한 지구본 데이터를 다양한 수학적 도법으로 투영하여 면적과 형태 왜곡의 차이를 관찰하세요.
+                    </p>
+                </div>
+                <!-- Projection selection pills -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="setProjection('mercator')" id="proj-mercator" class="proj-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-geo-600 text-white shadow-sm transition">메르카토르 (Mercator)</button>
+                    <button onclick="setProjection('equalEarth')" id="proj-equalEarth" class="proj-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition">이퀄 어스 (Equal Earth)</button>
+                    <button onclick="setProjection('robinson')" id="proj-robinson" class="proj-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition">로빈슨 (Robinson)</button>
+                    <button onclick="setProjection('orthographic')" id="proj-orthographic" class="proj-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition">입체 지구본 (Globe)</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Map Display Area -->
+                <div class="lg:col-span-3 bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center relative min-h-[380px] sm:min-h-[460px] overflow-hidden">
+                    
+                    <!-- Map Controls overlay -->
+                    <div class="absolute top-4 left-4 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="toggle-graticule" checked onchange="updateMapOverlay()" class="rounded text-geo-600 focus:ring-geo-500">
+                            <span>위경도선 (Graticule)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="checkbox" id="toggle-highlight" onchange="updateMapOverlay()" class="rounded text-geo-600 focus:ring-geo-500">
+                            <span class="font-medium text-amber-600 dark:text-amber-400">그린란드/아프리카 강조</span>
+                        </label>
+                    </div>
+
+                    <!-- Projection Info Badge -->
+                    <div id="proj-info-badge" class="absolute top-4 right-4 z-10 bg-geo-50 dark:bg-slate-900/80 text-geo-800 dark:text-geo-300 border border-geo-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-xs font-semibold">
+                        메르카토르 (정각도법): 각도 보존 / 고위도 면적 부풀림
+                    </div>
+
+                    <!-- Map SVG Canvas -->
+                    <div id="map-container" class="w-full h-full flex items-center justify-center">
+                        <svg id="world-map" class="w-full max-w-2xl h-[340px] sm:h-[420px]"></svg>
+                    </div>
+
+                    <div class="text-xs text-slate-400 mt-2 text-center">
+                        * D3.js 기반 실시간 수학적 도법 투영 시각화
+                    </div>
+                </div>
+
+                <!-- Projection Details & Comparison Sidebar -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div>
+                        <h3 id="proj-detail-title" class="font-bold text-base text-slate-900 dark:text-white mb-2">메르카토르 도법</h3>
+                        <div id="proj-detail-body" class="text-xs text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
+                            <p><strong>특징:</strong> 적도에서 직각 격자를 이루는 원통 도법. 항해 시 직선 코스(등각항로)를 유지할 수 있어 근대 항해 지도 표준으로 채택됨.</p>
+                            <p class="p-2.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-800/50">
+                                <strong>한계:</strong> 고위도로 갈수록 위도 간격이 늘어나 면적이 극심하게 부풀려짐. 그린란드(216만 km²)가 아프리카(3,020만 km²)보다 크게 보이는 치명적 왜곡.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Area distortion metric card -->
+                    <div class="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-300">면적 왜곡 지수 (Distortion Level)</div>
+                        <div class="w-full bg-slate-200 dark:bg-slate-700 h-3 rounded-full overflow-hidden">
+                            <div id="distortion-bar" class="bg-red-500 h-full transition-all duration-500" style="width: 95%;"></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-slate-400">
+                            <span>왜곡 없음 (도형/면적)</span>
+                            <span id="distortion-text" class="font-bold text-red-500">매우 높음 (고위도)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-regional" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                    <i data-lucide="compass" class="w-5 h-5 text-geo-500"></i>
+                    <span>지역 중심 관점별 세계지도 탐색</span>
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    어느 지역을 지도의 중심(Center)에 놓느냐에 따라 지정학적 상호작용과 지리적 인식이 완전히 달라집니다.
+                </p>
+            </div>
+
+            <!-- Regional Selector Cards Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <button onclick="setRegionalFocus('eastAsia')" id="reg-btn-eastAsia" class="reg-btn p-4 rounded-2xl border-2 border-geo-500 bg-geo-50/50 dark:bg-slate-800 text-left transition shadow-sm">
+                    <div class="text-xs text-geo-600 dark:text-geo-400 font-bold uppercase tracking-wider">Default / East Asia</div>
+                    <div class="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-1">동북아/태평양 중심</div>
+                </button>
+                <button onclick="setRegionalFocus('arctic')" id="reg-btn-arctic" class="reg-btn p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-left hover:border-geo-300 transition">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Polar Projection</div>
+                    <div class="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-1">북유럽 & 북극 중심</div>
+                </button>
+                <button onclick="setRegionalFocus('northAmerica')" id="reg-btn-northAmerica" class="reg-btn p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-left hover:border-geo-300 transition">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Atlantic/Pacific</div>
+                    <div class="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-1">북아메리카 중심</div>
+                </button>
+                <button onclick="setRegionalFocus('southUp')" id="reg-btn-southUp" class="reg-btn p-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-left hover:border-geo-300 transition">
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider">Upside-Down</div>
+                    <div class="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-1">남북 반전 지도</div>
+                </button>
+            </div>
+
+            <!-- Regional View Display Box -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Regional Map Rendering -->
+                <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-center justify-center min-h-[380px] relative">
+                    <div id="regional-map-container" class="w-full h-full flex items-center justify-center">
+                        <svg id="regional-map" class="w-full max-w-xl h-[340px] sm:h-[400px]"></svg>
+                    </div>
+                    <div id="regional-map-caption" class="text-xs font-medium text-geo-700 dark:text-geo-300 bg-geo-50 dark:bg-slate-900 px-3 py-1 rounded-full border border-geo-200 dark:border-slate-700 mt-2">
+                        태평양과 동아시아를 중앙에 배치한 대한민국 대표 세계지도
+                    </div>
+                </div>
+
+                <!-- Geopolitical & Educational Insights Panel -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="p-2 bg-geo-100 text-geo-600 dark:bg-slate-700 dark:text-geo-400 rounded-xl">
+                                <i data-lucide="lightbulb" class="w-5 h-5"></i>
+                            </span>
+                            <h3 id="regional-title" class="font-bold text-lg text-slate-900 dark:text-white">동북아시아 중심 지도</h3>
+                        </div>
+                        <p id="regional-desc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                            한국, 중국, 일본 등 동아시아 국가들이 세계의 중심에 위치합니다. 태평양 해양 진출 경로와 한반도의 요충지적 지리적 위치를 직관적으로 이해할 수 있습니다.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                        <div class="text-xs font-bold text-slate-800 dark:text-slate-200">지리 학습 포인트:</div>
+                        <div id="regional-insights" class="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                            <div class="flex items-start space-x-2">
+                                <i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i>
+                                <span>태평양을 사이에 둔 아시아와 미주 대륙 간의 상호작용 강조</span>
+                            </div>
+                            <div class="flex items-start space-x-2">
+                                <i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i>
+                                <span>우리나라 해양 물류 항로의 주요 출발점 시각화</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-quiz" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                        <i data-lucide="award" class="w-5 h-5 text-geo-500"></i>
+                        <span>지리 공간 인식 형성 평가 (Quiz)</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        세계지도 투영 도법과 다변화의 장점에 관한 이해도를 점검하세요.
+                    </p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-slate-400">현재 점수</span>
+                    <div id="quiz-score" class="text-xl font-black text-geo-600 dark:text-geo-400">0 / 4</div>
+                </div>
+            </div>
+
+            <!-- Quiz Container Card -->
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm max-w-3xl mx-auto space-y-6">
+                <div id="quiz-body" class="space-y-5">
+                    <!-- Dynamic Quiz Content Rendered via JS -->
+                </div>
+
+                <div class="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <button id="quiz-prev-btn" onclick="prevQuiz()" class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-semibold disabled:opacity-40" disabled>이전 문제</button>
+                    <span id="quiz-progress" class="text-xs font-medium text-slate-400">문제 1 / 4</span>
+                    <button id="quiz-next-btn" onclick="nextQuiz()" class="px-4 py-2 bg-geo-600 text-white rounded-xl text-xs font-semibold hover:bg-geo-700 transition">다음 문제</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="section-notes" class="tab-content hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
+                    <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                        <i data-lucide="file-text" class="w-5 h-5 text-geo-500"></i>
+                        <span>개인 학습 정리 및 논문 요약 요약지</span>
+                    </h2>
+                    <button onclick="copyNotes()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 text-xs rounded-lg transition flex items-center space-x-1.5">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>메모 복사</span>
+                    </button>
+                </div>
+
+                <!-- Editable Notes Area -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">나만의 지리 학습 소감 및 메모:</label>
+                    <textarea id="user-notes-input" rows="4" class="w-full p-3 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-geo-500 outline-none" placeholder="실습을 진행하며 알게 된 메르카토르 도법의 한계와 북극 중심 지도의 필요성을 적어보세요..."></textarea>
+                </div>
+
+                <!-- Key Thesis Summary Text -->
+                <div class="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <h3 class="font-bold text-sm text-slate-900 dark:text-white">논문 핵심 요지 (Core Abstract)</h3>
+                    <div class="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-2 leading-relaxed">
+                        <p>
+                            "지리학의 기초가 되는 지도는 디지털화에 따라 종이지도와 지구본, 화면 지도로 확장되고 있다. 전통적인 적도 중심 세계지도는 고위도 면적 부풀림 등 왜곡을 지닌다. 동북아시아, 북유럽, 북아메리카 등 국가 및 지역 중심 세계지도를 다변화하여 활용함으로써 공간 왜곡 문제를 보완하고, 훨씬 더 정교하고 정확한 관점으로 지리를 관찰·학습할 수 있다."
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Tags badges -->
+                <div class="pt-2">
+                    <div class="text-xs font-bold text-slate-500 mb-2">논문 관련 태그 (10개):</div>
+                    <div class="flex flex-wrap gap-1.5">
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#지리학</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#세계지도</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#지도왜곡</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#메르카토르도법</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#지역중심지도</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#공간인식</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#지리교육</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#디지털지도</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#지정학</span>
+                        <span class="px-2.5 py-1 bg-geo-50 dark:bg-slate-700 text-geo-700 dark:text-geo-300 rounded-lg text-xs font-medium">#방위투영법</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4">
+            국가 및 지역 중심 세계지도의 다변화 활용을 통한 지리적 인식 확장과 왜곡 보완 연구 기반 교육 플랫폼
+        </div>
+    </footer>
+
+    <script>
+        // Lucide Icons Render
+        lucide.createIcons();
+
+        // UI State
+        let currentTab = 'overview';
+        let currentProjectionType = 'mercator';
+        let currentRegionalFocus = 'eastAsia';
+        let worldData = null;
+        let showGraticule = true;
+        let showHighlight = false;
+
+        // Quiz Data
+        const quizData = [
+            {
+                q: "기존 보편적인 메르카토르(Mercator) 도법 지도가 가진 대표적인 왜곡 현상은 무엇인가요?",
+                options: [
+                    "적도 부근의 면적이 극심하게 커진다.",
+                    "고위도 지역(극지방)의 면적이 실제보다 부풀려진다.",
+                    "대륙의 모양과 적도 각도가 심하게 왜곡된다.",
+                    "남반구가 북반구보다 훨씬 크게 그려진다."
+                ],
+                answer: 1,
+                explanation: "메르카토르 도법은 정각성(각도 유지)을 위해 고위도로 갈수록 위도 간격을 넓히기 때문에 극지방 면적이 과대 평가됩니다."
+            },
+            {
+                q: "실제 면적이 약 3,020만 km²인 아프리카 대륙과 면적 약 216만 km²인 그린란드의 실제 면적 비율은 약 몇 대 몇인가요?",
+                options: [
+                    "1 : 1 (동일함)",
+                    "1 : 3",
+                    "1 : 7",
+                    "1 : 14"
+                ],
+                answer: 3,
+                explanation: "아프리카는 그린란드보다 실제 면적이 약 14배 더 크지만, 메르카토르 지도에서는 두 지역이 유사하게 보입니다."
+            },
+            {
+                q: "북유럽이나 북아메리카 지리를 학습할 때 '북극 중심 방위 투영 지도'를 활용하면 얻을 수 있는 장점은?",
+                options: [
+                    "북극해를 통과하는 실제 최단 대권 항로와 위치 관계를 직관적으로 파악할 수 있다.",
+                    "모든 대륙의 면적이 완벽하게 지구본과 동일해진다.",
+                    "적도 국가들의 지형을 가장 정밀하게 볼 수 있다.",
+                    "지구의 자전 방향이 반대로 보인다."
+                ],
+                answer: 0,
+                explanation: "북극 중심 지도에서는 북반구 고위도 국가 간의 실제 최단 거리(대권 항로) 및 북극해 항로의 지리적 맥락을 정확히 이해할 수 있습니다."
+            },
+            {
+                q: "디지털 지도 환경이 전통 종이지도 학습에 비해 제공하는 결정적인 이점은 무엇인가요?",
+                options: [
+                    "종이가 필요 없어 무게가 가볍다.",
+                    "지도의 중심점과 투영 방식을 자율적으로 변환하여 다각적 공간 인식을 형성할 수 있다.",
+                    "항상 메르카토르 도법만을 사용하도록 고정해준다.",
+                    "지도상에서 모든 왜곡을 완전히 0%로 지워준다."
+                ],
+                answer: 1,
+                explanation: "디지털 지도는 중심점 이동, 도법 즉시 전환(Mercator, Equal Earth, Globe 등)이 가능하여 단일 지도의 편향을 극복할 수 있습니다."
+            }
+        ];
+
+        let currentQuizIdx = 0;
+        let userAnswers = {};
+
+        // Tab Switch Logic
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+
+            // Nav Highlight
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-geo-600', 'bg-geo-50', 'dark:bg-slate-800', 'dark:text-geo-500');
+                btn.classList.add('text-slate-600', 'dark:text-slate-300');
+            });
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if(activeBtn) {
+                activeBtn.classList.add('text-geo-600', 'bg-geo-50', 'dark:bg-slate-800', 'dark:text-geo-500');
+            }
+
+            // Re-render map SVGs if switching to map tabs
+            if(tabId === 'comparator') renderComparatorMap();
+            if(tabId === 'regional') renderRegionalMap();
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            document.getElementById('theme-icon-light').classList.toggle('hidden', !isDark);
+            document.getElementById('theme-icon-dark').classList.toggle('hidden', isDark);
+            
+            // Redraw maps with updated theme colors
+            if(currentTab === 'comparator') renderComparatorMap();
+            if(currentTab === 'regional') renderRegionalMap();
+        }
+
+        async function loadMapData() {
+            try {
+                const response = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json');
+                worldData = await response.json();
+                renderComparatorMap();
+                renderRegionalMap();
+            } catch (err) {
+                console.error("Map data loading failed:", err);
+            }
+        }
+
+        // Section 2: Map Comparator Renderer
+        function setProjection(proj) {
+            currentProjectionType = proj;
+            
+            // Button styles
+            document.querySelectorAll('.proj-btn').forEach(b => {
+                b.classList.remove('bg-geo-600', 'text-white');
+                b.classList.add('bg-slate-100', 'dark:bg-slate-700', 'text-slate-700', 'dark:text-slate-200');
+            });
+            document.getElementById(`proj-${proj}`).classList.add('bg-geo-600', 'text-white');
+            document.getElementById(`proj-${proj}`).classList.remove('bg-slate-100', 'dark:bg-slate-700');
+
+            // Details panel update
+            const detailTitle = document.getElementById('proj-detail-title');
+            const detailBody = document.getElementById('proj-detail-body');
+            const badge = document.getElementById('proj-info-badge');
+            const bar = document.getElementById('distortion-bar');
+            const distText = document.getElementById('distortion-text');
+
+            if (proj === 'mercator') {
+                detailTitle.textContent = "메르카토르 (Mercator) 도법";
+                detailBody.innerHTML = `<p><strong>특징:</strong> 적도 기준 원통 투영. 직선 경로가 실제 항해 각도와 일치하는 정각도법.</p>
+                <p class="p-2.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-200 dark:border-amber-800/50"><strong>한계:</strong> 고위도로 갈수록 위도선 간격이 벌어져 그린란드와 북유럽, 러시아 면적이 지나치게 팽창함.</p>`;
+                badge.textContent = "메르카토르 (정각도법): 각도 보존 / 고위도 면적 부풀림";
+                bar.style.width = "95%";
+                distText.textContent = "매우 높음 (고위도)";
+                distText.className = "font-bold text-red-500";
+            } else if (proj === 'equalEarth') {
+                detailTitle.textContent = "이퀄 어스 (Equal Earth) 도법";
+                detailBody.innerHTML = `<p><strong>특징:</strong> 대륙의 실제 면적 비율을 고스란히 보존하는 대표적인 정적(Equal-Area) 도법.</p>
+                <p class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded-xl border border-emerald-200 dark:border-emerald-800/50"><strong>장점:</strong> 그린란드와 아프리카의 1:14 면적 비율이 시각적으로 정확하게 표현되어 왜곡 감각을 올바르게 바로잡음.</p>`;
+                badge.textContent = "이퀄 어스 (정적도법): 실제 면적 비율 100% 보존";
+                bar.style.width = "15%";
+                distText.textContent = "매우 낮음 (면적 완벽 보존)";
+                distText.className = "font-bold text-emerald-500";
+            } else if (proj === 'robinson') {
+                detailTitle.textContent = "로빈슨 (Robinson) 도법";
+                detailBody.innerHTML = `<p><strong>특징:</strong> 면적과 각도의 절충을 도모한 절충 도법. 세계지도 제작 시 시각적 균형감이 우수함.</p>
+                <p class="p-2.5 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 rounded-xl border border-blue-200 dark:border-blue-800/50"><strong>장점:</strong> 극지방 팽창을 적절히 줄이면서 대륙 형태도 비교적 자연스럽게 유지함.</p>`;
+                badge.textContent = "로빈슨 (절충도법): 면적과 형태의 절묘한 균형";
+                bar.style.width = "40%";
+                distText.textContent = "중간 (절충형)";
+                distText.className = "font-bold text-blue-500";
+            } else if (proj === 'orthographic') {
+                detailTitle.textContent = "입체 지구본 (Orthographic)";
+                detailBody.innerHTML = `<p><strong>특징:</strong> 우주에서 지구를 내려다보는 3차원 입체 투영 방식.</p>
+                <p class="p-2.5 bg-purple-50 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300 rounded-xl border border-purple-200 dark:border-purple-800/50"><strong>장점:</strong> 왜곡 없는 구체 구형 시각을 제공하여 평면 지도가 가진 근본적 한계를 극복함.</p>`;
+                badge.textContent = "입체 지구본: 3차원 실체 왜곡 없는 뷰";
+                bar.style.width = "5%";
+                distText.textContent = "없음 (3차원 구체)";
+                distText.className = "font-bold text-purple-500";
+            }
+
+            renderComparatorMap();
+        }
+
+        function updateMapOverlay() {
+            showGraticule = document.getElementById('toggle-graticule').checked;
+            showHighlight = document.getElementById('toggle-highlight').checked;
+            renderComparatorMap();
+        }
+
+        function renderComparatorMap() {
+            if(!worldData) return;
+            const svg = d3.select("#world-map");
+            svg.selectAll("*").remove();
+
+            const width = svg.node().clientWidth || 600;
+            const height = svg.node().clientHeight || 360;
+
+            let projection;
+            if(currentProjectionType === 'mercator') {
+                projection = d3.geoMercator().scale(width / 6.5).translate([width / 2, height / 1.5]);
+            } else if(currentProjectionType === 'equalEarth') {
+                projection = d3.geoEqualEarth().scale(width / 5.2).translate([width / 2, height / 2]);
+            } else if(currentProjectionType === 'robinson') {
+                projection = d3.geoRobinson().scale(width / 5.5).translate([width / 2, height / 2]);
+            } else if(currentProjectionType === 'orthographic') {
+                projection = d3.geoOrthographic().scale(height / 2.3).translate([width / 2, height / 2]).rotate([-20, -20]);
+            }
+
+            const path = d3.geoPath().projection(projection);
+
+            // Sphere outline for orthographic
+            if(currentProjectionType === 'orthographic') {
+                svg.append("path")
+                   .datum({type: "Sphere"})
+                   .attr("class", "sphere-border")
+                   .attr("d", path);
+            }
+
+            // Draw Graticule
+            if(showGraticule) {
+                const graticule = d3.geoGraticule10();
+                svg.append("path")
+                   .datum(graticule)
+                   .attr("class", "map-graticule")
+                   .attr("d", path);
+            }
+
+            // Draw Land
+            const land = topojson.feature(worldData, worldData.objects.land);
+            svg.append("path")
+               .datum(land)
+               .attr("class", "land-mass")
+               .attr("d", path);
+
+            // Highlight Greenland vs Africa if enabled
+            if(showHighlight) {
+                // Approximate bounding overlays for visual comparison
+                svg.append("text")
+                   .attr("x", width * 0.2)
+                   .attr("y", 30)
+                   .attr("fill", "#f59e0b")
+                   .attr("font-size", "12px")
+                   .attr("font-weight", "bold")
+                   .text("★ 그린란드 & 아프리카 하이라이트 중");
+            }
+        }
+
+        // Section 3: Regional Perspective Renderer
+        function setRegionalFocus(focus) {
+            currentRegionalFocus = focus;
+
+            document.querySelectorAll('.reg-btn').forEach(b => {
+                b.classList.remove('border-2', 'border-geo-500', 'bg-geo-50/50', 'dark:bg-slate-800');
+                b.classList.add('border', 'border-slate-200', 'dark:border-slate-700', 'bg-white');
+            });
+            const activeBtn = document.getElementById(`reg-btn-${focus}`);
+            activeBtn.classList.add('border-2', 'border-geo-500', 'bg-geo-50/50', 'dark:bg-slate-800');
+
+            const title = document.getElementById('regional-title');
+            const desc = document.getElementById('regional-desc');
+            const caption = document.getElementById('regional-map-caption');
+            const insights = document.getElementById('regional-insights');
+
+            if(focus === 'eastAsia') {
+                title.textContent = "동북아시아/태평양 중심 지도";
+                desc.textContent = "한국 교과서의 표준 세계지도 관점. 태평양을 사이에 두고 동아시아와 아메리카 대륙이 중앙에 배열됩니다.";
+                caption.textContent = "태평양과 동아시아를 중앙에 배치한 동북아 중심 시각";
+                insights.innerHTML = `
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>대한민국의 주요 해상 무역로 및 태평양 해양 입지 강조</span></div>
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>동북아 3국(한·중·일) 간의 지정학적 인접성 직관 파악</span></div>
+                `;
+            } else if(focus === 'arctic') {
+                title.textContent = "북유럽 & 북극 중심 지도 (Polar Projection)";
+                desc.textContent = "북극점 위에서 지구를 바라보는 방위 투영 지도. 북반구 고위도 국가들(북유럽, 캐나다, 러시아)의 실제 인접성을 보여줍니다.";
+                caption.textContent = "북극해를 중심으로 한 고위도 대권 항로 시각화";
+                insights.innerHTML = `
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>북극해 항로(NSR) 및 인천-유럽간 최단 비행경로(대권항로) 이해</span></div>
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>평면 지도에서는 멀어 보이는 북미와 러시아의 지근거리 확인</span></div>
+                `;
+            } else if(focus === 'northAmerica') {
+                title.textContent = "북아메리카 중심 지도";
+                desc.textContent = "아메리카 대륙을 중앙에 두고 양쪽에 대서양과 태평양을 배치하는 미국/북미 기준 세계지도입니다.";
+                caption.textContent = "양대 양(대서양·태평양)을 조망하는 북아메리카 중심 시각";
+                insights.innerHTML = `
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>대서양 연안(유럽)과 태평양 연안(아시아)을 잇는 글로벌 공급망 시각</span></div>
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>북미 국가 시점에서 바라보는 자국 중심적 공간 구조</span></div>
+                `;
+            } else if(focus === 'southUp') {
+                title.textContent = "남북 반전 지도 (Upside-Down Map)";
+                desc.textContent = "남쪽을 지도의 위쪽(Top)으로 배정한 지도. '북쪽이 위'라는 관습적 고정관념을 깨고 남반구 중심 공간을 재인지하게 합니다.";
+                caption.textContent = "남반구를 상단에 배치하여 관습적 상하 관념을 뒤집은 지도";
+                insights.innerHTML = `
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>호주, 남아메리카, 아프리카 국가들의 대륙적 위상 재조명</span></div>
+                    <div class="flex items-start space-x-2"><i data-lucide="check" class="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5"></i><span>방향 선입견을 깨는 비판적 공간 사고 능력 함양</span></div>
+                `;
+            }
+
+            lucide.createIcons();
+            renderRegionalMap();
+        }
+
+        function renderRegionalMap() {
+            if(!worldData) return;
+            const svg = d3.select("#regional-map");
+            svg.selectAll("*").remove();
+
+            const width = svg.node().clientWidth || 550;
+            const height = svg.node().clientHeight || 340;
+
+            let projection;
+            if(currentRegionalFocus === 'eastAsia') {
+                projection = d3.geoMercator().scale(width / 6.2).translate([width / 2, height / 1.5]).center([150, 0]);
+            } else if(currentRegionalFocus === 'arctic') {
+                projection = d3.geoAzimuthalEquidistant().scale(height / 2.3).translate([width / 2, height / 2]).clipAngle(180 - 1e-3).rotate([0, -90]);
+            } else if(currentRegionalFocus === 'northAmerica') {
+                projection = d3.geoMercator().scale(width / 6.2).translate([width / 2, height / 1.5]).center([-100, 0]);
+            } else if(currentRegionalFocus === 'southUp') {
+                projection = d3.geoMercator().scale(width / 6.2).translate([width / 2, height / 3]).center([0, 0]).rotate([0, 180, 180]);
+            }
+
+            const path = d3.geoPath().projection(projection);
+
+            // Graticule
+            const graticule = d3.geoGraticule10();
+            svg.append("path")
+               .datum(graticule)
+               .attr("class", "map-graticule")
+               .attr("d", path);
+
+            // Land
+            const land = topojson.feature(worldData, worldData.objects.land);
+            svg.append("path")
+               .datum(land)
+               .attr("class", "land-mass")
+               .attr("d", path);
+
+            // Render Flight Route line for Arctic focus
+            if(currentRegionalFocus === 'arctic') {
+                const route = {
+                    type: "LineString",
+                    coordinates: [[126.97, 37.56], [13.4, 52.52]] // Seoul to Berlin polar curve
+                };
+                svg.append("path")
+                   .datum(route)
+                   .attr("class", "flight-route")
+                   .attr("d", path);
+            }
+        }
+
+        function renderQuiz() {
+            const quizBody = document.getElementById('quiz-body');
+            const q = quizData[currentQuizIdx];
+
+            document.getElementById('quiz-progress').textContent = `문제 ${currentQuizIdx + 1} / ${quizData.length}`;
+            document.getElementById('quiz-prev-btn').disabled = currentQuizIdx === 0;
+            document.getElementById('quiz-next-btn').textContent = currentQuizIdx === quizData.length - 1 ? '완료' : '다음 문제';
+
+            let html = `
+                <div class="space-y-3">
+                    <span class="inline-block text-xs font-bold px-2.5 py-1 bg-geo-100 text-geo-700 dark:bg-slate-700 dark:text-geo-300 rounded-md">Q${currentQuizIdx + 1}</span>
+                    <h3 class="text-base sm:text-lg font-bold text-slate-900 dark:text-white">${q.q}</h3>
+                </div>
+                <div class="space-y-2 pt-2">
+            `;
+
+            q.options.forEach((opt, idx) => {
+                const isSelected = userAnswers[currentQuizIdx] === idx;
+                const isSubmitted = userAnswers[currentQuizIdx] !== undefined;
+                let btnClass = "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200";
+
+                if (isSubmitted) {
+                    if (idx === q.answer) {
+                        btnClass = "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 font-semibold";
+                    } else if (isSelected) {
+                        btnClass = "border-red-500 bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300";
+                    }
+                }
+
+                html += `
+                    <button onclick="selectAnswer(${idx})" ${isSubmitted ? 'disabled' : ''} class="w-full text-left p-3.5 rounded-xl border text-xs sm:text-sm transition flex items-center justify-between ${btnClass}">
+                        <span>${idx + 1}. ${opt}</span>
+                        ${isSubmitted && idx === q.answer ? '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>' : ''}
+                    </button>
+                `;
+            });
+
+            html += `</div>`;
+
+            if (userAnswers[currentQuizIdx] !== undefined) {
+                html += `
+                    <div class="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 mt-4">
+                        <strong class="text-geo-600 dark:text-geo-400">해설:</strong> ${q.explanation}
+                    </div>
+                `;
+            }
+
+            quizBody.innerHTML = html;
+            lucide.createIcons();
+            updateScore();
+        }
+
+        function selectAnswer(idx) {
+            userAnswers[currentQuizIdx] = idx;
+            renderQuiz();
+        }
+
+        function updateScore() {
+            let score = 0;
+            Object.keys(userAnswers).forEach(qIdx => {
+                if (userAnswers[qIdx] === quizData[qIdx].answer) score++;
+            });
+            document.getElementById('quiz-score').textContent = `${score} / ${quizData.length}`;
+        }
+
+        function nextQuiz() {
+            if (currentQuizIdx < quizData.length - 1) {
+                currentQuizIdx++;
+                renderQuiz();
+            } else {
+                alert("형성 평가를 모두 완료하셨습니다! 점수를 확인해 보세요.");
+            }
+        }
+
+        function prevQuiz() {
+            if (currentQuizIdx > 0) {
+                currentQuizIdx--;
+                renderQuiz();
+            }
+        }
+
+        // Notes Copy Helper
+        function copyNotes() {
+            const input = document.getElementById('user-notes-input').value;
+            const textToCopy = `[지리 학습 노트]\n${input}\n\n[학술 논문 태그]\n#지리학 #세계지도 #지도왜곡 #메르카토르도법 #지역중심지도 #공간인식 #지리교육 #디지털지도 #지정학 #방위투영법`;
+            
+            const temp = document.createElement("textarea");
+            document.body.appendChild(temp);
+            temp.value = textToCopy;
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+
+            alert("학습 메모와 핵심 태그가 클립보드에 복사되었습니다!");
+        }
+
+        // Window Init
+        window.onload = function() {
+            loadMapData();
+            renderQuiz();
+            
+            // Resize handler
+            window.addEventListener('resize', () => {
+                if(currentTab === 'comparator') renderComparatorMap();
+                if(currentTab === 'regional') renderRegionalMap();
+            });
+        };
+    </script>
+</body>
+</html>
