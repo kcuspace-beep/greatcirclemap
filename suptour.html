@@ -3,344 +3,536 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SUP GPS Tracker & Email Exporter</title>
+    <title>SUP GPS Pro Navigation & Route Exporter</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+
     <!-- Leaflet CSS & JS for Mapping -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- html2canvas for Map Image Capturing & Exporting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
                         sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
                     },
                     colors: {
-                        ocean: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
-                            500: '#14b8a6',
-                            800: '#115e59',
-                            900: '#134e4a',
-                            950: '#042f2e',
+                        marine: {
+                            800: '#0b192c',
+                            900: '#070f1e',
+                            950: '#030712',
                         },
                         cyanGlow: '#00f2fe',
+                        emeraldGlow: '#10b981',
                     }
                 }
             }
         }
     </script>
+
     <style>
         body {
             font-family: 'Outfit', sans-serif;
-            background: #0b132b;
+            background-color: #070f1e;
             color: #f1f5f9;
             touch-action: manipulation;
         }
+
+        #map-container {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+
         #map {
             width: 100%;
             height: 100%;
             z-index: 1;
-            border-radius: 1rem;
         }
-        /* Custom map tile contrast overlay */
-        .leaflet-tile-pane {
-            filter: brightness(0.85) contrast(1.1) saturate(1.2);
-        }
+
         .glass-panel {
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(11, 25, 44, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .glow-button {
-            box-shadow: 0 0 15px rgba(20, 184, 166, 0.4);
-            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(20, 184, 166, 0.35);
+            transition: all 0.25s ease;
+        }
+        .glow-button:hover {
+            box-shadow: 0 0 22px rgba(20, 184, 166, 0.6);
+            transform: translateY(-1px);
         }
         .glow-button:active {
-            transform: scale(0.96);
-            box-shadow: 0 0 5px rgba(20, 184, 166, 0.6);
+            transform: scale(0.97);
         }
+
         .pulse-live {
-            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
         }
         @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(20, 184, 166, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(20, 184, 166, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Custom Leaflet Map Pin Badges */
+        .custom-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 2px solid white;
+        }
+        .start-pin { background: #10b981; }
+        .finish-pin { background: #ef4444; }
+
+        /* Leaflet Controls Styling Customization */
+        .leaflet-control-layers {
+            background: rgba(15, 23, 42, 0.9) !important;
+            color: #f1f5f9 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 0.75rem !important;
+            padding: 8px 12px !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+        }
+        .leaflet-control-layers-base label {
+            display: flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            font-size: 0.825rem !important;
+            cursor: pointer !important;
+            padding: 2px 0 !important;
         }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-teal-500 selection:text-white">
 
-    <!-- Navigation Header -->
-    <header class="sticky top-0 z-50 glass-panel border-b border-slate-800 px-4 py-3">
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-slate-800/80 px-4 py-3">
         <div class="max-w-6xl mx-auto flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-400 flex items-center justify-center text-slate-950 font-bold shadow-lg">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 via-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-extrabold shadow-lg">
                     <i class="fa-solid fa-water text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-lg leading-tight tracking-wide bg-gradient-to-r from-teal-200 to-cyan-400 bg-clip-text text-transparent">
-                        SUP GPS Pro
+                    <h1 class="font-extrabold text-lg leading-tight tracking-wide bg-gradient-to-r from-teal-200 via-cyan-300 to-blue-400 bg-clip-text text-transparent">
+                        SUP GPS Pro Suite
                     </h1>
-                    <p class="text-xs text-slate-400">Paddleboard Session Tracker</p>
+                    <p class="text-xs text-slate-400">Marine Route Logger & Map Exporter</p>
                 </div>
             </div>
-            
+
             <div class="flex items-center gap-2">
-                <span id="gpsStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
-                    <span class="w-2 h-2 rounded-full bg-slate-500"></span> GPS Idle
+                <button id="btnDemoRoute" class="px-3 py-1.5 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span class="hidden sm:inline">Simulate</span> Route
+                </button>
+                <span id="gpsStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+                    <span class="w-2 h-2 rounded-full bg-slate-500"></span> GPS Standby
                 </span>
             </div>
         </div>
     </header>
 
     <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-4">
-        
-        <!-- Live Map Section -->
-        <div class="relative w-full h-[320px] sm:h-[400px] rounded-2xl overflow-hidden border border-slate-800 shadow-2xl glass-panel">
-            <div id="map"></div>
+
+        <!-- Map & Layer Control Section -->
+        <div class="glass-panel p-3 sm:p-4 rounded-2xl border border-slate-800 shadow-2xl flex flex-col gap-3">
             
-            <!-- Floating Map Controls -->
-            <div class="absolute top-3 right-3 z-[400] flex flex-col gap-2">
-                <button id="btnRecenter" class="w-10 h-10 glass-panel rounded-xl flex items-center justify-center text-teal-300 hover:bg-slate-800 active:scale-95 transition shadow-lg" title="Recenter Location">
-                    <i class="fa-solid fa-crosshairs"></i>
-                </button>
+            <!-- Layer Selector Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                <div class="flex items-center gap-1.5 text-xs text-slate-300 font-semibold px-2">
+                    <i class="fa-solid fa-layer-group text-cyan-400"></i>
+                    <span>Base Map:</span>
+                </div>
+                
+                <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                    <button id="btnMapOSM" class="px-3 py-1.5 rounded-md font-medium text-slate-300 hover:text-white transition bg-teal-600 text-white shadow-sm" onclick="switchBaseMap('osm')">
+                        <i class="fa-solid fa-map"></i> OSM Standard
+                    </button>
+                    <button id="btnMapTopo" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition" onclick="switchBaseMap('topo')">
+                        <i class="fa-solid fa-mountain text-amber-400"></i> OpenTopo
+                    </button>
+                    <button id="btnMapEsri" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition" onclick="switchBaseMap('esri')">
+                        <i class="fa-solid fa-earth-americas text-blue-400"></i> Esri Satellite
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2 ml-auto">
+                    <div class="flex items-center gap-1 text-xs text-slate-400">
+                        <span>Line:</span>
+                        <input type="color" id="routeColorPicker" value="#00f2fe" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Viewport -->
+            <div id="map-container" class="relative border border-slate-800/80 shadow-inner">
+                <div id="map"></div>
+
+                <!-- Floating Recenter & Snapshot Action Tools -->
+                <div class="absolute top-3 right-3 z-[400] flex flex-col gap-2">
+                    <button id="btnRecenter" class="w-10 h-10 glass-panel rounded-xl flex items-center justify-center text-teal-300 hover:bg-slate-800 active:scale-95 transition shadow-xl" title="Recenter Location">
+                        <i class="fa-solid fa-crosshairs"></i>
+                    </button>
+                    <button id="btnFitBounds" class="w-10 h-10 glass-panel rounded-xl flex items-center justify-center text-cyan-300 hover:bg-slate-800 active:scale-95 transition shadow-xl" title="Fit Entire Route">
+                        <i class="fa-solid fa-expand"></i>
+                    </button>
+                </div>
+
+                <!-- Route Status Overlay Banner on Map -->
+                <div id="mapOverlayInfo" class="absolute bottom-3 left-3 z-[400] glass-panel px-3 py-1.5 rounded-xl border border-slate-700/80 text-xs flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                    <span id="routePointCountText" class="font-mono text-slate-300">0 Route Points Logged</span>
+                </div>
             </div>
         </div>
 
-        <!-- Real-time Dashboard Telemetry Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <!-- Distance -->
-            <div class="glass-panel p-4 rounded-2xl border border-slate-800/80">
+        <!-- Telemetry Dashboard -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <!-- Distance (KM / NM) -->
+            <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>DISTANCE</span>
                     <i class="fa-solid fa-route text-teal-400"></i>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="valDistance" class="text-2xl sm:text-3xl font-extrabold text-white">0.00</span>
-                    <span class="text-xs text-teal-400 font-semibold">km</span>
+                    <span id="valDistanceKm" class="text-2xl font-extrabold text-white">0.00</span>
+                    <span class="text-xs text-teal-400 font-bold">km</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    <span id="valDistanceNm">0.00</span> nmi
                 </div>
             </div>
 
-            <!-- Duration -->
-            <div class="glass-panel p-4 rounded-2xl border border-slate-800/80">
+            <!-- Elapsed Time -->
+            <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
-                    <span>TIME</span>
+                    <span>DURATION</span>
                     <i class="fa-regular fa-clock text-cyan-400"></i>
                 </div>
-                <div id="valTime" class="text-2xl sm:text-3xl font-extrabold text-white font-mono">
+                <div id="valTime" class="text-2xl font-extrabold text-white font-mono">
                     00:00:00
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    Active Session
                 </div>
             </div>
 
-            <!-- Speed -->
-            <div class="glass-panel p-4 rounded-2xl border border-slate-800/80">
+            <!-- Speed (KM/H & Knots) -->
+            <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
-                    <span>SPEED</span>
+                    <span>CURRENT SPEED</span>
                     <i class="fa-solid fa-gauge-high text-emerald-400"></i>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="valSpeed" class="text-2xl sm:text-3xl font-extrabold text-white">0.0</span>
-                    <span class="text-xs text-emerald-400 font-semibold">km/h</span>
+                    <span id="valSpeedKmh" class="text-2xl font-extrabold text-white">0.0</span>
+                    <span class="text-xs text-emerald-400 font-bold">km/h</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    <span id="valSpeedKnots">0.0</span> kts
                 </div>
             </div>
 
-            <!-- Pace / Avg Speed -->
-            <div class="glass-panel p-4 rounded-2xl border border-slate-800/80">
+            <!-- Avg & Max Speed -->
+            <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
-                    <span>AVG SPEED</span>
+                    <span>AVG / MAX SPEED</span>
                     <i class="fa-solid fa-chart-line text-blue-400"></i>
                 </div>
                 <div class="flex items-baseline gap-1">
-                    <span id="valAvgSpeed" class="text-2xl sm:text-3xl font-extrabold text-white">0.0</span>
+                    <span id="valAvgSpeed" class="text-xl font-bold text-white">0.0</span>
                     <span class="text-xs text-blue-400 font-semibold">km/h</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    Max: <span id="valMaxSpeed">0.0</span> km/h
+                </div>
+            </div>
+
+            <!-- Paddle Strokes -->
+            <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
+                <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
+                    <span>EST. STROKES</span>
+                    <i class="fa-solid fa-person-rowing text-amber-400"></i>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span id="valStrokes" class="text-2xl font-extrabold text-white">0</span>
+                    <span class="text-xs text-amber-400 font-bold">paddles</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    ~35 strokes/min
+                </div>
+            </div>
+
+            <!-- Burned Calories -->
+            <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
+                <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
+                    <span>CALORIES</span>
+                    <i class="fa-solid fa-fire text-rose-400"></i>
+                </div>
+                <div class="flex items-baseline gap-1">
+                    <span id="valCalories" class="text-2xl font-extrabold text-white">0</span>
+                    <span class="text-xs text-rose-400 font-bold">kcal</span>
+                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+                    Moderate SUP
                 </div>
             </div>
         </div>
 
-        <!-- Primary Action Toolbar -->
-        <div class="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row gap-3 items-center justify-between border border-slate-800">
+        <!-- Session Controls -->
+        <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between border border-slate-800">
             <!-- Tracking Controls -->
-            <div class="flex items-center gap-3 w-full sm:w-auto">
-                <button id="btnStart" class="flex-1 sm:flex-none px-6 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold rounded-xl glow-button flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-play"></i>
-                    <span>Start Paddling</span>
+            <div class="flex items-center gap-2.5 w-full md:w-auto">
+                <button id="btnStart" class="flex-1 md:flex-none px-6 py-3.5 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold rounded-xl glow-button flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play text-lg"></i>
+                    <span>Start Session</span>
                 </button>
 
-                <button id="btnPause" class="hidden flex-1 sm:flex-none px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95">
+                <button id="btnPause" class="hidden flex-1 md:flex-none px-5 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95">
                     <i class="fa-solid fa-pause"></i>
                     <span>Pause</span>
                 </button>
 
-                <button id="btnStop" class="hidden flex-1 sm:flex-none px-6 py-3.5 bg-rose-500 hover:bg-rose-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95">
-                    <i class="fa-solid fa-square"></i>
+                <button id="btnStop" class="hidden flex-1 md:flex-none px-5 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95">
+                    <i class="fa-solid fa-flag-checkered"></i>
                     <span>Finish</span>
                 </button>
             </div>
 
-            <!-- Share & Export Buttons -->
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-                <button id="btnShareNative" class="flex-1 sm:flex-none px-4 py-3 bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold rounded-xl border border-teal-500/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none" disabled>
-                    <i class="fa-solid fa-share-nodes text-lg"></i>
-                    <span>Share GPS File</span>
+            <!-- Route Image Capture & File Export Actions -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button id="btnCaptureMap" class="flex-1 md:flex-none px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl border border-cyan-400/30 flex items-center justify-center gap-2 transition shadow-md active:scale-95">
+                    <i class="fa-solid fa-camera text-emerald-300"></i>
+                    <span>Capture Route Map</span>
                 </button>
 
-                <button id="btnSaveFS" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl border border-slate-700 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none" disabled title="Save to File System API">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    <span class="hidden md:inline">Save .GPX</span>
+                <button id="btnShareNative" class="flex-1 md:flex-none px-4 py-3 bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold rounded-xl border border-teal-500/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none" disabled>
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>Share GPS</span>
                 </button>
             </div>
         </div>
 
-        <!-- Email & Native Web Share Integration Guide -->
+        <!-- Advanced Export & Email Attachment Hub -->
         <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-paper-plane text-teal-400 text-lg"></i>
-                    <h2 class="font-bold text-base text-slate-200">Email Attachment & Export Hub</h2>
+                    <i class="fa-solid fa-envelope-open-text text-cyan-400 text-lg"></i>
+                    <h2 class="font-bold text-base text-slate-200">Email & Export Route Center</h2>
                 </div>
-                <span class="text-xs text-slate-400 bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700">iOS & Android Compatible</span>
+                <span class="text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">GPX / KML / Map PNG</span>
             </div>
 
-            <!-- Web Share API capabilities explanation -->
-            <div id="shareSupportBanner" class="p-3.5 rounded-xl bg-teal-950/40 border border-teal-500/20 text-xs sm:text-sm text-teal-200/90 flex items-start gap-3">
-                <i class="fa-solid fa-circle-info text-teal-400 text-base mt-0.5 shrink-0"></i>
-                <div>
-                    <p class="font-semibold mb-0.5">Direct Smartphone Email Attachment Workflow:</p>
-                    <p class="text-slate-300">
-                        When you tap <strong>"Share GPS File"</strong>, your phone's native share menu (Android / iOS) will launch. Choose <strong>Gmail, Apple Mail, Outlook, or Messaging</strong> to automatically create an email draft with your live recorded <code class="text-cyan-300 font-mono">.gpx</code> session directly attached!
-                    </p>
+            <!-- Captured Image Preview Box -->
+            <div id="capturedImageContainer" class="hidden p-3 bg-slate-900/90 rounded-xl border border-cyan-500/30 space-y-2">
+                <div class="flex items-center justify-between text-xs font-semibold text-cyan-300">
+                    <span><i class="fa-solid fa-image mr-1"></i> Generated Route Map Snapshot</span>
+                    <button id="btnDiscardCapture" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-xmark"></i> Remove</button>
+                </div>
+                <img id="capturedImagePreview" class="w-full max-h-56 object-contain rounded-lg border border-slate-800" alt="Route Map Capture Preview">
+                <div class="flex justify-end gap-2 pt-1">
+                    <button id="btnDownloadCapturedImg" class="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Save Image File
+                    </button>
                 </div>
             </div>
 
-            <!-- Direct Email Form / Fallback instructions -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <!-- Email & Direct Download Form Controls -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Pre-fill Recipient Email</label>
                     <div class="flex gap-2">
-                        <input type="email" id="targetEmail" placeholder="paddler@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500">
+                        <input type="email" id="targetEmail" placeholder="paddler@example.com" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 font-mono">
                         <button id="btnPrepareMailto" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl text-teal-300 whitespace-nowrap transition">
-                            Launch Mail App
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Launch Email
                         </button>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Export Format</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">GPS Data File Export</label>
                     <div class="flex gap-2">
-                        <select id="exportFormat" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500">
-                            <option value="gpx">GPX format (GPS Exchange Data)</option>
-                            <option value="kml">KML format (Google Earth)</option>
+                        <select id="exportFormat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500">
+                            <option value="gpx">GPX (GPS Exchange Format)</option>
+                            <option value="kml">KML (Google Earth Path)</option>
                         </select>
                         <button id="btnDirectDownload" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl text-slate-200 flex items-center gap-1.5 transition">
-                            <i class="fa-solid fa-download"></i> Download
+                            <i class="fa-solid fa-file-arrow-down"></i> Download Data
                         </button>
                     </div>
                 </div>
             </div>
-
-            <!-- Manual Attachment Step-by-Step Instructions -->
-            <details class="text-xs text-slate-400 border-t border-slate-800 pt-3 cursor-pointer">
-                <summary class="font-semibold text-slate-300 hover:text-teal-300 transition flex items-center gap-1">
-                    <i class="fa-solid fa-circle-question"></i> How do I attach the file manually on my phone if Web Share isn't supported?
-                </summary>
-                <ol class="list-decimal list-inside space-y-1.5 mt-2 pl-2 text-slate-400">
-                    <li>Tap <strong>"Download"</strong> or <strong>"Save .GPX"</strong> above to save the file into your phone's Downloads folder or Files App.</li>
-                    <li>Open your mobile email app (Gmail, Apple Mail, Samsung Email).</li>
-                    <li>Create a new email and tap the paperclip / attachment icon.</li>
-                    <li>Browse your smartphone file picker, select the downloaded <code class="text-cyan-300 font-mono">sup-session-....gpx</code> file, and hit send!</li>
-                </ol>
-            </details>
         </div>
 
     </main>
 
-    <!-- Application Footer -->
-    <footer class="glass-panel border-t border-slate-800 py-3 px-4 text-center text-xs text-slate-500 mt-4">
-        <p>SUP GPS Mobile Tracker &bull; Powered by HTML5 Geolocation & Web Share API</p>
+    <!-- Footer -->
+    <footer class="glass-panel border-t border-slate-800/80 py-3 px-4 text-center text-xs text-slate-500 mt-4">
+        <p>SUP GPS Pro Marine Suite &bull; Multi-Layer Map Engine with Start/Finish Markers & Image Export</p>
     </footer>
 
     <script>
-        // State variables
+        // Application Logic & State Variables
         let isTracking = false;
         let isPaused = false;
         let watchId = null;
         let gpsTrackPoints = []; // Stores {lat, lng, alt, speed, timestamp}
         let totalDistance = 0; // meters
+        let maxSpeedMs = 0; // m/s
         let startTime = null;
-        let elapsedTime = 0; // ms
+        let elapsedTime = 0; // milliseconds
         let timerInterval = null;
+        let lastCapturedBlob = null;
 
-        // Leaflet Map variables
+        // Leaflet Map & Layer References
         let map = null;
         let polyline = null;
         let userMarker = null;
+        let startMarker = null;
+        let finishMarker = null;
 
-        // UI Element References
+        // Base Map Tile Layers
+        let tileOsm = null;
+        let tileTopo = null;
+        let tileEsri = null;
+        let activeBaseLayer = 'osm';
+
+        // DOM Element References
         const btnStart = document.getElementById('btnStart');
         const btnPause = document.getElementById('btnPause');
         const btnStop = document.getElementById('btnStop');
+        const btnCaptureMap = document.getElementById('btnCaptureMap');
         const btnShareNative = document.getElementById('btnShareNative');
-        const btnSaveFS = document.getElementById('btnSaveFS');
         const btnPrepareMailto = document.getElementById('btnPrepareMailto');
         const btnDirectDownload = document.getElementById('btnDirectDownload');
         const btnRecenter = document.getElementById('btnRecenter');
-        
-        const valDistance = document.getElementById('valDistance');
+        const btnFitBounds = document.getElementById('btnFitBounds');
+        const btnDemoRoute = document.getElementById('btnDemoRoute');
+        const routeColorPicker = document.getElementById('routeColorPicker');
+
+        const valDistanceKm = document.getElementById('valDistanceKm');
+        const valDistanceNm = document.getElementById('valDistanceNm');
         const valTime = document.getElementById('valTime');
-        const valSpeed = document.getElementById('valSpeed');
+        const valSpeedKmh = document.getElementById('valSpeedKmh');
+        const valSpeedKnots = document.getElementById('valSpeedKnots');
         const valAvgSpeed = document.getElementById('valAvgSpeed');
+        const valMaxSpeed = document.getElementById('valMaxSpeed');
+        const valStrokes = document.getElementById('valStrokes');
+        const valCalories = document.getElementById('valCalories');
         const gpsStatusBadge = document.getElementById('gpsStatusBadge');
+        const routePointCountText = document.getElementById('routePointCountText');
+
+        const capturedImageContainer = document.getElementById('capturedImageContainer');
+        const capturedImagePreview = document.getElementById('capturedImagePreview');
+        const btnDiscardCapture = document.getElementById('btnDiscardCapture');
+        const btnDownloadCapturedImg = document.getElementById('btnDownloadCapturedImg');
 
         window.addEventListener('DOMContentLoaded', () => {
-            initMap();
-            checkCapabilities();
+            initMapEngine();
         });
 
-        function initMap() {
-            // Default center (Ocean preview - near coastal default or standard location)
+        function initMapEngine() {
+            // Define Tile Layers
+            // 1. OpenStreetMap Standard
+            tileOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            });
+
+            // 2. OpenTopoMap Topographic
+            tileTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                maxZoom: 17,
+                attribution: '© OpenTopoMap'
+            });
+
+            // 3. Esri World Imagery (Satellite)
+            tileEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 18,
+                attribution: 'Tiles © Esri'
+            });
+
+            // Initialize Leaflet Map centered on coastal default
             map = L.map('map', {
                 zoomControl: false,
-                attributionControl: false
-            }).setView([20.7984, -156.3319], 13); // Default Hawaii coast area placeholder
+                attributionControl: false,
+                layers: [tileOsm]
+            }).setView([20.7984, -156.3319], 14);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-            }).addTo(map);
-
-            // Path line styling
+            // Polyline styling
             polyline = L.polyline([], {
-                color: '#00f2fe',
+                color: routeColorPicker.value,
                 weight: 5,
                 opacity: 0.9,
                 lineCap: 'round',
                 lineJoin: 'round'
             }).addTo(map);
 
-            // Attempt initial geolocation to center map
+            // Dynamic route color picker handler
+            routeColorPicker.addEventListener('input', (e) => {
+                if (polyline) {
+                    polyline.setStyle({ color: e.target.value });
+                }
+            });
+
+            // Request immediate user location fix
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition((pos) => {
                     const lat = pos.coords.latitude;
                     const lng = pos.coords.longitude;
                     map.setView([lat, lng], 15);
                     updateUserMarker(lat, lng);
-                }, (err) => {
-                    console.log("Initial position lock pending tracking start...");
+                }, () => {
+                    console.log("Waiting for user position lock...");
                 });
             }
         }
 
-        function checkCapabilities() {
-            // Disable or highlight File System API if not natively supported
-            if (!('showSaveFilePicker' in window)) {
-                btnSaveFS.title = "Web File System Access API not supported in this browser; fallback available.";
+        // Base Map Layer Switching Function
+        function switchBaseMap(layerName) {
+            activeBaseLayer = layerName;
+            
+            // Remove existing tile layers
+            map.removeLayer(tileOsm);
+            map.removeLayer(tileTopo);
+            map.removeLayer(tileEsri);
+
+            // Reset UI button styles
+            document.getElementById('btnMapOSM').className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition";
+            document.getElementById('btnMapTopo').className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition";
+            document.getElementById('btnMapEsri').className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition";
+
+            if (layerName === 'osm') {
+                tileOsm.addTo(map);
+                document.getElementById('btnMapOSM').className = "px-3 py-1.5 rounded-md font-medium text-white transition bg-teal-600 shadow-sm";
+            } else if (layerName === 'topo') {
+                tileTopo.addTo(map);
+                document.getElementById('btnMapTopo').className = "px-3 py-1.5 rounded-md font-medium text-white transition bg-amber-600 shadow-sm";
+            } else if (layerName === 'esri') {
+                tileEsri.addTo(map);
+                document.getElementById('btnMapEsri').className = "px-3 py-1.5 rounded-md font-medium text-white transition bg-blue-600 shadow-sm";
             }
         }
 
@@ -348,10 +540,12 @@
         btnPause.addEventListener('click', togglePause);
         btnStop.addEventListener('click', stopTracking);
         btnRecenter.addEventListener('click', recenterMap);
+        btnFitBounds.addEventListener('click', fitRouteBounds);
+        btnDemoRoute.addEventListener('click', generateDemoRoute);
 
         function startTracking() {
             if (!("geolocation" in navigator)) {
-                alert("Geolocation is not supported by your mobile browser.");
+                alert("Geolocation is not supported by your browser.");
                 return;
             }
 
@@ -361,51 +555,43 @@
             if (gpsTrackPoints.length === 0) {
                 startTime = Date.now();
                 totalDistance = 0;
+                maxSpeedMs = 0;
+                clearRouteMarkers();
             }
 
-            // UI updates
             btnStart.classList.add('hidden');
             btnPause.classList.remove('hidden');
             btnStop.classList.remove('hidden');
             btnShareNative.disabled = true;
-            btnSaveFS.disabled = true;
 
-            gpsStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-teal-950 text-teal-300 border border-teal-500/40 pulse-live";
+            gpsStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-teal-950 text-teal-300 border border-teal-500/40 pulse-live";
             gpsStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-teal-400"></span> Live Tracking`;
 
-            // Start Timer
             timerInterval = setInterval(updateTimer, 1000);
 
-            // Start Geolocation Watch
             watchId = navigator.geolocation.watchPosition(
                 handleGpsSuccess,
                 handleGpsError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
 
         function togglePause() {
             if (isPaused) {
-                // Resume
                 isPaused = false;
                 btnPause.innerHTML = `<i class="fa-solid fa-pause"></i><span>Pause</span>`;
-                btnPause.className = "flex-1 sm:flex-none px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95";
+                btnPause.className = "flex-1 md:flex-none px-5 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95";
                 timerInterval = setInterval(updateTimer, 1000);
             } else {
-                // Pause
                 isPaused = true;
                 btnPause.innerHTML = `<i class="fa-solid fa-play"></i><span>Resume</span>`;
-                btnPause.className = "flex-1 sm:flex-none px-6 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95";
+                btnPause.className = "flex-1 md:flex-none px-5 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95";
                 clearInterval(timerInterval);
             }
         }
 
         function stopTracking() {
-            if (!confirm("Are you sure you want to complete this SUP session?")) return;
+            if (!confirm("Finish current paddleboard session and calculate route summary?")) return;
 
             isTracking = false;
             isPaused = false;
@@ -417,12 +603,13 @@
             btnPause.classList.add('hidden');
             btnStop.classList.add('hidden');
 
-            gpsStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700";
+            gpsStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700";
             gpsStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-400"></span> Session Finished`;
 
             if (gpsTrackPoints.length > 0) {
                 btnShareNative.disabled = false;
-                btnSaveFS.disabled = false;
+                renderStartAndFinishMarkers();
+                fitRouteBounds();
             }
         }
 
@@ -432,45 +619,37 @@
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const alt = position.coords.altitude || 0;
-            const speedMs = position.coords.speed || 0; // m/s
-            const speedKmh = (speedMs * 3.6).toFixed(1);
+            const speedMs = position.coords.speed || 0;
             const time = new Date(position.timestamp);
 
             const lastPoint = gpsTrackPoints[gpsTrackPoints.length - 1];
             
             if (lastPoint) {
-                const distIncrement = calculateHaversineDistance(
-                    lastPoint.lat, lastPoint.lng, lat, lng
-                );
-                // Filter out minimal GPS jitter (less than 1.5 meters)
-                if (distIncrement > 1.5) {
+                const distIncrement = calculateHaversineDistance(lastPoint.lat, lastPoint.lng, lat, lng);
+                if (distIncrement > 1.2) { // GPS threshold filter
                     totalDistance += distIncrement;
                 }
             }
 
-            gpsTrackPoints.push({
-                lat,
-                lng,
-                alt,
-                speed: speedMs,
-                timestamp: time
-            });
+            if (speedMs > maxSpeedMs) {
+                maxSpeedMs = speedMs;
+            }
 
-            // Update Map Visuals
+            gpsTrackPoints.push({ lat, lng, alt, speed: speedMs, timestamp: time });
+
+            // Render Start Marker on first point
+            if (gpsTrackPoints.length === 1) {
+                renderStartMarker(lat, lng);
+            }
+
+            // Update Polyline
             const currentLatLng = [lat, lng];
             polyline.addLatLng(currentLatLng);
             updateUserMarker(lat, lng);
             map.panTo(currentLatLng);
 
-            // Update Telemetry Display
-            valDistance.textContent = (totalDistance / 1000).toFixed(2);
-            valSpeed.textContent = speedKmh;
-
-            const elapsedSecs = elapsedTime / 1000;
-            if (elapsedSecs > 0) {
-                const avgSpeedKmh = ((totalDistance / 1000) / (elapsedSecs / 3600)).toFixed(1);
-                valAvgSpeed.textContent = avgSpeedKmh;
-            }
+            // Update Telemetry Displays
+            updateTelemetryDisplay(speedMs);
         }
 
         function handleGpsError(err) {
@@ -491,9 +670,60 @@
             }
         }
 
+        function renderStartMarker(lat, lng) {
+            if (startMarker) map.removeLayer(startMarker);
+
+            const startIcon = L.divIcon({
+                className: 'custom-pin start-pin',
+                html: 'START',
+                iconSize: [44, 22],
+                iconAnchor: [22, 11]
+            });
+
+            startMarker = L.marker([lat, lng], { icon: startIcon }).addTo(map)
+                .bindPopup("<b>Session Start</b><br>Paddleboard Launch Point");
+        }
+
+        function renderFinishMarker(lat, lng) {
+            if (finishMarker) map.removeLayer(finishMarker);
+
+            const finishIcon = L.divIcon({
+                className: 'custom-pin finish-pin',
+                html: 'FINISH',
+                iconSize: [48, 22],
+                iconAnchor: [24, 11]
+            });
+
+            finishMarker = L.marker([lat, lng], { icon: finishIcon }).addTo(map)
+                .bindPopup("<b>Session Finish</b><br>Final Landing Location");
+        }
+
+        function renderStartAndFinishMarkers() {
+            if (gpsTrackPoints.length === 0) return;
+
+            const firstPt = gpsTrackPoints[0];
+            const lastPt = gpsTrackPoints[gpsTrackPoints.length - 1];
+
+            renderStartMarker(firstPt.lat, firstPt.lng);
+            renderFinishMarker(lastPt.lat, lastPt.lng);
+        }
+
+        function clearRouteMarkers() {
+            if (startMarker) { map.removeLayer(startMarker); startMarker = null; }
+            if (finishMarker) { map.removeLayer(finishMarker); finishMarker = null; }
+        }
+
         function recenterMap() {
             if (userMarker) {
                 map.setView(userMarker.getLatLng(), 16);
+            }
+        }
+
+        function fitRouteBounds() {
+            if (gpsTrackPoints.length > 0) {
+                const latLngs = gpsTrackPoints.map(p => [p.lat, p.lng]);
+                const bounds = L.latLngBounds(latLngs);
+                map.fitBounds(bounds, { padding: [40, 40] });
             }
         }
 
@@ -504,10 +734,45 @@
             const mins = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
             const secs = String(totalSecs % 60).padStart(2, '0');
             valTime.textContent = `${hrs}:${mins}:${secs}`;
+
+            const lastPoint = gpsTrackPoints[gpsTrackPoints.length - 1];
+            updateTelemetryDisplay(lastPoint ? lastPoint.speed : 0);
+        }
+
+        function updateTelemetryDisplay(currentSpeedMs) {
+            const distKm = totalDistance / 1000;
+            const distNm = distKm * 0.539957;
+
+            valDistanceKm.textContent = distKm.toFixed(2);
+            valDistanceNm.textContent = distNm.toFixed(2);
+
+            const speedKmh = currentSpeedMs * 3.6;
+            const speedKnots = speedKmh * 0.539957;
+
+            valSpeedKmh.textContent = speedKmh.toFixed(1);
+            valSpeedKnots.textContent = speedKnots.toFixed(1);
+
+            const elapsedSecs = elapsedTime / 1000;
+            if (elapsedSecs > 0) {
+                const avgSpeedKmh = (distKm / (elapsedSecs / 3600));
+                valAvgSpeed.textContent = avgSpeedKmh.toFixed(1);
+
+                // Estimated paddle strokes (~35 strokes per min average)
+                const totalMinutes = elapsedSecs / 60;
+                const estStrokes = Math.round(totalMinutes * 35);
+                valStrokes.textContent = estStrokes.toLocaleString();
+
+                // Estimated Calories Burned (~450 kcal/hour for moderate SUP)
+                const estCalories = Math.round((elapsedSecs / 3600) * 450);
+                valCalories.textContent = estCalories;
+            }
+
+            valMaxSpeed.textContent = (maxSpeedMs * 3.6).toFixed(1);
+            routePointCountText.textContent = `${gpsTrackPoints.length} Route Points Logged`;
         }
 
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // Earth radius in meters
+            const R = 6371e3;
             const φ1 = lat1 * Math.PI / 180;
             const φ2 = lat2 * Math.PI / 180;
             const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -521,18 +786,127 @@
             return R * c;
         }
 
+        function generateDemoRoute() {
+            if (isTracking) {
+                alert("Please finish current live session before simulating a demo route.");
+                return;
+            }
+
+            gpsTrackPoints = [];
+            totalDistance = 0;
+            elapsedTime = 0;
+            polyline.setLatLngs([]);
+            clearRouteMarkers();
+
+            // Coastal Hawaii SUP route coordinates
+            const baseLat = 20.7984;
+            const baseLng = -156.3319;
+            const routeOffsets = [
+                [0, 0], [0.0015, 0.0020], [0.0028, 0.0045], [0.0040, 0.0070],
+                [0.0032, 0.0095], [0.0010, 0.0110], [-0.0012, 0.0090], [-0.0025, 0.0060],
+                [-0.0020, 0.0030], [-0.0005, 0.0005]
+            ];
+
+            const now = Date.now();
+            routeOffsets.forEach((offset, idx) => {
+                const ptLat = baseLat + offset[0];
+                const ptLng = baseLng + offset[1];
+                const ptTime = new Date(now + idx * 120000); // 2 min intervals
+                const speed = 1.8 + Math.random() * 0.8; // ~6.5 km/h
+
+                if (idx > 0) {
+                    const prev = gpsTrackPoints[idx - 1];
+                    totalDistance += calculateHaversineDistance(prev.lat, prev.lng, ptLat, ptLng);
+                }
+
+                gpsTrackPoints.push({
+                    lat: ptLat,
+                    lng: ptLng,
+                    alt: 0,
+                    speed: speed,
+                    timestamp: ptTime
+                });
+            });
+
+            elapsedTime = (routeOffsets.length - 1) * 120000;
+            maxSpeedMs = 2.6;
+
+            // Render on map
+            const latLngs = gpsTrackPoints.map(p => [p.lat, p.lng]);
+            polyline.setLatLngs(latLngs);
+            renderStartAndFinishMarkers();
+            fitRouteBounds();
+
+            updateTimer();
+            btnShareNative.disabled = false;
+            
+            gpsStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-teal-300 border border-teal-500/30";
+            gpsStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-cyan-400"></span> Demo Route Loaded`;
+        }
+
+        btnCaptureMap.addEventListener('click', async () => {
+            const mapContainer = document.getElementById('map-container');
+            btnCaptureMap.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Rendering Map...`;
+            btnCaptureMap.disabled = true;
+
+            try {
+                // Render map viewport using html2canvas
+                const canvas = await html2canvas(mapContainer, {
+                    useCORS: true,
+                    allowTaint: true,
+                    scale: 2, // High resolution output
+                    logging: false
+                });
+
+                canvas.toBlob((blob) => {
+                    lastCapturedBlob = blob;
+                    const imgUrl = URL.createObjectURL(blob);
+                    capturedImagePreview.src = imgUrl;
+                    capturedImageContainer.classList.remove('hidden');
+
+                    btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> Captured!`;
+                    setTimeout(() => {
+                        btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> Capture Route Map`;
+                        btnCaptureMap.disabled = false;
+                    }, 1500);
+                }, 'image/png');
+
+            } catch (err) {
+                alert("Map image capture failed: " + err.message);
+                btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> Capture Route Map`;
+                btnCaptureMap.disabled = false;
+            }
+        });
+
+        btnDiscardCapture.addEventListener('click', () => {
+            capturedImageContainer.classList.add('hidden');
+            lastCapturedBlob = null;
+        });
+
+        btnDownloadCapturedImg.addEventListener('click', () => {
+            if (!lastCapturedBlob) return;
+            const fileName = `sup-route-map-${Date.now()}.png`;
+            const url = URL.createObjectURL(lastCapturedBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
         function generateGPXData() {
-            const trackName = `SUP Session - ${new Date().toLocaleDateString()}`;
+            const trackName = `SUP Paddle - ${new Date().toLocaleDateString()}`;
             let trkpts = gpsTrackPoints.map(p => {
-                const isoTime = p.timestamp.toISOString();
                 return `      <trkpt lat="${p.lat}" lon="${p.lng}">
         <ele>${p.alt}</ele>
-        <time>${isoTime}</time>
+        <time>${p.timestamp.toISOString()}</time>
       </trkpt>`;
             }).join('\n');
 
             return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="SUP GPS Pro Tracker" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="SUP GPS Pro Suite" xmlns="http://www.topografix.com/GPX/1/1">
   <metadata>
     <name>${trackName}</name>
     <time>${new Date().toISOString()}</time>
@@ -547,7 +921,7 @@ ${trkpts}
         }
 
         function generateKMLData() {
-            const trackName = `SUP Session - ${new Date().toLocaleDateString()}`;
+            const trackName = `SUP Paddle - ${new Date().toLocaleDateString()}`;
             const coords = gpsTrackPoints.map(p => `${p.lng},${p.lat},${p.alt}`).join(' ');
 
             return `<?xml version="1.0" encoding="UTF-8"?>
@@ -555,7 +929,7 @@ ${trkpts}
   <Document>
     <name>${trackName}</name>
     <Placemark>
-      <name>Paddleboard Route</name>
+      <name>SUP Trajectory</name>
       <LineString>
         <extrude>1</extrude>
         <tessellate>1</tessellate>
@@ -566,9 +940,10 @@ ${trkpts}
 </kml>`;
         }
 
+        // Native Web Share API
         btnShareNative.addEventListener('click', async () => {
             if (gpsTrackPoints.length === 0) {
-                alert("No track data available to share. Start a session first!");
+                alert("No route track data available to share.");
                 return;
             }
 
@@ -577,71 +952,28 @@ ${trkpts}
             const fileName = `sup-session-${Date.now()}.${format}`;
             const mimeType = format === 'gpx' ? 'application/gpx+xml' : 'application/vnd.google-earth.kml+xml';
 
-            const file = new File([content], fileName, { type: mimeType });
+            const filesToShare = [new File([content], fileName, { type: mimeType })];
 
-            // Check if navigator.canShare supports files
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            if (lastCapturedBlob) {
+                filesToShare.push(new File([lastCapturedBlob], `sup-route-map.png`, { type: 'image/png' }));
+            }
+
+            if (navigator.canShare && navigator.canShare({ files: filesToShare })) {
                 try {
                     await navigator.share({
-                        title: 'My Stand Up Paddleboard GPS Track',
-                        text: `Here is my recorded SUP session GPS track file (${(totalDistance/1000).toFixed(2)} km).`,
-                        files: [file]
-                    });
-                    console.log('Share successful');
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        alert(`Share failed: ${err.message}`);
-                    }
-                }
-            } else if (navigator.share) {
-                // Fallback share text without attachment
-                try {
-                    await navigator.share({
-                        title: 'SUP Track Summary',
-                        text: `Completed SUP Session! Distance: ${(totalDistance/1000).toFixed(2)} km, Duration: ${valTime.textContent}. Download file on browser.`
+                        title: 'My Stand Up Paddleboard Track',
+                        text: `Check out my recorded SUP route! Distance: ${valDistanceKm.textContent} km (${valDistanceNm.textContent} nmi).`,
+                        files: filesToShare
                     });
                 } catch (err) {
-                     console.log("Fallback share cancelled");
+                    if (err.name !== 'AbortError') console.warn("Share cancelled or error:", err);
                 }
             } else {
-                alert("Web Share API with file attachment is not supported on this browser. Use the Download option instead.");
+                alert("File sharing with Web Share API is not supported on this device. Use Direct Download instead.");
             }
         });
 
-        btnSaveFS.addEventListener('click', async () => {
-            if (gpsTrackPoints.length === 0) {
-                alert("No track data available to save.");
-                return;
-            }
-
-            const format = document.getElementById('exportFormat').value;
-            const content = format === 'gpx' ? generateGPXData() : generateKMLData();
-            const fileName = `sup-session-${Date.now()}.${format}`;
-
-            if ('showSaveFilePicker' in window) {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: fileName,
-                        types: [{
-                            description: format.toUpperCase() + ' GPS File',
-                            accept: { [format === 'gpx' ? 'application/gpx+xml' : 'application/vnd.google-earth.kml+xml']: [`.${format}`] }
-                        }]
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(content);
-                    await writable.close();
-                    alert("GPS file saved successfully to your system!");
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        alert("File Save Error: " + err.message);
-                    }
-                }
-            } else {
-                // Fallback to standard dynamic anchor download
-                triggerDirectDownload(content, fileName);
-            }
-        });
-
+        // Direct Download Action
         btnDirectDownload.addEventListener('click', () => {
             if (gpsTrackPoints.length === 0) {
                 alert("No track data available to download.");
@@ -650,10 +982,7 @@ ${trkpts}
             const format = document.getElementById('exportFormat').value;
             const content = format === 'gpx' ? generateGPXData() : generateKMLData();
             const fileName = `sup-session-${Date.now()}.${format}`;
-            triggerDirectDownload(content, fileName);
-        });
 
-        function triggerDirectDownload(content, fileName) {
             const blob = new Blob([content], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -663,20 +992,24 @@ ${trkpts}
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        }
+        });
 
+        // Mailto Draft Launcher
         btnPrepareMailto.addEventListener('click', () => {
             const email = document.getElementById('targetEmail').value.trim();
-            const subject = encodeURIComponent("My SUP GPS Track Log");
-            const dist = (totalDistance / 1000).toFixed(2);
+            const subject = encodeURIComponent("SUP Paddleboard Route Summary");
+            const dist = valDistanceKm.textContent;
+            const distNm = valDistanceNm.textContent;
             const time = valTime.textContent;
             
             const body = encodeURIComponent(
-                `Hi,\n\nHere are the details for my recent Stand Up Paddleboard session:\n\n` +
-                `- Distance: ${dist} km\n` +
+                `Hi,\n\nHere are the session details for my latest Stand Up Paddleboard session:\n\n` +
+                `- Distance: ${dist} km (${distNm} Nautical Miles)\n` +
                 `- Duration: ${time}\n` +
-                `- Average Speed: ${valAvgSpeed.textContent} km/h\n\n` +
-                `Note: Please find the exported .GPX/.KML file attached to this message (downloaded from the web app).\n\nSent via SUP GPS Tracker Pro.`
+                `- Average Speed: ${valAvgSpeed.textContent} km/h\n` +
+                `- Estimated Strokes: ${valStrokes.textContent}\n` +
+                `- Burned Calories: ${valCalories.textContent} kcal\n\n` +
+                `Note: Downloaded GPS (.GPX) and Map Route Image attached.\n\nSent via SUP GPS Pro Suite.`
             );
 
             window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
