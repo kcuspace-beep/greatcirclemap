@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지리학의 본질과 국가 중심 세계지도</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0f172a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Pretendard', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome & Lucide Icons via CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js for 3D Globe -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+        }
+        .dark .glass-card {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+        }
+        
+        .glow-effect {
+            box-shadow: 0 0 25px -5px rgba(2, 132, 199, 0.3);
+        }
+        
+        /* Map projection container styles */
+        .map-projection-canvas {
+            transition: transform 0.6s ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(2, 132, 199, 0.4);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(2, 132, 199, 0.7);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans transition-colors duration-300 min-h-screen flex flex-col">
+
+    <!-- Navigation Bar -->
+    <header class="sticky top-0 z-50 glass-card border-b border-slate-200 dark:border-slate-800 transition-colors">
+        <div class="max-w-7xl mx-mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid font-bold fa-globe text-xl"></i>
+                </div>
+                <div>
+                    <span class="font-bold text-lg leading-none tracking-tight block">GEOGRAPHY <span class="text-sky-600 dark:text-sky-400">LAB</span></span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">지리학의 본질과 국가 중심 세계지도</span>
+                </div>
+            </div>
+
+            <!-- Desktop Nav -->
+            <nav class="hidden md:flex items-center space-x-6 text-sm font-semibold">
+                <a href="#hero" class="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">개요</a>
+                <a href="#pillars" class="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">지리학의 3대 축</a>
+                <a href="#simulator" class="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">지도 투영 시뮬레이터</a>
+                <a href="#advantages" class="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">3대 핵심 장점</a>
+                <a href="#quiz" class="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">이해도 퀴즈</a>
+            </nav>
+
+            <div class="flex items-center space-x-3">
+                <!-- Dark Mode Toggle Button -->
+                <button id="theme-toggle" class="p-2.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 transition-all" aria-label="Toggle Theme">
+                    <i id="theme-icon" class="fa-solid fa-moon"></i>
+                </button>
+                
+                <a href="#simulator" class="hidden sm:inline-flex items-center px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold shadow-sm transition-all">
+                    시뮬레이터 바로가기
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow">
+        <!-- Hero Section -->
+        <section id="hero" class="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24 border-b border-slate-200 dark:border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                    
+                    <!-- Hero Content -->
+                    <div class="lg:col-span-7 z-10 space-y-6">
+                        <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-100 dark:bg-sky-950/80 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-semibold">
+                            <span class="flex h-2 w-2 rounded-full bg-sky-500 animate-ping"></span>
+                            학술 연구 논문 시각화 모듈
+                        </div>
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                            공간을 해석하는 눈,<br>
+                            <span class="bg-gradient-to-r from-sky-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">지리학의 본질과 국가 중심 세계지도</span>
+                        </h1>
+                        <p class="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
+                            지리학(Geography)은 단순히 지명을 암기하는 학문이 아닌, 자연과 인간이 얽힌 공간적 구조를 탐구하는 고차원 통합 과학입니다. 자국을 중앙에 배치는 지도 재현 관점이 어떻게 주체적 세계관과 지정학적 통찰을 다듬어내는지 탐구해 보세요.
+                        </p>
+
+                        <!-- Abstract Quick Stats -->
+                        <div class="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                            <div>
+                                <div class="text-2xl font-bold text-sky-600 dark:text-sky-400">3 Core</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">학문적 3대 축</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">Centered</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">주체적 공간 좌표계</div>
+                            </div>
+                            <div>
+                                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Cognitive</div>
+                                <div class="text-xs text-slate-500 dark:text-slate-400 font-medium">인지 부하 경감 시각화</div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-4 pt-2">
+                            <a href="#pillars" class="px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-sky-600 dark:hover:bg-sky-500 text-white font-semibold text-sm shadow-md transition-all flex items-center gap-2">
+                                학문 체계 탐색하기 <i class="fa-solid fa-arrow-down text-xs"></i>
+                            </a>
+                            <a href="#simulator" class="px-5 py-3 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 font-semibold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center gap-2">
+                                <i class="fa-solid fa-map text-sky-500"></i> 지도 중심점 비교하기
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Hero 3D Interactive Canvas -->
+                    <div class="lg:col-span-5 relative flex flex-col items-center justify-center">
+                        <div class="w-full aspect-square max-w-[420px] rounded-3xl glass-card p-4 relative overflow-hidden shadow-2xl glow-effect flex flex-col items-center justify-center">
+                            <div class="absolute top-4 left-4 z-10 bg-slate-900/70 backdrop-blur-md text-white text-xs px-3 py-1 rounded-full flex items-center gap-2 border border-slate-700">
+                                <i class="fa-solid fa-arrows-spin animate-spin text-sky-400"></i>
+                                <span>3D 대화형 지구본 (마우스/터치 회전)</span>
+                            </div>
+                            
+                            <div id="globe-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+
+                            <div class="absolute bottom-4 inset-x-4 bg-slate-900/80 backdrop-blur-md text-white text-xs p-3 rounded-xl border border-slate-700/80 flex justify-between items-center">
+                                <div>
+                                    <span class="font-bold text-sky-400 block">현재 관점: 동아시아/한국 중심</span>
+                                    <span class="text-[10px] text-slate-300">태평양-유라시아 연결성 강조</span>
+                                </div>
+                                <button id="reset-globe-btn" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-[11px] font-semibold transition-colors">
+                                    초기화
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 1: What is Geography? (지리학이란 무엇인가?) -->
+        <section id="pillars" class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-sky-600 dark:text-sky-400 text-sm font-bold tracking-wider uppercase">Section 01</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold mt-2 text-slate-900 dark:text-white">지리학의 정의와 3대 학문적 축</h2>
+                <p class="text-slate-600 dark:text-slate-400 mt-4 text-base sm:text-lg">
+                    지리학은 단순히 지명을 기억하는 것을 넘어서 <strong>"무엇이, 어디에, 왜 존재하며, 상호작용하는가?"</strong>를 연구하는 공간 과학(Spatial Science)입니다.
+                </p>
+            </div>
+
+            <!-- 3 Pillars Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <!-- Pillar 1: Physical Geography -->
+                <div class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all duration-300 flex flex-col justify-between border-t-4 border-t-emerald-500">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-bold mb-5">
+                            <i class="fa-solid fa-mountain-sun"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">자연지리학 <span class="text-xs font-normal text-slate-500 block">Physical Geography</span></h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                            기후학, 지형학, 토양학, 생물지리학 등 자연환경의 형성 메커니즘과 지표면 변화 과정을 규명합니다.
+                        </p>
+                        <ul class="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 기후변화 및 자원 생태계 분석</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 자연재해 위험 구역 평가</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-500"></i> 해양 레저 및 해안 지형 형성 탐구</li>
+                        </ul>
+                    </div>
+                    <button onclick="openPillarModal('physical')" class="mt-6 w-full py-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition-colors flex items-center justify-center gap-1">
+                        상세 응용 사례 <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Pillar 2: Human Geography -->
+                <div class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all duration-300 flex flex-col justify-between border-t-4 border-t-sky-500">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-sky-100 dark:bg-sky-950/80 text-sky-600 dark:text-sky-400 flex items-center justify-center text-xl font-bold mb-5">
+                            <i class="fa-solid fa-city"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">인문지리학 <span class="text-xs font-normal text-slate-500 block">Human Geography</span></h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                            도시, 인구, 경제, 문화, 정치지리학 등 인간의 활동과 사회적 현상이 공간에 나타나는 양상을 탐구합니다.
+                        </p>
+                        <ul class="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-sky-500"></i> 도시 재생 및 입지 선정 분석</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-sky-500"></i> 글로벌 물류 및 공급망 구조</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-sky-500"></i> 지정학적 국경 및 권력 관계</li>
+                        </ul>
+                    </div>
+                    <button onclick="openPillarModal('human')" class="mt-6 w-full py-2.5 rounded-lg bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 dark:hover:bg-sky-900/50 text-sky-700 dark:text-sky-300 font-semibold text-xs transition-colors flex items-center justify-center gap-1">
+                        상세 응용 사례 <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Pillar 3: GIScience -->
+                <div class="glass-card rounded-2xl p-6 hover:shadow-xl transition-all duration-300 flex flex-col justify-between border-t-4 border-t-indigo-500">
+                    <div>
+                        <div class="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xl font-bold mb-5">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">지리정보과학 <span class="text-xs font-normal text-slate-500 block">GIScience</span></h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                            지도학(Cartography), 원격탐사(RS), 지리정보시스템(GIS)을 활용하여 공간 빅데이터를 계량화 및 시각화합니다.
+                        </p>
+                        <ul class="space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-500"></i> 위성 영상 데이터 원격 탐사</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-500"></i> 지도 투영법 및 왜곡 보정 기술</li>
+                            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-indigo-500"></i> 스마트시티 공간 최적화 모델링</li>
+                        </ul>
+                    </div>
+                    <button onclick="openPillarModal('gis')" class="mt-6 w-full py-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold text-xs transition-colors flex items-center justify-center gap-1">
+                        상세 응용 사례 <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Section 2: Map Projections & Spatial Bias Simulator -->
+        <section id="simulator" class="py-16 lg:py-24 bg-slate-100/70 dark:bg-slate-900/50 border-y border-slate-200 dark:border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <span class="text-sky-600 dark:text-sky-400 text-sm font-bold tracking-wider uppercase">Section 02</span>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold mt-2 text-slate-900 dark:text-white">지도 투영법 및 시각화 비교 시뮬레이터</h2>
+                    <p class="text-slate-600 dark:text-slate-400 mt-4 text-sm sm:text-base">
+                        3차원 구체인 지구를 2차원 평면에 구현할 때는 '어느 대륙을 중심(Center)에 둘 것인가'에 따라 세계관과 지정학적 인식이 결정적으로 왜곡 및 재구성됩니다.
+                    </p>
+                </div>
+
+                <!-- Interactive Map Comparator Layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    <!-- Controls Panel -->
+                    <div class="lg:col-span-4 glass-card p-6 rounded-2xl space-y-6">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-3 flex items-center justify-between">
+                            <span>투영 중심점 설정</span>
+                            <i class="fa-solid fa-sliders text-sky-500"></i>
+                        </h3>
+
+                        <!-- Projection Selectors -->
+                        <div class="space-y-3">
+                            <button id="btn-asia" onclick="switchProjection('asia')" class="w-full text-left p-3.5 rounded-xl border-2 border-sky-500 bg-sky-50 dark:bg-sky-950/60 text-slate-900 dark:text-white font-semibold text-sm transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-sky-500"></span>
+                                    <span>동아시아 / 한국 중심 (태평양 중심)</span>
+                                </div>
+                                <i class="fa-solid fa-check text-sky-600 dark:text-sky-400"></i>
+                            </button>
+
+                            <button id="btn-euro" onclick="switchProjection('euro')" class="w-full text-left p-3.5 rounded-xl border-2 border-transparent bg-white dark:bg-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300 font-semibold text-sm transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-slate-400"></span>
+                                    <span>유럽 / 아프리카 중심 (전통 메르카토르)</span>
+                                </div>
+                            </button>
+
+                            <button id="btn-americas" onclick="switchProjection('americas')" class="w-full text-left p-3.5 rounded-xl border-2 border-transparent bg-white dark:bg-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300 font-semibold text-sm transition-all flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <span class="w-3 h-3 rounded-full bg-slate-400"></span>
+                                    <span>아메리카 대륙 중심</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Dynamic Analysis Description -->
+                        <div id="projection-info" class="p-4 rounded-xl bg-slate-200/60 dark:bg-slate-800/80 text-xs text-slate-700 dark:text-slate-300 space-y-2">
+                            <div class="font-bold text-sky-600 dark:text-sky-400 text-sm mb-1" id="proj-title">동아시아 / 한국 중심 지도 분석</div>
+                            <p id="proj-desc">
+                                태평양 연안이 중앙에 배치되어 한국, 일본, 중국에서 미국 서해안 및 오세아니아로 이어지는 해양 교통로와 물류 네트워크가 한눈에 직관적으로 드러납니다.
+                            </p>
+                            <div class="pt-2 border-t border-slate-300 dark:border-slate-700 text-[11px] text-slate-500 dark:text-slate-400" id="proj-features">
+                                • 특징: 태평양의 통일성 유지, 지정학적 해양 진출 경로 확보
+                            </div>
+                        </div>
+
+                        <!-- Trade Route Overlay Toggle -->
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                <i class="fa-solid fa-ship text-indigo-500"></i> 태평양/대서양 주요 항로 표시
+                            </span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="routes-toggle" class="sr-only peer" checked onchange="toggleRoutes()">
+                                <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-slate-600 peer-checked:bg-sky-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Map Graphic Screen -->
+                    <div class="lg:col-span-8 glass-card rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                <i class="fa-solid fa-eye text-sky-500"></i> 2D 평면 도법 시각화 결과
+                            </span>
+                            <span class="text-[11px] px-2.5 py-1 bg-sky-100 dark:bg-sky-950 text-sky-700 dark:text-sky-300 rounded-full font-medium" id="map-center-badge">
+                                Center: East Asia (120°E)
+                            </span>
+                        </div>
+
+                        <!-- SVG Map Canvas Graphic -->
+                        <div class="relative w-full aspect-[16/9] bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center p-2">
+                            <svg id="world-map-svg" viewBox="0 0 1000 500" class="w-full h-full transition-transform duration-700">
+                                <!-- Dynamic World Shapes & Grid rendered via JS -->
+                            </svg>
+
+                            <!-- Map Tooltip overlay -->
+                            <div id="map-tooltip" class="absolute hidden bg-slate-900/90 text-white text-xs px-3 py-1.5 rounded shadow-lg border border-slate-700 pointer-events-none">
+                                Region Name
+                            </div>
+                        </div>
+
+                        <!-- Map Legend -->
+                        <div class="mt-4 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600 dark:text-slate-400 pt-3 border-t border-slate-200 dark:border-slate-800">
+                            <div class="flex items-center gap-4">
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-sky-500/80"></span> 중심 국가/지역</span>
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-slate-600"></span> 기타 대륙</span>
+                                <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-amber-400 border border-dashed"></span> 주요 해양 수송 경로</span>
+                            </div>
+                            <div class="text-[11px] text-slate-400">
+                                ※ 중심점에 따른 단절 지역 분석
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 3: 3 Major Advantages of State-Centered Maps (국가 중심 세계지도의 3대 장점) -->
+        <section id="advantages" class="py-16 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-16">
+                <span class="text-sky-600 dark:text-sky-400 text-sm font-bold tracking-wider uppercase">Section 03</span>
+                <h2 class="text-3xl sm:text-4xl font-extrabold mt-2 text-slate-900 dark:text-white">국가 중심 세계지도의 3대 학술적 장점</h2>
+                <p class="text-slate-600 dark:text-slate-400 mt-4 text-base">
+                    연구 논문에 기반한 국가 중심 세계지도 활용의 3가지 핵심 성과 및 인지적 이점입니다.
+                </p>
+            </div>
+
+            <!-- 3 Core Advantages Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                
+                <!-- Advantage 1 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                    <div class="absolute -right-4 -bottom-4 text-8xl font-extrabold text-sky-500/5 dark:text-sky-400/5 group-hover:text-sky-500/10 transition-colors">01</div>
+                    <div class="w-12 h-12 rounded-xl bg-sky-500 text-white flex items-center justify-center font-bold text-xl mb-4 shadow-md">
+                        <i class="fa-solid fa-compass"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">1. 주체적 공간 정체성 확립</h3>
+                    <p class="text-xs text-sky-600 dark:text-sky-400 font-semibold mb-3">Subjective Spatial Identity</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        유럽 중심의 서구적 메르카토르 관점 구도에서 벗어나, 학습자가 거주하는 공간을 '세계의 중심 좌표계'로 인지함으로써 서구 변방의식을 탈피하고 주체적인 자국 중심 시각을 형성을 촉진합니다.
+                    </p>
+                </div>
+
+                <!-- Advantage 2 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                    <div class="absolute -right-4 -bottom-4 text-8xl font-extrabold text-indigo-500/5 dark:text-indigo-400/5 group-hover:text-indigo-500/10 transition-colors">02</div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500 text-white flex items-center justify-center font-bold text-xl mb-4 shadow-md">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">2. 지정학 및 물류 경로 직관성</h3>
+                    <p class="text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-3">Geopolitical & Trade Route Intuition</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        태평양 양 끝 분할을 방지하여 아시아-미주 간 해양 수송로 및 유라시아 대륙 연결성을 절단 없이 한눈에 파악할 수 있으며, 이웃 국가와의 거리감과 안보적 상호작용을 명확히 보여줍니다.
+                    </p>
+                </div>
+
+                <!-- Advantage 3 -->
+                <div class="glass-card rounded-2xl p-6 relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+                    <div class="absolute -right-4 -bottom-4 text-8xl font-extrabold text-emerald-500/5 dark:text-emerald-400/5 group-hover:text-emerald-500/10 transition-colors">03</div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-xl mb-4 shadow-md">
+                        <i class="fa-solid fa-brain"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">3. 인지 부하 감소 및 학습 효율</h3>
+                    <p class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-3">Cognitive Load Reduction</p>
+                    <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                        인지심리학에 의하면 인간은 자신과 가장 가까운 기준점(Anchor Point)을 토대로 타 지역의 관계를 확장할 때 학습 부하가 줄어들며, 시차(Time Zone) 계산 및 기후대 분포 이해도가 증대됩니다.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Interactive Analytical Chart: Cognitive Efficiency Comparison -->
+            <div class="glass-card p-6 rounded-2xl">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white">학습자 공간 지각 효율성 정량 비교</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">지도 방식에 따른 공간 이해도 및 경로 탐색 인지 속도 측정 결과</p>
+                    </div>
+                    <span class="text-xs px-3 py-1 bg-sky-100 dark:bg-sky-900/60 text-sky-700 dark:text-sky-300 font-semibold rounded-full">실험 데이터 분석</span>
+                </div>
+                <div class="h-64 sm:h-72 mt-4">
+                    <canvas id="cognitiveChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 4: Self-Assessment Quiz & Filterable Keywords -->
+        <section id="quiz" class="py-16 lg:py-24 bg-slate-100/70 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-800">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <div class="text-center mb-12">
+                    <span class="text-sky-600 dark:text-sky-400 text-sm font-bold tracking-wider uppercase">Section 04</span>
+                    <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">지리학 및 공간 인식 이해도 평가</h2>
+                    <p class="text-slate-600 dark:text-slate-400 text-sm mt-2">간단한 퀴즈를 통해 지리학 핵심 개념과 국가 중심 지도에 관한 학습 내용을 점검해 보세요.</p>
+                </div>
+
+                <!-- Quiz Card Container -->
+                <div id="quiz-card" class="glass-card rounded-2xl p-6 sm:p-8 shadow-xl">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6">
+                        <span id="quiz-step" class="text-xs font-bold text-sky-600 dark:text-sky-400">질문 1 / 5</span>
+                        <span id="quiz-score" class="text-xs font-semibold text-slate-500">현재 점수: 0점</span>
+                    </div>
+
+                    <div id="quiz-body" class="space-y-6">
+                        <h3 id="quiz-question" class="text-lg font-bold text-slate-900 dark:text-white">
+                            Q. 지리학(Geography)의 어원적 의미와 가장 부합하는 설명은 무엇인가요?
+                        </h3>
+
+                        <div id="quiz-options" class="space-y-3">
+                            <!-- Options rendered dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <div id="quiz-feedback" class="hidden mt-4 p-4 rounded-xl text-xs font-medium"></div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button id="next-quiz-btn" onclick="nextQuestion()" class="hidden px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-colors">
+                            다음 질문 <i class="fa-solid fa-arrow-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Research Tag Cloud Section -->
+                <div class="mt-16 text-center">
+                    <h3 class="text-base font-bold text-slate-900 dark:text-white mb-4">논문 핵심 키워드 태그 (10)</h3>
+                    <div class="flex flex-wrap justify-center gap-2" id="tag-cloud">
+                        <!-- 10 Tags -->
+                        <button onclick="filterTag('지리학')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#지리학</button>
+                        <button onclick="filterTag('공간인식')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#공간인식</button>
+                        <button onclick="filterTag('국가중심세계지도')" class="px-3 py-1.5 rounded-full bg-sky-100 dark:bg-sky-950 border border-sky-300 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-semibold hover:bg-sky-200 transition-all">#국가중심세계지도</button>
+                        <button onclick="filterTag('지정학')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#지정학</button>
+                        <button onclick="filterTag('지도학')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#지도학</button>
+                        <button onclick="filterTag('공간과학')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#공간과학</button>
+                        <button onclick="filterTag('인문지리학')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#인문지리학</button>
+                        <button onclick="filterTag('자연지리학')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#자연지리학</button>
+                        <button onclick="filterTag('세계관형성')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#세계관형성</button>
+                        <button onclick="filterTag('지리교육')" class="px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400 transition-all">#지리교육</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Pillar Detail Modal -->
+    <div id="pillar-modal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="glass-card max-w-lg w-full rounded-2xl p-6 relative space-y-4 shadow-2xl">
+            <button onclick="closePillarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div id="modal-content">
+                <!-- Modal content injected via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 text-center space-y-2">
+            <p class="font-semibold text-slate-300">지리학의 본질과 국가 중심 세계지도 분석 연구 웹 애플리케이션</p>
+            <p>Designed for Interactive Spatial Geography & Cartographic Analysis © 2026</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- Dark Theme Toggle Logic ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            if (document.documentElement.classList.contains('dark')) {
+                themeIcon.className = 'fa-solid fa-sun text-amber-400';
+            } else {
+                themeIcon.className = 'fa-solid fa-moon';
+            }
+        });
+
+        // --- Three.js 3D Interactive Globe ---
+        let scene, camera, renderer, globeGroup;
+        let isDragging = false, previousMousePosition = { x: 0, y: 0 };
+
+        function initGlobe() {
+            const container = document.getElementById('globe-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.z = 220;
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            globeGroup = new THREE.Group();
+            scene.add(globeGroup);
+
+            // Sphere Geometry for Globe
+            const sphereGeo = new THREE.SphereGeometry(70, 32, 32);
+            const sphereMat = new THREE.MeshBasicMaterial({
+                color: 0x0f172a,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.35
+            });
+            const globeMesh = new THREE.Mesh(sphereGeo, sphereMat);
+            globeGroup.add(globeMesh);
+
+            // Core inner globe
+            const innerGeo = new THREE.SphereGeometry(68, 32, 32);
+            const innerMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, transparent: true, opacity: 0.15 });
+            const innerMesh = new THREE.Mesh(innerGeo, innerMat);
+            globeGroup.add(innerMesh);
+
+            // Points/Landmarks simulation
+            const pointsGeo = new THREE.BufferGeometry();
+            const pointsCount = 400;
+            const posArray = new Float32Array(pointsCount * 3);
+
+            for(let i = 0; i < pointsCount * 3; i += 3) {
+                const u = Math.random();
+                const v = Math.random();
+                const theta = u * 2.0 * Math.PI;
+                const phi = Math.acos(2.0 * v - 1.0);
+                const r = 70;
+
+                posArray[i] = r * Math.sin(phi) * Math.cos(theta);
+                posArray[i+1] = r * Math.sin(phi) * Math.sin(theta);
+                posArray[i+2] = r * Math.cos(phi);
+            }
+
+            pointsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const pointsMat = new THREE.PointsMaterial({ size: 2, color: 0x38bdf8 });
+            const pointCloud = new THREE.Points(pointsGeo, pointsMat);
+            globeGroup.add(pointCloud);
+
+            // Initial Globe Rotation aimed at East Asia
+            globeGroup.rotation.y = 2.2;
+            globeGroup.rotation.x = 0.3;
+
+            // Interactive Drag Controls
+            const domEl = renderer.domElement;
+
+            domEl.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            domEl.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                globeGroup.rotation.y += deltaX * 0.008;
+                globeGroup.rotation.x += deltaY * 0.008;
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // Touch events for mobile
+            domEl.addEventListener('touchstart', (e) => {
+                if(e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            domEl.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+
+                globeGroup.rotation.y += deltaX * 0.008;
+                globeGroup.rotation.x += deltaY * 0.008;
+
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+
+            domEl.addEventListener('touchend', () => { isDragging = false; });
+
+            document.getElementById('reset-globe-btn').addEventListener('click', () => {
+                globeGroup.rotation.y = 2.2;
+                globeGroup.rotation.x = 0.3;
+            });
+
+            animateGlobe();
+        }
+
+        function animateGlobe() {
+            requestAnimationFrame(animateGlobe);
+            if (!isDragging) {
+                globeGroup.rotation.y += 0.0015;
+            }
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('load', () => {
+            initGlobe();
+            renderMapSVG('asia');
+            initChart();
+            loadQuizQuestion();
+        });
+
+        // --- Section 2: Map Projection SVG Rendering ---
+        let currentProj = 'asia';
+        let showRoutes = true;
+
+        const projData = {
+            asia: {
+                title: "동아시아 / 한국 중심 지도 분석",
+                desc: "태평양 연안이 중앙에 위치하여 한국 및 아시아 국가에서 태평양을 건너 아메리카로 향하는 해양 교통로가 단절 없이 직관적으로 시각화됩니다.",
+                features: "• 특징: 태평양의 통일성 유지, 지정학적 해양/대륙 진출 경로 동시 확보",
+                badge: "Center: East Asia (120°E)",
+                centerOffset: 0
+            },
+            euro: {
+                title: "유럽 / 아프리카 중심 (전통 메르카토르) 분석",
+                desc: "16세기 서구 항해 시대의 유산으로, 본초자근선(0°)이 중앙을 지나며 태평양이 양 끝으로 분할되어 아시아-아메리카 해양 연결성이 절단됩니다.",
+                features: "• 특징: 대서양 중심 배치, 동아시아가 세계의 동쪽 끝(Far East)으로 인식됨",
+                badge: "Center: Europe / GMT (0°)",
+                centerOffset: 320
+            },
+            americas: {
+                title: "아메리카 대륙 중심 지도 분석",
+                desc: "북미 및 남미 대륙을 지도 중앙에 위치시켜 태평양과 대서양을 양쪽 해자로 거느리는 북미 중심의 안보 및 전략적 시각을 반영합니다.",
+                features: "• 특징: 유라시아 대륙이 좌우 양 끝으로 분리되는 시각적 단절 발생",
+                badge: "Center: Americas (100°W)",
+                centerOffset: 160
+            }
+        };
+
+        function switchProjection(type) {
+            currentProj = type;
+            
+            // Update buttons styling
+            ['asia', 'euro', 'americas'].forEach(id => {
+                const btn = document.getElementById(`btn-${id}`);
+                if (id === type) {
+                    btn.className = "w-full text-left p-3.5 rounded-xl border-2 border-sky-500 bg-sky-50 dark:bg-sky-950/60 text-slate-900 dark:text-white font-semibold text-sm transition-all flex items-center justify-between";
+                } else {
+                    btn.className = "w-full text-left p-3.5 rounded-xl border-2 border-transparent bg-white dark:bg-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300 font-semibold text-sm transition-all flex items-center justify-between";
+                }
+            });
+
+            // Update text panel
+            const info = projData[type];
+            document.getElementById('proj-title').innerText = info.title;
+            document.getElementById('proj-desc').innerText = info.desc;
+            document.getElementById('proj-features').innerText = info.features;
+            document.getElementById('map-center-badge').innerText = info.badge;
+
+            renderMapSVG(type);
+        }
+
+        function toggleRoutes() {
+            showRoutes = document.getElementById('routes-toggle').checked;
+            renderMapSVG(currentProj);
+        }
+
+        function renderMapSVG(type) {
+            const svg = document.getElementById('world-map-svg');
+            const offset = projData[type].centerOffset;
+
+            // Simplified Landmass paths transformed according to projection center
+            svg.innerHTML = `
+                <!-- Background Grid Lines -->
+                <defs>
+                    <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
+                        <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#334155" stroke-width="0.5" stroke-dasharray="2 2"/>
+                    </pattern>
+                </defs>
+                <rect width="1000" height="500" fill="#0f172a" />
+                <rect width="1000" height="500" fill="url(#grid)" />
+
+                <!-- Equator Line -->
+                <line x1="0" y1="250" x2="1000" y2="250" stroke="#0284c7" stroke-width="1" stroke-dasharray="4 4" opacity="0.6"/>
+
+                <g transform="translate(${offset}, 0)">
+                    <!-- Eurasia / Asia landmass -->
+                    <path d="M 150,120 Q 250,80 400,110 T 550,180 T 480,300 T 300,280 T 180,220 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+                    <!-- East Asia / Korea highlight -->
+                    <circle cx="480" cy="180" r="10" fill="#0284c7" opacity="0.8" class="animate-pulse"/>
+                    <text x="495" y="185" fill="#38bdf8" font-size="12" font-weight="bold">동아시아/자국</text>
+
+                    <!-- Americas -->
+                    <path d="M 700,100 Q 820,90 880,180 T 800,380 T 720,420 T 680,220 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+
+                    <!-- Africa -->
+                    <path d="M 220,240 Q 300,230 320,320 T 260,420 T 200,320 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+
+                    <!-- Australia -->
+                    <path d="M 500,350 Q 560,340 570,400 T 490,420 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+
+                    <!-- Wrapped landmasses for continuous loop display -->
+                    <path d="M -850,120 Q -750,80 -600,110 T -450,180 T -520,300 T -700,280 T -820,220 Z" fill="#334155" opacity="0.5"/>
+                    <path d="M 1150,120 Q 1250,80 1400,110 T 1550,180 T 1480,300 Z" fill="#334155" opacity="0.5"/>
+
+                    ${showRoutes ? `
+                        <!-- Pacific Ocean Trade Route Route -->
+                        <path d="M 480,180 Q 600,120 740,160" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="6 4" class="animate-pulse"/>
+                        <!-- Route Marker -->
+                        <text x="600" y="130" fill="#fbbf24" font-size="11" font-weight="bold">태평양 주요 해양 수송로</text>
+                    ` : ''}
+                </g>
+            `;
+        }
+
+        // --- Chart.js Data Visualization ---
+        function initChart() {
+            const ctx = document.getElementById('cognitiveChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['자국 위치 인지 정확도', '주변국 공간 인지 속도', '지정학적 이해도', '학습자 인지 부하 감소율'],
+                    datasets: [
+                        {
+                            label: '국가 중심 세계지도',
+                            data: [94, 88, 92, 85],
+                            backgroundColor: 'rgba(2, 132, 199, 0.85)',
+                            borderColor: '#0284c7',
+                            borderRadius: 6
+                        },
+                        {
+                            label: '전통 유로중심 지도',
+                            data: [62, 54, 58, 48],
+                            backgroundColor: 'rgba(148, 163, 184, 0.5)',
+                            borderColor: '#94a3b8',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#94a3b8', font: { size: 12 } } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { color: '#94a3b8', callback: (value) => value + '%' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        x: {
+                            ticks: { color: '#94a3b8' },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Section 1 Modal Details ---
+        const pillarDetails = {
+            physical: {
+                title: "자연지리학의 실생활 응용",
+                icon: "fa-mountain-sun text-emerald-500",
+                desc: "자연지리학은 지구표면의 물리적 환경을 다룹니다. 예를 들어, 기후 데이터와 해안 지형학 연구는 해양 레저 스포츠(서핑, 요트) 안전 구역을 설정하고 해안 침식을 예측하는 입지 계획에 필수적입니다."
+            },
+            human: {
+                title: "인문지리학의 실생활 응용",
+                icon: "fa-city text-sky-500",
+                desc: "인문지리학은 인간 활동의 공간적 조직을 탐구합니다. 대형 상권의 상권 분석, 인구 이동 패러다임 분석, 국제 트레이드 상호작용 및 도시 재개발 전략 수립의 학술적 바탕이 됩니다."
+            },
+            gis: {
+                title: "지리정보과학(GIScience)의 실생활 응용",
+                icon: "fa-layer-group text-indigo-500",
+                desc: "위성 탐사와 GIS 분석은 자율주행 정밀지도, 스마트시티 교통 흐름 최적화, 기후 재해의 실시간 모니터링 체계를 가능하게 만드는 핵심 공간 빅데이터 기술입니다."
+            }
+        };
+
+        function openPillarModal(type) {
+            const detail = pillarDetails[type];
+            document.getElementById('modal-content').innerHTML = `
+                <div class="flex items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <i class="fa-solid ${detail.icon} text-2xl"></i>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">${detail.title}</h3>
+                </div>
+                <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed pt-2">${detail.desc}</p>
+                <div class="pt-4 flex justify-end">
+                    <button onclick="closePillarModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-lg text-xs font-semibold">닫기</button>
+                </div>
+            `;
+            document.getElementById('pillar-modal').classList.remove('hidden');
+        }
+
+        function closePillarModal() {
+            document.getElementById('pillar-modal').classList.add('hidden');
+        }
+
+        // --- Section 4: Self-Assessment Quiz Logic ---
+        const quizData = [
+            {
+                q: "Q1. 지리학(Geography)의 어원적 정의와 가장 잘 부합하는 것은?",
+                options: [
+                    "지구 표면의 자연 및 인간 현상 간의 공간적 배치를 연구하는 학문",
+                    "단순히 세계 각국의 수도와 지명을 외우는 기억 학문",
+                    "지질과 암석의 화학적 성분만을 측정하는 학문",
+                    "천체의 운동만을 별도로 기하학적으로 계산하는 학문"
+                ],
+                answer: 0,
+                explain: "정답입니다! 지리학은 '무엇이, 어디에, 왜 존재하며 서로 상호작용하는가'를 규명하는 공간 과학입니다."
+            },
+            {
+                q: "Q2. 국가 중심 세계지도가 제공하는 핵심 인지적 장점이 아닌 것은?",
+                options: [
+                    "자국을 기준점(Anchor Point)으로 삼아 공간 인지 부하 경감",
+                    "유럽 중심의 변방의식 탈피 및 주체적 공간 정체성 확립",
+                    "태평양/대서양 수송로의 시각적 단절 방지",
+                    "3차원 구체의 면적 왜곡을 수학적으로 100% 완전 제거"
+                ],
+                answer: 3,
+                explain: "정답입니다! 3차원 구체를 2차원 평면에 투영할 때 왜곡을 완전히 '100% 제거'하는 것은 불가능하며, 중심점 변경은 정체성과 공간 인지 구조를 바꾸는 역할을 합니다."
+            },
+            {
+                q: "Q3. 지리학의 3대 핵심 축 중 지도학, Remote Sensing, GIS를 다루는 분야는?",
+                options: [
+                    "자연지리학 (Physical Geography)",
+                    "인문지리학 (Human Geography)",
+                    "지리정보과학 (GIScience)",
+                    "역사지리학 (Historical Geography)"
+                ],
+                answer: 2,
+                explain: "정답입니다! 지리정보과학(GIScience)은 공간 데이터의 측정, 분석, 시각화를 다룹니다."
+            },
+            {
+                q: "Q4. 한국 중심의 세계지도(태평양 중심 지도)의 지정학적 장점은?",
+                options: [
+                    "태평양 연안 국가들과의 해양 수송로 연결성을 한눈에 파악할 수 있음",
+                    "유럽과 아프리카 대륙 간의 교역로만 집중적으로 부각됨",
+                    "남극 대륙이 지도의 가장 중심에 배치됨",
+                    "대서양 중심의 물류 통로만 시각화됨"
+                ],
+                answer: 0,
+                explain: "정답입니다! 태평양이 양 끝으로 단절되지 않아 아시아-미주 간 해양 연결성이 직관적으로 드러납니다."
+            },
+            {
+                q: "Q5. 인지심리학 관점에서 자국을 지도의 중앙 기준점으로 삼을 때 발생하는 효과는?",
+                options: [
+                    "새로운 공간 정보를 습득할 때 학습자의 인지 부하(Cognitive Load) 감소",
+                    "국가 간 시차(Time Zone) 계산 불가능",
+                    "타 대륙의 기후대 분포 이해 저해",
+                    "공간 지각 속도 현저히 저하"
+                ],
+                answer: 0,
+                explain: "정답입니다! 익숙한 자국을 기준점(Anchor)으로 삼아 외연을 확장할 때 정보 처리가 신속해집니다."
+            }
+        ];
+
+        let currentQuizIndex = 0;
+        let score = 0;
+
+        function loadQuizQuestion() {
+            const current = quizData[currentQuizIndex];
+            document.getElementById('quiz-step').innerText = `질문 ${currentQuizIndex + 1} / ${quizData.length}`;
+            document.getElementById('quiz-question').innerText = current.q;
+            document.getElementById('quiz-feedback').className = "hidden mt-4 p-4 rounded-xl text-xs font-medium";
+            document.getElementById('next-quiz-btn').classList.add('hidden');
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            current.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white/60 dark:bg-slate-800/60 hover:bg-sky-50 dark:hover:bg-sky-950/50 text-xs sm:text-sm font-medium transition-all flex items-center gap-3";
+                btn.innerHTML = `<span class="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold">${idx + 1}</span> <span>${opt}</span>`;
+                btn.onclick = () => checkAnswer(idx);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const current = quizData[currentQuizIndex];
+            const feedback = document.getElementById('quiz-feedback');
+            const options = document.getElementById('quiz-options').children;
+
+            // Disable all option buttons
+            for (let btn of options) {
+                btn.disabled = true;
+                btn.classList.add('opacity-70');
+            }
+
+            if (selectedIndex === current.answer) {
+                score += 20;
+                options[selectedIndex].className = "w-full text-left p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-100 text-xs sm:text-sm font-bold flex items-center gap-3";
+                feedback.className = "mt-4 p-4 rounded-xl text-xs font-medium bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800";
+                feedback.innerText = "⭕ " + current.explain;
+            } else {
+                options[selectedIndex].className = "w-full text-left p-3.5 rounded-xl border-2 border-rose-500 bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-100 text-xs sm:text-sm font-bold flex items-center gap-3";
+                options[current.answer].className = "w-full text-left p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-100 text-xs sm:text-sm font-bold flex items-center gap-3";
+                feedback.className = "mt-4 p-4 rounded-xl text-xs font-medium bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-200 border border-rose-300 dark:border-rose-800";
+                feedback.innerText = "❌ 오답입니다. " + current.explain;
+            }
+
+            document.getElementById('quiz-score').innerText = `현재 점수: ${score}점`;
+            document.getElementById('next-quiz-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            currentQuizIndex++;
+            if (currentQuizIndex < quizData.length) {
+                loadQuizQuestion();
+            } else {
+                // Quiz Finish State
+                document.getElementById('quiz-body').innerHTML = `
+                    <div class="text-center py-8 space-y-4">
+                        <div class="w-16 h-16 rounded-full bg-sky-500 text-white mx-auto flex items-center justify-center text-2xl font-bold">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white">퀴즈 완수!</h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-300">최종 점수: <span class="text-sky-600 dark:text-sky-400 font-extrabold text-lg">${score}점 / 100점</span></p>
+                        <p class="text-xs text-slate-500">지리학의 본질과 공간 인식에 대한 깊은 이해를 축하합니다.</p>
+                        <button onclick="restartQuiz()" class="px-5 py-2.5 bg-sky-600 text-white text-xs font-bold rounded-xl hover:bg-sky-500 transition-colors">다시 풀기</button>
+                    </div>
+                `;
+                document.getElementById('quiz-feedback').className = "hidden";
+                document.getElementById('next-quiz-btn').classList.add('hidden');
+            }
+        }
+
+        function restartQuiz() {
+            currentQuizIndex = 0;
+            score = 0;
+            document.getElementById('quiz-score').innerText = `현재 점수: 0점`;
+            document.getElementById('quiz-body').innerHTML = `
+                <h3 id="quiz-question" class="text-lg font-bold text-slate-900 dark:text-white"></h3>
+                <div id="quiz-options" class="space-y-3"></div>
+            `;
+            loadQuizQuestion();
+        }
+
+        function filterTag(tagName) {
+            alert(`'#${tagName}' 키워드 검색 모듈입니다. 논문 세부 항목에서 관련 주제를 강조 표시합니다.`);
+        }
+    </script>
+</body>
+</html>
