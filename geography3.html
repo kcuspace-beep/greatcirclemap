@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국가 중심 세계지도와 대원을 이용한 지역 중심 지리학</title>
+<style>
+:root{
+  --navy:#063b63; --blue:#0878b9; --sky:#eaf7ff; --cyan:#18a8d8;
+  --green:#16965b; --orange:#ef8d22; --purple:#7057b5; --red:#d84343;
+  --ink:#17324a; --muted:#587086; --white:#fff; --line:#c9dce8;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"Noto Sans KR","Malgun Gothic",Arial,sans-serif;color:var(--ink);background:#f2f7fa;line-height:1.65}
+.hero{
+  background:linear-gradient(135deg,#043657,#086da2 58%,#16a6c7);
+  color:#fff;padding:48px 20px 38px;text-align:center;
+}
+.hero .earth{font-size:58px;margin-bottom:5px}
+.hero h1{margin:0;font-size:clamp(27px,4vw,46px);letter-spacing:-1.5px}
+.hero h1 span{color:#ffe35b}
+.hero p{max-width:1000px;margin:12px auto 0;font-size:clamp(14px,2vw,19px);opacity:.94}
+.container{max-width:1250px;margin:auto;padding:25px 16px 60px}
+.notice{
+  background:#fff4e7;border-left:6px solid var(--orange);padding:15px 18px;border-radius:10px;
+  margin:0 auto 24px;max-width:1100px;color:#60421d
+}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{
+  background:var(--white);border:1px solid var(--line);border-radius:15px;padding:20px;
+  box-shadow:0 5px 18px rgba(20,70,100,.07)
+}
+.card h2{font-size:20px;margin:0 0 14px;color:var(--navy)}
+.card h3{font-size:16px;margin:16px 0 7px}
+.card ul{padding-left:20px;margin:8px 0}
+.full{grid-column:1/-1}
+.flow{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.step{
+  background:#eef8fd;border:1px solid #a9d8eb;border-radius:12px;padding:12px 16px;
+  text-align:center;font-weight:700;min-width:145px
+}
+.arrow{font-size:25px;color:var(--blue);font-weight:bold}
+.formula{
+  background:#082f4b;color:#fff;padding:16px;border-radius:12px;text-align:center;
+  font-family:Georgia,"Times New Roman",serif;font-size:21px;margin:12px 0
+}
+.warn{background:#fff0f0;border:1px solid #f0b6b6;border-radius:10px;padding:12px;color:#8a2929}
+.good{background:#edf9f2;border:1px solid #b6dfc8;border-radius:10px;padding:12px;color:#17633e}
+.compare{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:650px;background:#fff}
+th,td{border:1px solid var(--line);padding:12px;text-align:left}
+th{background:#e8f5fb;color:var(--navy)}
+.badge{display:inline-block;padding:3px 9px;border-radius:99px;background:#e8f5fb;color:#086b9f;font-size:13px;font-weight:700;margin:2px}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.icon{font-size:31px;margin-bottom:3px}
+.number{
+  display:inline-grid;place-items:center;width:31px;height:31px;border-radius:50%;
+  background:var(--blue);color:white;font-weight:800;margin-right:7px
+}
+.footer{
+  background:#062f4c;color:#d9edf8;padding:28px 16px;text-align:center
+}
+.footer strong{color:#fff}
+.nav{
+ position:sticky;top:0;z-index:20;background:rgba(4,54,87,.96);backdrop-filter:blur(7px);
+ padding:9px 12px;overflow:auto;white-space:nowrap;text-align:center
+}
+.nav a{color:#fff;text-decoration:none;margin:0 8px;font-size:13px}
+.nav a:hover{color:#ffe35b}
+svg{width:100%;height:auto}
+@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.grid,.columns{grid-template-columns:1fr}.hero{padding-top:30px}.card{padding:16px}.flow{flex-direction:column}.arrow{transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="earth">🌍</div>
+  <h1>국가 중심 세계지도와 대원을 이용한 <span>지역 중심 지리학</span></h1>
+  <p>GPS 기반 강·산맥·지형자료와 대원항로를 이용한 정밀 지리학의 새로운 접근</p>
+</header>
+
+<nav class="nav">
+  <a href="#structure">연구구조</a><a href="#greatcircle">대원</a><a href="#gps">GPS</a>
+  <a href="#compare">지도비교</a><a href="#gis">GIS</a><a href="#method">연구방법</a><a href="#conclusion">결론</a>
+</nav>
+
+<main class="container">
+  <div class="notice">
+    <strong>핵심 전제:</strong> 대원을 사용한다고 지도 투영의 모든 오류가 사라지는 것은 아닙니다.
+    핵심은 <strong>원래의 지리좌표를 유지하고, 지역 중심을 설정하며, 대원거리와 적절한 지도투영을 함께 사용하여 왜곡을 측정·관리하는 것</strong>입니다.
+  </div>
+
+  <section class="grid" id="structure">
+    <article class="card">
+      <h2><span class="number">1</span>연구 배경과 목적</h2>
+      <div class="icon">🌐 → 🗺️</div>
+      <h3>왜 필요한가?</h3>
+      <ul>
+        <li>지구는 3차원 곡면이지만 지도는 평면이다.</li>
+        <li>투영에 따라 거리·방향·면적·형태의 왜곡이 달라진다.</li>
+        <li>지역을 확대할수록 연구 목적에 맞는 공간 기준이 중요해진다.</li>
+      </ul>
+      <div class="good"><strong>연구목표</strong><br>국가 중심 세계지도와 대원을 결합하여 특정 지역의 지리공간을 GPS·GIS와 함께 분석한다.</div>
+    </article>
+
+    <article class="card">
+      <h2><span class="number">2</span>연구의 공간적 구조</h2>
+      <div class="flow">
+        <div class="step">🌍 지구본<br><small>3차원 구면</small></div><div class="arrow">↓</div>
+        <div class="step">🗺️ 국가 중심<br>세계지도</div><div class="arrow">↓</div>
+        <div class="step">📍 지역 중심<br>대원지도</div><div class="arrow">↓</div>
+        <div class="step">📡 GPS 지형자료</div><div class="arrow">↓</div>
+        <div class="step">🧩 GIS 분석</div>
+      </div>
+      <h3>핵심 개념</h3>
+      <ul>
+        <li>대원을 공간관계의 기준선으로 활용</li>
+        <li>원래의 위·경도 좌표 보존</li>
+        <li>지역 중심으로 확대하여 세부 지형 분석</li>
+      </ul>
+    </article>
+
+    <article class="card" id="greatcircle">
+      <h2><span class="number">3</span>대원과 코사인 관계</h2>
+      <svg viewBox="0 0 500 210" aria-label="대원 개념도">
+        <defs><radialGradient id="g"><stop stop-color="#9de4f6"/><stop offset="1" stop-color="#1679ad"/></radialGradient></defs>
+        <circle cx="170" cy="105" r="75" fill="url(#g)" stroke="#07517e" stroke-width="3"/>
+        <ellipse cx="170" cy="105" rx="75" ry="24" fill="none" stroke="#bdeeff" stroke-width="2"/>
+        <path d="M112 157 Q170 28 230 155" fill="none" stroke="#f13e4b" stroke-width="5"/>
+        <circle cx="112" cy="157" r="6" fill="#fff"/><circle cx="230" cy="155" r="6" fill="#fff"/>
+        <text x="102" y="184" fill="#17324a" font-size="15">점 A</text>
+        <text x="226" y="184" fill="#17324a" font-size="15">점 B</text>
+        <text x="275" y="75" fill="#17324a" font-size="16" font-weight="bold">대원</text>
+        <text x="275" y="101" fill="#587086" font-size="14">구면상의 최단 경로</text>
+        <text x="275" y="145" fill="#17324a" font-size="14">위도 φ에서</text>
+        <text x="275" y="168" fill="#17324a" font-size="17" font-weight="bold">L ≈ R cosφ Δλ</text>
+      </svg>
+      <div class="warn"><strong>주의:</strong> 적도에서 코사인 계수가 1이라는 사실은 특정 투영의 모든 왜곡이 0이라는 뜻이 아니다.</div>
+    </article>
+
+    <article class="card" id="gps">
+      <h2><span class="number">4</span>강과 산맥의 GPS 데이터 분석</h2>
+      <div class="columns">
+        <div>
+          <h3>🌊 강</h3>
+          <ul>
+            <li>발원지·하구·주요 지점 GPS</li>
+            <li>실제 강 GPS 경로 길이</li>
+            <li>발원지–하구 대원거리</li>
+            <li>굴곡도 및 유역 관계</li>
+          </ul>
+        </div>
+        <div>
+          <h3>⛰️ 산맥</h3>
+          <ul>
+            <li>동·서 끝점 GPS</li>
+            <li>주요 봉우리 GPS</li>
+            <li>능선 GPS 경로</li>
+            <li>실제 능선거리와 대원거리 비교</li>
+          </ul>
+        </div>
+      </div>
+      <div class="formula">K = 실제 GPS 경로거리 ÷ 두 끝점 사이 대원거리</div>
+      <small>※ K는 이 연구에서 제안하는 분석지표 예시이며, 표준 지수로 확정된 것은 아닙니다.</small>
+    </article>
+
+    <article class="card full" id="compare">
+      <h2><span class="number">5</span>세 가지 지도 표현의 비교</h2>
+      <div class="compare">
+      <table>
+        <thead><tr><th>표현</th><th>주요 목적</th><th>공간 기준</th><th>활용 예</th></tr></thead>
+        <tbody>
+          <tr><td><strong>① 일반 세계지도</strong></td><td>전 지구적 위치관계 파악</td><td>선택한 지도투영</td><td>세계의 국가·대륙 분포</td></tr>
+          <tr><td><strong>② 국가 중심 세계지도</strong></td><td>특정 국가에서 세계관찰</td><td>국가 또는 기준점 중심</td><td>국가 간 대원·거리 관계</td></tr>
+          <tr><td><strong>③ 지역 중심 대원지도</strong></td><td>특정 지역의 정밀 분석</td><td>지역 중심 + 구면거리</td><td>강·산맥·해안·항로 GPS 분석</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </article>
+
+    <article class="card" id="gis">
+      <h2><span class="number">6</span>GPS 데이터와 대원의 결합</h2>
+      <div class="flow">
+        <div class="step">📡 GPS 원자료</div><div class="arrow">→</div>
+        <div class="step">📄 GPX / KML / GeoJSON</div><div class="arrow">→</div>
+        <div class="step">📍 대원 계산</div><div class="arrow">→</div>
+        <div class="step">🗺️ GIS 레이어</div>
+      </div>
+      <h3>핵심 데이터</h3>
+      <p>
+        <span class="badge">국가 경계</span><span class="badge">도시</span>
+        <span class="badge">강</span><span class="badge">산맥</span><span class="badge">해안선</span>
+        <span class="badge">도로</span><span class="badge">항로</span><span class="badge">고도</span>
+      </p>
+      <div class="warn">GPS 오차, 기준좌표계 차이, 측정환경, 고도 기준과 데이터 처리과정은 지도투영에 따른 왜곡과 별도로 관리해야 합니다.</div>
+    </article>
+
+    <article class="card">
+      <h2><span class="number">7</span>다양한 지리학 분야</h2>
+      <div class="columns">
+        <div>
+          <h3>🌿 자연지리학</h3>
+          <p>지형학 · 수문지리학 · 해안지리학 · 기후지리학 · 해양지리학</p>
+          <h3>🏙️ 인문지리학</h3>
+          <p>도시 간 거리 · 교통로 · 항공노선 · 산업지역 · 인구공간</p>
+        </div>
+        <div>
+          <h3>🧩 GIS</h3>
+          <p>국가경계 · 도시 · 강·산맥 · GPS 이동경로 · 고도 · 기후</p>
+          <h3>🎓 지리교육</h3>
+          <p>지구본 → 세계지도 → 위·경도 → 대원 → 지역 확대 → 실제 GPS 비교</p>
+        </div>
+      </div>
+    </article>
+
+    <article class="card full" id="method">
+      <h2><span class="number">8</span>연구 방법론 — 실제 데이터로 검증하기</h2>
+      <div class="flow">
+        <div class="step">1. GPS/GPX 수집</div><div class="arrow">→</div>
+        <div class="step">2. 좌표계 확인</div><div class="arrow">→</div>
+        <div class="step">3. 연구 중심점 설정</div><div class="arrow">→</div>
+        <div class="step">4. 대원 계산</div><div class="arrow">→</div>
+        <div class="step">5. GPS 경로 중첩</div><div class="arrow">→</div>
+        <div class="step">6. 투영 차이 분석</div>
+      </div>
+      <div class="columns" style="margin-top:18px">
+        <div class="good">
+          <strong>강 검증 예시</strong><br>
+          발원지 → GPS 강 경로 → 하구<br>
+          실제 강 길이와 발원지–하구 대원거리 비교
+        </div>
+        <div class="good">
+          <strong>산맥 검증 예시</strong><br>
+          서쪽 끝 → GPS 능선 → 동쪽 끝<br>
+          실제 능선거리와 양 끝점 대원거리 비교
+        </div>
+      </div>
+    </article>
+
+    <article class="card full" id="conclusion">
+      <h2><span class="number">9</span>결론과 기대 효과</h2>
+      <div class="good">
+        <h3>핵심 결론</h3>
+        <ul>
+          <li>국가 중심 세계지도와 대원을 결합한 지역 중심 지리학 연구체계를 제안한다.</li>
+          <li>평면지도만 사용하는 대신 원래 GPS 좌표와 구면거리 정보를 함께 활용할 수 있다.</li>
+          <li>강·산맥·해안·도로·항로 등의 실제 GPS 경로를 대원과 비교하여 공간적 굴곡과 관계를 정량화할 수 있다.</li>
+          <li>자연지리학·인문지리학·GIS·지리교육을 하나의 공간정보 체계에서 연결할 수 있다.</li>
+        </ul>
+      </div>
+      <div class="formula">🌍 지구본 → 🗺️ 국가 중심 세계지도 → ⭕ 대원 → 📡 GPS → 🧩 GIS → 🔎 지역 지리 분석</div>
+      <p><strong>핵심 연구 명제:</strong> 지구본의 구면정보를 국가 중심 세계지도에서 관찰하고, 특정 지역을 대원 중심으로 다시 분석하며, 실제 GPS 지형자료를 GIS와 결합하면 지구 곡면상의 공간관계를 더욱 명시적으로 연구할 수 있다.</p>
+    </article>
+  </section>
+</main>
+
+<footer class="footer">
+  <strong>국가 중심 세계지도와 대원을 이용한 지역 중심 지리학 연구</strong><br>
+  GPS · Great Circle · GIS · 자연지리학 · 인문지리학 · 지리교육
+</footer>
+</body>
+</html>

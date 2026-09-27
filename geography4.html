@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대원으로 배우는 진짜 세계지도: 국가 중심 대원 지도의 비밀</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js for 3D Globe Visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Canvas Confetti for Quiz completion -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts (Noto Sans KR) -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#035485',
+                            900: '#0c4a6e',
+                        },
+                        accent: {
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-sky-500 selection:text-white">
+
+    <!-- Top Header Navigation -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-slate-800 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-tr from-sky-500 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-sky-500/20">
+                    <i data-lucide="globe" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg sm:text-xl tracking-tight bg-gradient-to-r from-sky-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">
+                        대원으로 배우는 진짜 세계지도
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium hidden sm:block">국가 중심 대원 지도(Great Circle Map)와 지리 공간 탐구</p>
+                </div>
+            </div>
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+                <a href="#visualizer" class="hover:text-sky-400 transition-colors">3D 대원 체험관</a>
+                <a href="#theory" class="hover:text-sky-400 transition-colors">대원의 수학적 원리</a>
+                <a href="#gps-module" class="hover:text-sky-400 transition-colors">GPS 지형 탐색</a>
+                <a href="#quiz-section" class="hover:text-sky-400 transition-colors">지리 퀴즈</a>
+            </nav>
+            <div class="flex items-center gap-2">
+                <span class="bg-sky-500/10 text-sky-400 text-xs px-3 py-1.5 rounded-full border border-sky-500/20 font-semibold flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    청소년 탐구 모드
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative py-12 px-4 overflow-hidden border-b border-slate-800/80">
+        <div class="absolute inset-0 bg-gradient-to-b from-sky-950/20 via-slate-900 to-slate-950 pointer-events-none"></div>
+        <div class="max-w-5xl mx-auto text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-4">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                지리학의 비밀: 왜 그린란드가 아프리카만하게 보였을까?
+            </div>
+            <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight tracking-tight mb-4">
+                우리가 보던 평면 지도는 <span class="text-amber-400 underline decoration-amber-500/40 underline-offset-8">거짓말</span>을 하고 있다?
+            </h2>
+            <p class="text-slate-300 text-sm sm:text-base max-w-3xl mx-auto leading-relaxed mb-6">
+                지구는 동그란 구체입니다! 평면으로 펼치는 순간 양끝의 고위도 지역은 찌그러지거나 엄청나게 커지죠.<br class="hidden sm:inline">
+                <strong>대원(Great Circle)</strong>을 기준축으로 삼고, **우리나라 중심**으로 지도를 다시 그리면 distortion(오류)을 최소화한 진짜 지리를 볼 수 있습니다!
+            </p>
+            <div class="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm font-semibold">
+                <a href="#visualizer" class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 transition-all flex items-center gap-2 shadow-lg shadow-sky-500/25">
+                    <i data-lucide="compass" class="w-4 h-4"></i> 3D 대원 지도 직접 조작하기
+                </a>
+                <a href="#theory" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4"></i> 핵심 개념 배우기
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 1: Interactive 3D Globe / Projection Comparison -->
+    <section id="visualizer" class="max-w-7xl mx-auto px-4 py-10 w-full">
+        <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+            <div>
+                <span class="text-sky-400 text-xs font-bold uppercase tracking-wider">Interactive Visualization</span>
+                <h3 class="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
+                    <i data-lucide="globe-2" class="text-sky-400"></i>
+                    3D 지구본 VS 대원 투영 지도 비교
+                </h3>
+            </div>
+            <div class="text-xs text-slate-400 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-sky-400 shrink-0"></i>
+                마우스 드래그로 3D 지구본을 회전시키고, 기준 국가를 변경해 보세요.
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            <!-- Left Controls & Info Panel -->
+            <div class="lg:col-span-4 glass-panel p-6 rounded-2xl flex flex-col justify-between">
+                <div>
+                    <h4 class="text-lg font-bold text-slate-100 mb-4 pb-2 border-b border-slate-700/80 flex items-center gap-2">
+                        <i data-lucide="sliders" class="w-4 h-4 text-sky-400"></i>
+                        투영 설정 & 중심점 선택
+                    </h4>
+
+                    <!-- Center Country Selector -->
+                    <div class="mb-5">
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">관찰 중심 국가 (Center Country)</label>
+                        <select id="countrySelect" class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium">
+                            <option value="KR" selected> 대한민국 (South Korea)</option>
+                            <option value="US"> 미국 (USA - Washington D.C.)</option>
+                            <option value="UK"> 영국 (UK - London)</option>
+                            <option value="BR"> 브라질 (Brazil - Brasilia)</option>
+                            <option value="AU"> 호주 (Australia - Canberra)</option>
+                        </select>
+                    </div>
+
+                    <!-- Projection Mode Toggle -->
+                    <div class="mb-5">
+                        <label class="block text-xs font-semibold text-slate-300 mb-2">지도 투영 방식 (Projection Mode)</label>
+                        <div class="grid grid-cols-2 gap-2 bg-slate-900/80 p-1 rounded-xl border border-slate-800">
+                            <button id="btnMercator" class="py-2.5 px-3 text-xs font-bold rounded-lg transition-all text-slate-400 hover:text-white">
+                                기존 메르카토르
+                            </button>
+                            <button id="btnGreatCircle" class="py-2.5 px-3 text-xs font-bold rounded-lg bg-sky-500 text-slate-950 shadow-md">
+                                대원(Great Circle) 중심
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Distortion / Cosine Range Indicator -->
+                    <div class="bg-slate-900/90 rounded-xl p-4 border border-slate-800 mb-4">
+                        <div class="flex justify-between items-center text-xs mb-1.5">
+                            <span class="text-slate-400 font-medium">중심부 수학적 오차율 ($\cos \theta$):</span>
+                            <span id="cosineVal" class="text-emerald-400 font-extrabold text-sm">0.05% 이하 (극소)</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                            <div id="errorBar" class="bg-emerald-400 h-full w-[3%] transition-all duration-500"></div>
+                        </div>
+                        <p id="distortionDesc" class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                            선택한 국가를 관찰 중심 적도 영역으로 배치하여 주변부 면적 및 거리 오류를 극도로 축소시킵니다.
+                        </p>
+                    </div>
+
+                    <!-- Greenland vs Africa Comparison Metric -->
+                    <div class="glass-card p-3.5 rounded-xl">
+                        <div class="text-xs text-sky-300 font-semibold mb-2 flex items-center justify-between">
+                            <span>실제 면적 비교 상식</span>
+                            <span class="text-[10px] bg-sky-500/20 text-sky-300 px-1.5 py-0.5 rounded">지리 상식</span>
+                        </div>
+                        <div class="text-xs text-slate-300 leading-normal space-y-1">
+                            <div class="flex justify-between">
+                                <span>아프리카 실제 면적:</span>
+                                <span class="font-bold text-white">3,037만 km²</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>그린란드 실제 면적:</span>
+                                <span class="font-bold text-white">216만 km²</span>
+                            </div>
+                            <p class="text-[11px] text-amber-300/90 pt-1">
+                                메르카토르 지도에선 비슷하게 보이지만 아프리카가 약 <strong>14배</strong> 더 큽니다!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-slate-800 text-xs text-slate-400 flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="text-emerald-400 w-4 h-4 shrink-0"></i>
+                    <span>대원 궤도 선(Red Line)을 따라 측정하면 지구상 최단거리가 됩니다.</span>
+                </div>
+            </div>
+
+            <!-- Right 3D Visualizer Canvas Container -->
+            <div class="lg:col-span-8 glass-panel rounded-2xl p-4 flex flex-col justify-between relative min-h-[460px]">
+                <!-- Interactive Canvas Canvas Container -->
+                <div id="canvas3dContainer" class="w-full h-full min-h-[400px] rounded-xl overflow-hidden relative cursor-grab active:cursor-grabbing bg-slate-950">
+                    <!-- Overlaid Legend -->
+                    <div class="absolute top-3 left-3 z-10 glass-card px-3 py-2 rounded-lg text-xs flex items-center gap-3">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-red-500 inline-block shadow-sm shadow-red-500/50"></span>
+                            <span class="text-slate-200">대원 궤적(Great Circle)</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span>
+                            <span class="text-slate-200" id="centerCountryTag">중심: 대한민국</span>
+                        </div>
+                    </div>
+
+                    <!-- Overlaid Control Hint -->
+                    <div class="absolute bottom-3 right-3 z-10 glass-card px-3 py-1.5 rounded-lg text-[11px] text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="rotate-3d" class="w-3.5 h-3.5 text-sky-400"></i>
+                        3D 드래그 회전 가능
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Core Concepts Explained Simply -->
+    <section id="theory" class="max-w-7xl mx-auto px-4 py-12 w-full">
+        <div class="text-center max-w-3xl mx-auto mb-10">
+            <span class="text-sky-400 text-xs font-bold uppercase tracking-wider">Geography Core Concepts</span>
+            <h3 class="text-2xl sm:text-4xl font-black text-white mt-1 mb-3">
+                선생님이 들려주는 대원 지도의 3가지 핵심 원리
+            </h3>
+            <p class="text-slate-400 text-sm">
+                지구본을 가르는 가장 원대한 원, **대원(Great Circle)**과 코사인 오차 법칙을 쉽게 이해해 봅시다.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Card 1: What is a Great Circle -->
+            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-all"></div>
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-black text-xl mb-4 border border-sky-500/30">
+                        1
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">대원(Great Circle)이란?</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                        구체 모양인 지구의 **중심을 관통하는 평면**으로 구를 두 조각으로 잘랐을 때 만들어지는 가장 큰 원입니다.
+                    </p>
+                    <ul class="text-xs text-slate-400 space-y-2 border-t border-slate-800 pt-3">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5"></i>
+                            <span>적도(Equator)는 지구 자연의 대원 중 하나입니다.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5"></i>
+                            <span>지구 위 두 점 사이의 **최단 거리 항로**는 무조건 대원을 따라 그려집니다.</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Card 2: Cosine Error Range -->
+            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all"></div>
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xl mb-4 border border-emerald-500/30">
+                        2
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">오류 최소화: 코사인 범위</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                        투영 오차는 위도 각도 $\theta$의 코사인 값에 비례합니다. 기준 대원 바로 근처는 $\cos \theta \approx 1$이 됩니다!
+                    </p>
+                    <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 text-center font-mono text-xs text-emerald-300 mb-3">
+                        오차 비율 $S = \frac{1}{\cos \theta}$ $\rightarrow$ $\theta \approx 0^\circ$ 일 때 오차 $0\%$
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        즉, 우리나라 중심 대원을 만들어 적도처럼 다루면, 우리나라 주변 영토 및 산하 지형의 면적/거리 오류가 완전히 사라집니다!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Card 3: Real World Applications -->
+            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-black text-xl mb-4 border border-indigo-500/30">
+                        3
+                    </div>
+                    <h4 class="text-xl font-bold text-white mb-2">어디에 활용할까요?</h4>
+                    <p class="text-slate-300 text-sm leading-relaxed mb-4">
+                        자연지리학, 인문지리학, 현대 Spatial GIS에 이르기까지 지리 탐구의 최고 정확성을 가져옵니다.
+                    </p>
+                    <div class="space-y-2 text-xs">
+                        <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-300">
+                            <strong class="text-indigo-300">자연지리학:</strong> 강 유로 길이, 백두대간 산맥 줄기 정밀 측정
+                        </div>
+                        <div class="p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-slate-300">
+                            <strong class="text-indigo-300">인문지리학 & GIS:</strong> 최단 비행기 항로, 국경 좌표 분석 및 GIS 정밀 공간 모델링
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: GPS Track & River/Mountain Interactive Module -->
+    <section id="gps-module" class="max-w-7xl mx-auto px-4 py-10 w-full">
+        <div class="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div>
+                    <div class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 mb-2">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> High-Precision GPS Tracker
+                    </div>
+                    <h3 class="text-2xl sm:text-3xl font-extrabold text-white">
+                        GPS 데이터 기반 주요 강·산맥 대원 매핑 실습
+                    </h3>
+                    <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                        위도/경도 GPS 데이터 세트를 대원 중심 축에 투영하면 강 줄기와 산맥 굽이 형태가 왜곡 없이 정밀 복원됩니다.
+                    </p>
+                </div>
+
+                <!-- GPS Sample Track Selector -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 font-medium whitespace-nowrap">지형 샘플:</span>
+                    <select id="gpsTrackSelect" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs sm:text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-emerald-500">
+                        <option value="han_river" selected>🇰🇷 한강 유로 (Han River GPS)</option>
+                        <option value="baekdudaegan">🏔️ 백두대간 산맥 (Baekdudaegan GPS)</option>
+                        <option value="amazon">🌿 아마존 강 (Amazon River GPS)</option>
+                        <option value="nile">🏜️ 나일 강 (Nile River GPS)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Canvas Visualization Container -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                <div class="lg:col-span-8 bg-slate-950 rounded-2xl p-4 border border-slate-800 relative">
+                    <div class="flex items-center justify-between text-xs text-slate-400 mb-2 px-1">
+                        <span id="gpsTitleDisplay" class="font-bold text-emerald-400">한강 GPS 궤적 정밀 매핑 중</span>
+                        <span id="gpsPointCount" class="font-mono text-slate-500">포인트: 120개 수집됨</span>
+                    </div>
+
+                    <!-- 2D Canvas for GPS rendering -->
+                    <canvas id="gpsCanvas" class="w-full h-[320px] rounded-xl bg-slate-900/90 border border-slate-800/80"></canvas>
+
+                    <div class="mt-3 flex flex-wrap items-center justify-between text-[11px] text-slate-400 px-1">
+                        <div class="flex items-center gap-4">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> 대원 지도 (정확도 99.8%)</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500/70"></span> 메르카토르 왜곡 궤적</span>
+                        </div>
+                        <span class="text-slate-500">* WGS84 좌표계에서 대원 주축으로 변환 계산됨</span>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-4 space-y-4">
+                    <div class="glass-card p-4 rounded-xl">
+                        <h5 class="text-sm font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                            <i data-lucide="cpu" class="w-4 h-4 text-emerald-400"></i>
+                            GIS 좌표 변환 원리
+                        </h5>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            GPS 수신기에서 기록된 경도($\lambda$), 위도($\phi$) 점들은 국가 중심 대원 변환 행렬 $R$을 거치면서 평면 확대에 의한 유로 길이 증가 오류가 정밀 교정됩니다.
+                        </p>
+                    </div>
+
+                    <div class="glass-card p-4 rounded-xl border-l-4 border-l-emerald-400">
+                        <div class="text-xs font-semibold text-slate-300 mb-1">실습 가이드 포인트</div>
+                        <p id="gpsFeatureSummary" class="text-xs text-slate-400 leading-relaxed">
+                            한강의 곡류 형태가 일반 메르카토르 지도에서는 남북 방향 길이가 늘어나 보이지만, 대한민국 중심 대원 지도에선 실제 물줄기 흐름 길이와 완벽히 일치합니다.
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">왜곡으로 인한 수계밀도 오차</span>
+                        <span class="text-emerald-400 font-bold font-mono">- 12.4% $\rightarrow$ 0.1%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Interactive Student Quiz & Knowledge Check -->
+    <section id="quiz-section" class="max-w-5xl mx-auto px-4 py-12 w-full">
+        <div class="glass-panel p-6 sm:p-10 rounded-3xl relative overflow-hidden">
+            <div class="text-center max-w-2xl mx-auto mb-8">
+                <span class="text-amber-400 text-xs font-bold uppercase tracking-wider">Knowledge Check</span>
+                <h3 class="text-2xl sm:text-3xl font-black text-white mt-1">
+                    🧠 대원 지리학 퀴즈 왕에 도전하세요!
+                </h3>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">
+                    배운 내용을 바탕으로 4개의 질문에 답해 보세요. 만점을 받으면 축하 폭죽이 터집니다!
+                </p>
+            </div>
+
+            <!-- Quiz Container -->
+            <div id="quizContainer" class="max-w-xl mx-auto space-y-6">
+                <!-- Question Progress Bar -->
+                <div class="flex items-center justify-between text-xs text-slate-400 mb-2">
+                    <span id="quizProgressText" class="font-semibold text-sky-400">문제 1 / 4</span>
+                    <span id="quizScoreText" class="font-bold">현재 점수: 0점</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden mb-6">
+                    <div id="quizProgressBar" class="bg-sky-500 h-full w-[25%] transition-all duration-300"></div>
+                </div>
+
+                <!-- Active Question Card -->
+                <div id="questionCard" class="glass-card p-6 rounded-2xl">
+                    <h4 id="questionText" class="text-base sm:text-lg font-bold text-slate-100 mb-5 leading-snug">
+                        <!-- Dynamic Question Text -->
+                    </h4>
+                    <div id="optionsGroup" class="space-y-3">
+                        <!-- Dynamic Options Buttons -->
+                    </div>
+                </div>
+
+                <!-- Feedback Banner -->
+                <div id="quizFeedback" class="hidden p-4 rounded-xl text-sm font-medium transition-all"></div>
+
+                <!-- Next Question Button -->
+                <div class="flex justify-end pt-2">
+                    <button id="nextBtn" class="hidden px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm transition-all flex items-center gap-2">
+                        다음 문제로 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quiz Result Card (Hidden by default) -->
+            <div id="quizResultCard" class="hidden text-center max-w-lg mx-auto py-8 space-y-5">
+                <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto text-3xl font-black border border-amber-500/30">
+                    🏆
+                </div>
+                <h4 class="text-2xl font-black text-white">퀴즈 완주를 축하합니다!</h4>
+                <p id="finalScoreText" class="text-lg text-sky-300 font-bold">당신의 점수: 100점 / 100점</p>
+                <p id="resultComment" class="text-sm text-slate-300 leading-relaxed">
+                    대원 지도와 국가 중심 투영의 왜곡 최소화 원리를 완벽하게 이해했군요! 당신은 뛰어난 지리 공간 탐구자입니다.
+                </p>
+                <button onclick="restartQuiz()" class="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-sm transition-all inline-flex items-center gap-2">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> 다시 도전하기
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-8 px-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto space-y-3">
+            <p class="font-medium text-slate-400">대원 기반 국가 중심 세계지도 지리 교육 워크북 웹애플리케이션</p>
+            <p>자연지리학 · 인문지리학 · Spatial GIS 융합 탐구 학습 모듈</p>
+            <p class="text-[11px] text-slate-600">© 2026 Great Circle Geography Education Lab. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        /* Lucide Icons Initialization */
+        lucide.createIcons();
+
+        /* ========================================================
+           1. THREE.JS 3D GLOBE & PROJECTION VISUALIZER LOGIC
+           ======================================================== */
+        let scene, camera, renderer, globe, greatCircleLine, countryMarker;
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let currentMode = 'great_circle'; // 'mercator' or 'great_circle'
+
+        const countryCoords = {
+            'KR': { name: '대한민국', lat: 37.5665, lng: 126.9780, color: 0x38bdf8 },
+            'US': { name: '미국 (워싱턴)', lat: 38.9072, lng: -77.0369, color: 0xf59e0b },
+            'UK': { name: '영국 (런던)', lat: 51.5074, lng: -0.1278, color: 0xa855f7 },
+            'BR': { name: '브라질 (브라질리아)', lat: -15.7975, lng: -47.8919, color: 0x22c55e },
+            'AU': { name: '호주 (캔버라)', lat: -35.2809, lng: 149.1300, color: 0xec4899 }
+        };
+
+        function init3DVisualizer() {
+            const container = document.getElementById('canvas3dContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight || 400;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x020617);
+
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+            camera.position.z = 4.5;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(5, 3, 5);
+            scene.add(dirLight);
+
+            // Create Globe Sphere
+            const globeGeo = new THREE.SphereGeometry(1.6, 36, 36);
+            const globeMat = new THREE.MeshPhongMaterial({
+                color: 0x1e293b,
+                wireframe: true,
+                transparent: true,
+                opacity: 0.6,
+                emissive: 0x0f172a
+            });
+            globe = new THREE.Mesh(globeGeo, globeMat);
+            scene.add(globe);
+
+            // Create Great Circle Line Mesh
+            createGreatCircleLine('KR');
+            createCountryMarker('KR');
+
+            // Mouse Rotate Controls
+            const dom = renderer.domElement;
+            dom.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            dom.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+
+                globe.rotation.y += deltaX * 0.008;
+                globe.rotation.x += deltaY * 0.008;
+
+                if (greatCircleLine) {
+                    greatCircleLine.rotation.y += deltaX * 0.008;
+                    greatCircleLine.rotation.x += deltaY * 0.008;
+                }
+                if (countryMarker) {
+                    countryMarker.rotation.y += deltaX * 0.008;
+                    countryMarker.rotation.x += deltaY * 0.008;
+                }
+
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight || 400;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+
+            animate3D();
+        }
+
+        function createGreatCircleLine(countryKey) {
+            if (greatCircleLine) scene.remove(greatCircleLine);
+
+            const c = countryCoords[countryKey];
+            const curvePoints = [];
+            const radius = 1.62;
+
+            // Generate a Great Circle ring tilted towards country latitude/longitude
+            for (let i = 0; i <= 120; i++) {
+                const theta = (i / 120) * Math.PI * 2;
+                let x = radius * Math.cos(theta);
+                let y = radius * Math.sin(theta) * Math.sin(c.lat * Math.PI / 180);
+                let z = radius * Math.sin(theta) * Math.cos(c.lat * Math.PI / 180);
+                curvePoints.push(new THREE.Vector3(x, y, z));
+            }
+
+            const geometry = new THREE.BufferGeometry().setFromPoints(curvePoints);
+            const material = new THREE.LineBasicMaterial({
+                color: 0xef4444,
+                linewidth: 3
+            });
+            greatCircleLine = new THREE.LineLoop(geometry, material);
+            scene.add(greatCircleLine);
+        }
+
+        function createCountryMarker(countryKey) {
+            if (countryMarker) scene.remove(countryMarker);
+
+            const c = countryCoords[countryKey];
+            const phi = (90 - c.lat) * (Math.PI / 180);
+            const theta = (c.lng + 180) * (Math.PI / 180);
+            const r = 1.65;
+
+            const x = -(r * Math.sin(phi) * Math.cos(theta));
+            const z = (r * Math.sin(phi) * Math.sin(theta));
+            const y = (r * Math.cos(phi));
+
+            const geometry = new THREE.SphereGeometry(0.08, 16, 16);
+            const material = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+            countryMarker = new THREE.Mesh(geometry, material);
+            countryMarker.position.set(x, y, z);
+            scene.add(countryMarker);
+
+            document.getElementById('centerCountryTag').innerText = `중심: ${c.name}`;
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+            if (!isDragging) {
+                globe.rotation.y += 0.002;
+                if (greatCircleLine) greatCircleLine.rotation.y += 0.002;
+                if (countryMarker) countryMarker.rotation.y += 0.002;
+            }
+            renderer.render(scene, camera);
+        }
+
+        /* Event Listeners for Controls */
+        document.getElementById('countrySelect').addEventListener('change', (e) => {
+            const key = e.target.value;
+            createGreatCircleLine(key);
+            createCountryMarker(key);
+            updateDistortionUI();
+        });
+
+        const btnMercator = document.getElementById('btnMercator');
+        const btnGreatCircle = document.getElementById('btnGreatCircle');
+
+        btnMercator.addEventListener('click', () => {
+            currentMode = 'mercator';
+            btnMercator.className = 'py-2.5 px-3 text-xs font-bold rounded-lg bg-rose-500 text-white shadow-md';
+            btnGreatCircle.className = 'py-2.5 px-3 text-xs font-bold rounded-lg text-slate-400 hover:text-white';
+            updateDistortionUI();
+        });
+
+        btnGreatCircle.addEventListener('click', () => {
+            currentMode = 'great_circle';
+            btnGreatCircle.className = 'py-2.5 px-3 text-xs font-bold rounded-lg bg-sky-500 text-slate-950 shadow-md';
+            btnMercator.className = 'py-2.5 px-3 text-xs font-bold rounded-lg text-slate-400 hover:text-white';
+            updateDistortionUI();
+        });
+
+        function updateDistortionUI() {
+            const cosineVal = document.getElementById('cosineVal');
+            const errorBar = document.getElementById('errorBar');
+            const distortionDesc = document.getElementById('distortionDesc');
+
+            if (currentMode === 'great_circle') {
+                cosineVal.innerText = '0.05% 이하 (극소)';
+                cosineVal.className = 'text-emerald-400 font-extrabold text-sm';
+                errorBar.style.width = '4%';
+                errorBar.className = 'bg-emerald-400 h-full transition-all duration-500';
+                distortionDesc.innerText = '선택한 국가를 관찰 중심 적도 영역으로 배치하여 주변부 면적 및 거리 오류를 극도로 축소시킵니다.';
+            } else {
+                cosineVal.innerText = '최대 300%~1200% 오차 발생!';
+                cosineVal.className = 'text-rose-400 font-extrabold text-sm';
+                errorBar.style.width = '88%';
+                errorBar.className = 'bg-rose-500 h-full transition-all duration-500';
+                distortionDesc.innerText = '기존 메르카토르 지도에서는 고위도로 올라갈수록 상하좌우 면적 확장 오차가 폭증합니다.';
+            }
+        }
+
+        /* ========================================================
+           2. GPS TRACK & RIVER / MOUNTAIN CANVAS MODULE
+           ======================================================== */
+        const gpsCanvas = document.getElementById('gpsCanvas');
+        const gpsCtx = gpsCanvas.getContext('2d');
+
+        const gpsDataMap = {
+            'han_river': {
+                title: '🇰🇷 한강 유로 (Han River GPS Track)',
+                points: 120,
+                summary: '한강의 곡류 형태가 일반 메르카토르 지도에서는 남북 방향 길이가 늘어나 보이지만, 대한민국 중심 대원 지도에선 실제 물줄기 흐름 길이와 완벽히 일치합니다.',
+                draw: (ctx, w, h) => {
+                    // Draw Smooth River S-Curve
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.1, h * 0.3);
+                    ctx.bezierCurveTo(w * 0.3, h * 0.1, w * 0.4, h * 0.8, w * 0.6, h * 0.4);
+                    ctx.bezierCurveTo(w * 0.7, h * 0.2, w * 0.85, h * 0.7, w * 0.95, h * 0.5);
+                    ctx.strokeStyle = '#34d399';
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+
+                    // Distorted Mercator Curve
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.1, h * 0.2);
+                    ctx.bezierCurveTo(w * 0.3, h * 0.02, w * 0.4, h * 0.95, w * 0.6, h * 0.3);
+                    ctx.bezierCurveTo(w * 0.7, h * 0.05, w * 0.85, h * 0.85, w * 0.95, h * 0.35);
+                    ctx.strokeStyle = 'rgba(244, 63, 94, 0.5)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([6, 6]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            },
+            'baekdudaegan': {
+                title: '🏔️ 백두대간 산맥 줄기 (Baekdudaegan Ridge GPS)',
+                points: 245,
+                summary: '백두산부터 지리산까지 이어지는 한반도의 뼈대 산맥입니다. 대원 좌표계에서 고도 및 능선 축의 왜곡이 사라져 산맥 조사에 최적입니다.',
+                draw: (ctx, w, h) => {
+                    // Mountain Peaks Line
+                    ctx.beginPath();
+                    for (let x = 0.1 * w; x <= 0.9 * w; x += 15) {
+                        let y = h * 0.5 + Math.sin(x * 0.03) * 60 + (Math.random() * 20 - 10);
+                        if (x === 0.1 * w) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                }
+            },
+            'amazon': {
+                title: '🌿 아마존 강 유역 (Amazon River GPS)',
+                points: 380,
+                summary: '적도 부근을 가로지르는 세계 최대 유역의 강입니다. 브라질 중심 대원 지도로 전환하면 유역 전체 면적이 밀리미터 단위 오차로 수렴합니다.',
+                draw: (ctx, w, h) => {
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.05, h * 0.5);
+                    ctx.quadraticCurveTo(w * 0.5, h * 0.2, w * 0.95, h * 0.55);
+                    ctx.strokeStyle = '#22c55e';
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                }
+            },
+            'nile': {
+                title: '🏜️ 나일 강 (Nile River GPS)',
+                points: 290,
+                summary: '남에서 북으로 흐르는 아프리카 대표 하천입니다. 기존 평면 지도에서는 북쪽으로 갈수록 기하급수적으로 길어 보이는 심각한 오차가 있었습니다.',
+                draw: (ctx, w, h) => {
+                    ctx.beginPath();
+                    ctx.moveTo(w * 0.5, h * 0.9);
+                    ctx.lineTo(w * 0.48, h * 0.6);
+                    ctx.lineTo(w * 0.52, h * 0.3);
+                    ctx.lineTo(w * 0.5, h * 0.1);
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                }
+            }
+        };
+
+        function renderGPSCanvas() {
+            const trackKey = document.getElementById('gpsTrackSelect').value;
+            const data = gpsDataMap[trackKey];
+
+            // Resize canvas
+            const rect = gpsCanvas.getBoundingClientRect();
+            gpsCanvas.width = rect.width;
+            gpsCanvas.height = rect.height;
+
+            const w = gpsCanvas.width;
+            const h = gpsCanvas.height;
+
+            gpsCtx.clearRect(0, 0, w, h);
+
+            // Draw Grid lines
+            gpsCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+            gpsCtx.lineWidth = 1;
+            for (let x = 0; x < w; x += 30) {
+                gpsCtx.beginPath();
+                gpsCtx.moveTo(x, 0);
+                gpsCtx.lineTo(x, h);
+                gpsCtx.stroke();
+            }
+            for (let y = 0; y < h; y += 30) {
+                gpsCtx.beginPath();
+                gpsCtx.moveTo(0, y);
+                gpsCtx.lineTo(w, y);
+                gpsCtx.stroke();
+            }
+
+            // Draw active track
+            data.draw(gpsCtx, w, h);
+
+            // Update UI Labels
+            document.getElementById('gpsTitleDisplay').innerText = data.title;
+            document.getElementById('gpsPointCount').innerText = `포인트: ${data.points}개 수집됨`;
+            document.getElementById('gpsFeatureSummary').innerText = data.summary;
+        }
+
+        document.getElementById('gpsTrackSelect').addEventListener('change', renderGPSCanvas);
+
+        /* ========================================================
+           3. INTERACTIVE QUIZ & KNOWLEDGE CHECK ENGINE
+           ======================================================== */
+        const quizQuestions = [
+            {
+                q: "1. 구체 형태의 지구에서 중심을 관통하는 평면으로 잘랐을 때 만들어지는 가장 큰 원을 무엇이라고 할까요?",
+                options: ["소원 (Small Circle)", "대원 (Great Circle)", "적도선 (Equator Line)", "자오선 (Meridian)"],
+                answer: 1,
+                explain: "정답입니다! 지구의 중심을 지나는 평면이 구면과 만나는 가장 큰 원을 '대원(Great Circle)'이라고 합니다."
+            },
+            {
+                q: "2. 기준 대원 바로 근처 영역에서 투영 오차가 극소화되는 수학적 이유로 올바른 것은?",
+                options: [
+                    "코사인 각도 값(cos θ)이 1에 가깝기 때문에",
+                    "지구의 자전 속도가 가장 빠르기 때문에",
+                    "위도선과 경도선이 직선으로 만나기 때문에",
+                    "중력이 가장 크게 작용하기 때문에"
+                ],
+                answer: 0,
+                explain: "정답입니다! 기준 대도 근처(θ ≈ 0°)에서는 cos(θ) ≈ 1 이 되므로, 평면 투영 오차가 0%에 수렴합니다."
+            },
+            {
+                q: "3. 우리나라를 중심으로 한 대원 지도를 사용할 때 얻을 수 있는 가장 큰 이점은 무엇일까요?",
+                options: [
+                    "남극 대륙의 크기가 실제보다 10배 커진다.",
+                    "우리나라 및 주변부 지형의 면적과 거리를 왜곡 없이 정확하게 관찰할 수 있다.",
+                    "세계 모든 나라의 모양이 정사각형으로 변한다.",
+                    "지도의 제작 비용이 획기적으로 줄어든다."
+                ],
+                answer: 1,
+                explain: "맞습니다! 관찰하고자 하는 특정 국가를 대원의 적도 영역으로 맞추면 해당 지역의 거리와 형태 정확성이 최고 수준이 됩니다."
+            },
+            {
+                q: "4. 고정밀 GPS 수치 데이터를 대원 중심 좌표계와 결합했을 때 활용할 수 있는 지리학 분야가 아닌 것은?",
+                options: [
+                    "자연지리학 (강 유로 및 산맥 능선 정밀 분석)",
+                    "Spatial GIS (공간정보시스템 정확도 향상)",
+                    "인문지리학 (최단 항공 항로 및 물류 분석)",
+                    "점성술 (별자리 운세 측정)"
+                ],
+                answer: 3,
+                explain: "정답입니다! 점성술은 과학적 지리학이 아닙니다. 대원 지도와 GPS 결합은 자연지리, 인문지리, GIS 전반에 핵심 활용됩니다."
+            }
+        ];
+
+        let currentQuestionIdx = 0;
+        let userScore = 0;
+
+        function renderQuestion() {
+            const qData = quizQuestions[currentQuestionIdx];
+            document.getElementById('quizProgressText').innerText = `문제 ${currentQuestionIdx + 1} / ${quizQuestions.length}`;
+            document.getElementById('quizProgressBar').style.width = `${((currentQuestionIdx + 1) / quizQuestions.length) * 100}%`;
+            document.getElementById('quizScoreText').innerText = `현재 점수: ${userScore}점`;
+
+            document.getElementById('questionText').innerText = qData.q;
+
+            const optionsGroup = document.getElementById('optionsGroup');
+            optionsGroup.innerHTML = '';
+
+            qData.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 text-xs sm:text-sm font-medium transition-all flex items-center justify-between group';
+                btn.innerHTML = `
+                    <span>${opt}</span>
+                    <i data-lucide="circle" class="w-4 h-4 text-slate-500 group-hover:text-sky-400"></i>
+                `;
+                btn.onclick = () => selectOption(idx);
+                optionsGroup.appendChild(btn);
+            });
+
+            lucide.createIcons();
+            document.getElementById('quizFeedback').classList.add('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+        }
+
+        function selectOption(selectedIdx) {
+            const qData = quizQuestions[currentQuestionIdx];
+            const feedback = document.getElementById('quizFeedback');
+            const optionsGroup = document.getElementById('optionsGroup');
+
+            // Disable options
+            const btns = optionsGroup.querySelectorAll('button');
+            btns.forEach(b => b.disabled = true);
+
+            if (selectedIdx === qData.answer) {
+                userScore += 25;
+                feedback.className = 'p-4 rounded-xl text-xs sm:text-sm font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 block';
+                feedback.innerText = `⭕ 정답입니다! ${qData.explain}`;
+            } else {
+                feedback.className = 'p-4 rounded-xl text-xs sm:text-sm font-medium bg-rose-500/10 border border-rose-500/30 text-rose-300 block';
+                feedback.innerText = `❌ 아쉽네요. ${qData.explain}`;
+            }
+
+            document.getElementById('quizScoreText').innerText = `현재 점수: ${userScore}점`;
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            currentQuestionIdx++;
+            if (currentQuestionIdx < quizQuestions.length) {
+                renderQuestion();
+            } else {
+                showFinalResults();
+            }
+        });
+
+        function showFinalResults() {
+            document.getElementById('quizContainer').classList.add('hidden');
+            const resultCard = document.getElementById('quizResultCard');
+            resultCard.classList.remove('hidden');
+
+            document.getElementById('finalScoreText').innerText = `당신의 점수: ${userScore}점 / 100점`;
+
+            if (userScore === 100) {
+                // Launch confetti
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function restartQuiz() {
+            currentQuestionIdx = 0;
+            userScore = 0;
+            document.getElementById('quizResultCard').classList.add('hidden');
+            document.getElementById('quizContainer').classList.remove('hidden');
+            renderQuestion();
+        }
+
+        /* Initial Execution on Load */
+        window.onload = function() {
+            init3DVisualizer();
+            renderGPSCanvas();
+            renderQuestion();
+        };
+    </script>
+</body>
+</html>
