@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discover Phu Quoc - Ultimate Travel Guide</title>
+  <style>
+    :root {
+      --primary-color: #008080;
+      --secondary-color: #ff7f50;
+      --dark-color: #1a252f;
+      --light-color: #f8f9fa;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background-color: #f4f7f6; color: #333; line-height: 1.6; }
+    
+    /* Header & Navigation */
+    header { background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+    .nav-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; }
+    .logo { font-size: 1.5rem; font-weight: bold; color: var(--primary-color); text-decoration: none; display: flex; align-items: center; gap: 8px; }
+    .nav-links { display: flex; list-style: none; gap: 20px; }
+    .nav-links a { text-decoration: none; color: #555; font-weight: 500; transition: 0.3s; }
+    .nav-links a:hover { color: var(--primary-color); }
+    
+    .lang-select { padding: 6px 12px; border-radius: 20px; border: 1px solid #ccc; background: #fff; cursor: pointer; font-weight: bold; }
+    
+    /* Hero Section */
+    .hero {
+      background: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.35)), url('https://statics.vinpearl.com/phu-quoc-beach-1_1696209832.jpg') center/cover no-repeat;
+      height: 480px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #fff; padding: 0 20px;
+    }
+    .hero h1 { font-size: 2.8rem; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+    .hero p { font-size: 1.2rem; margin-bottom: 25px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+    
+    .search-bar { background: #fff; padding: 10px 15px; border-radius: 30px; display: flex; gap: 10px; width: 100%; max-width: 600px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .search-bar input { border: none; outline: none; width: 100%; padding: 8px 15px; font-size: 1rem; }
+    .search-bar button { background: var(--secondary-color); color: white; border: none; padding: 10px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; }
+
+    /* Content Container */
+    .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+    .section-title { font-size: 1.8rem; color: var(--dark-color); margin-bottom: 20px; text-align: center; }
+    
+    /* Grid Cards */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
+    .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transition: transform 0.3s; }
+    .card:hover { transform: translateY(-5px); }
+    .card img { width: 100%; height: 180px; object-fit: cover; }
+    .card-body { padding: 20px; }
+    .card-tag { display: inline-block; background: #e6f4f4; color: var(--primary-color); padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-bottom: 8px; }
+    .card-title { font-size: 1.2rem; margin-bottom: 8px; color: #222; }
+    .card-desc { font-size: 0.9rem; color: #666; }
+
+    /* Footer */
+    footer { background: var(--dark-color); color: #ccc; padding: 30px 20px; text-align: center; margin-top: 60px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="#" class="logo">🌴 PhuQuocGo</a>
+      <ul class="nav-links">
+        <li><a href="#" id="nav-attractions">관광지</a></li>
+        <li><a href="#" id="nav-beaches">해변</a></li>
+        <li><a href="#" id="nav-resorts">리조트</a></li>
+        <li><a href="#" id="nav-food">맛집</a></li>
+      </ul>
+      <select class="lang-select" onchange="changeLanguage(this.value)">
+        <option value="ko">🇰🇷 한국어</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="vi">🇻🇳 Tiếng Việt</option>
+        <option value="zh">🇨🇳 中文</option>
+        <option value="ja">🇯🇵 日本語</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="ru">🇷🇺 Русский</option>
+        <option value="th">🇹🇭 ไทย</option>
+        <option value="id">🇮🇩 Bahasa Indonesia</option>
+        <option value="it">🇮🇹 Italiano</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <h1 id="hero-title">푸꾸옥에서 만나는 휴양과 모험</h1>
+    <p id="hero-subtitle">에메랄드빛 바다, 테마파크, 야시장이 펼쳐지는 베트남 최고의 휴양지</p>
+    <div class="search-bar">
+      <input type="text" id="search-input" placeholder="관광지, 리조트, 액티비티 검색...">
+      <button id="search-btn">검색</button>
+    </div>
+  </section>
+
+  <!-- Highlights Section -->
+  <main class="container">
+    <h2 class="section-title" id="section-destinations">추천 명소</h2>
+    <div class="grid">
+      
+      <!-- Card 1 -->
+      <div class="card">
+        <img src="https://ak-d.tripcdn.com/images/1mi4f224x97596lsb4A12_Q90.jpg?proc=source/trip" alt="혼똔섬 케이블카">
+        <div class="card-body">
+          <span class="card-tag" id="tag-south">남부</span>
+          <h3 class="card-title" id="title-cablecar">혼똔섬 해상 케이블카</h3>
+          <p class="card-desc" id="desc-cablecar">세계 최장 길이의 해상 케이블카를 타고 파노라마처럼 펼쳐지는 아열대 바다 풍경을 감상하세요.</p>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="card">
+        <img src="https://static.vinwonders.com/production/starfish-beach.jpg" alt="스타피쉬 비치">
+        <div class="card-body">
+          <span class="card-tag" id="tag-north">북부</span>
+          <h3 class="card-title" id="title-starfish">스타피쉬 비치 (라크벰)</h3>
+          <p class="card-desc" id="desc-starfish">투명한 에메랄드빛 바다와 빨간 불가사리가 모여드는 푸꾸옥의 대표적인 힐링 해변입니다.</p>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="card">
+        <img src="https://hatienvegas.com/wp-content/uploads/2025/06/Doi-net-ve-hon-Dua-Phu-Quoc-Du-lich-Phu-Quoc-Hatienvegasanh-suu-tam.jpg" alt="안토이 호핑투어">
+        <div class="card-body">
+          <span class="card-tag" id="tag-activity">액티비티</span>
+          <h3 class="card-title" id="title-island">안토이 군도 호핑투어</h3>
+          <p class="card-desc" id="desc-island">스노클링과 다이빙을 즐기며 푸꾸옥 섬 남단의 산호초와 에메랄드빛 바다를 탐험하세요.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p id="footer-text">© 2026 PhuQuocGo Travel Portal. All rights reserved.</p>
+  </footer>
+
+  <!-- Translation Data & Logic -->
+  <script>
+    const translations = {
+      ko: {
+        navAttractions: "관광지", navBeaches: "해변", navResorts: "리조트", navFood: "맛집",
+        heroTitle: "푸꾸옥에서 만나는 휴양과 모험", heroSubtitle: "에메랄드빛 바다, 테마파크, 야시장이 펼쳐지는 베트남 최고의 휴양지",
+        searchPlaceholder: "관광지, 리조트, 액티비티 검색...", searchBtn: "검색",
+        sectionDestinations: "추천 명소", tagSouth: "남부", tagNorth: "북부", tagActivity: "액티비티",
+        titleCablecar: "혼똔섬 해상 케이블카", descCablecar: "세계 최장 길이의 해상 케이블카를 타고 파노라마처럼 펼쳐지는 아열대 바다 풍경을 감상하세요.",
+        titleStarfish: "스타피쉬 비치 (라크벰)", descStarfish: "투명한 에메랄드빛 바다와 빨간 불가사리가 모여드는 푸꾸옥의 대표적인 힐링 해변입니다.",
+        titleIsland: "안토이 군도 호핑투어", descIsland: "스노클링과 다이빙을 즐기며 푸꾸옥 섬 남단의 산호초와 에메랄드빛 바다를 탐험하세요.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      en: {
+        navAttractions: "Attractions", navBeaches: "Beaches", navResorts: "Resorts", navFood: "Dining",
+        heroTitle: "Relaxation & Adventure in Phu Quoc", heroSubtitle: "Vietnam's paradise island of turquoise waters, theme parks, and night markets",
+        searchPlaceholder: "Search attractions, resorts, activities...", searchBtn: "Search",
+        sectionDestinations: "Featured Destinations", tagSouth: "South", tagNorth: "North", tagActivity: "Activity",
+        titleCablecar: "Hon Thom Cable Car", descCablecar: "Soar over the sea on the world's longest cable car with breathtaking ocean views.",
+        titleStarfish: "Starfish Beach (Rach Vem)", descStarfish: "A peaceful sanctuary famous for crystal-clear waters and red starfish in the sand.",
+        titleIsland: "An Thoi Archipelago Tour", descIsland: "Discover vibrant coral reefs and turquoise lagoons with island hopping tours.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      vi: {
+        navAttractions: "Điểm đến", navBeaches: "Bãi biển", navResorts: "Khu nghỉ dưỡng", navFood: "Ẩm thực",
+        heroTitle: "Nghỉ Dưỡng & Khám Phá Tại Phú Quốc", heroSubtitle: "Thiên đường đảo ngọc Việt Nam với biển xanh, công viên giải trí và chợ đêm",
+        searchPlaceholder: "Tìm điểm đến, resort, hoạt động...", searchBtn: "Tìm kiếm",
+        sectionDestinations: "Điểm Đến Nổi Bật", tagSouth: "Phía Nam", tagNorth: "Phía Bắc", tagActivity: "Hoạt động",
+        titleCablecar: "Cáp Treo Hòn Thơm", descCablecar: "Trải nghiệm cáp treo vượt biển dài nhất thế giới ngắm toàn cảnh biển đảo kỳ vĩ.",
+        titleStarfish: "Bãi Sao Biển (Rạch Vẹm)", descStarfish: "Bãi biển thanh bình nổi tiếng với làn nước trong suốt và vô số sao biển đỏ.",
+        titleIsland: "Tour Quần Đảo An Thới", descIsland: "Lặn ngắm san hô và khám phá các hòn đảo hoang sơ tuyệt đẹp phía Nam.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      zh: {
+        navAttractions: "景点", navBeaches: "海滩", navResorts: "度假村", navFood: "美食",
+        heroTitle: "在富国岛体验度假与冒险", heroSubtitle: "拥有蔚蓝大海、主题公园和夜市的越南度假天堂",
+        searchPlaceholder: "搜索景点、度假村、活动...", searchBtn: "搜索",
+        sectionDestinations: "热门推荐", tagSouth: "南部", tagNorth: "北部", tagActivity: "活动",
+        titleCablecar: "香岛跨海缆车", descCablecar: "乘坐世界上最长的跨海缆车，俯瞰壮丽的热带海洋全景。",
+        titleStarfish: "红海星海滩", descStarfish: "以清澈见底的海水和聚集的红色海星而闻名的自然绝景。",
+        titleIsland: "安提群岛跳岛游", descIsland: "潜水浮潜，探索富国岛南部迷人的珊瑚礁与清澈海湾。",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      ja: {
+        navAttractions: "観光地", navBeaches: "ビーチ", navResorts: "リゾート", navFood: "グルメ",
+        heroTitle: "フーコック島で過ごす極上の休日", heroSubtitle: "エメラルドグリーンの海、テーマパーク、夜市が魅力的",
+        searchPlaceholder: "観光地、リゾート、アクティビティを検索...", searchBtn: "検索",
+        sectionDestinations: "おすすめスポット", tagSouth: "南部", tagNorth: "北部", tagActivity: "体験",
+        titleCablecar: "ホントム島海上ロープウェイ", descCablecar: "世界最長の海上ロープウェイから壮大なパ노ラマオーシャンビューを堪能。",
+        titleStarfish: "スターフィッシュビーチ", descStarfish: "透明度の高い海と赤いヒトデが集まる幻想的なヒーリングビーチ。",
+        titleIsland: "アントイ諸島アイランドホッピング", descIsland: "シュノーケリングで美しいサンゴ礁と澄み切った海を大冒険。",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      fr: {
+        navAttractions: "Attractions", navBeaches: "Plages", navResorts: "Hôtels", navFood: "Gastronomie",
+        heroTitle: "Détente et Aventure à Phu Quoc", heroSubtitle: "L'île paradisiaque du Vietnam aux eaux turquoise, parcs et marchés nocturnes",
+        searchPlaceholder: "Rechercher des lieux, hôtels, activités...", searchBtn: "Chercher",
+        sectionDestinations: "Destinations Incontournables", tagSouth: "Sud", tagNorth: "Nord", tagActivity: "Activité",
+        titleCablecar: "Téléphérique de Hon Thom", descCablecar: "Survolez la mer sur le plus long téléphérique du monde.",
+        titleStarfish: "Plage des Étoiles de Mer", descStarfish: "Un havre de paix célèbre pour ses eaux limpides et ses étoiles de mer rouges.",
+        titleIsland: "Excursion à l'archipel d'An Thoi", descIsland: "Explorez les récifs coralliens et les lagon turquoises du sud.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      de: {
+        navAttractions: "Sehenswürdigkeiten", navBeaches: "Strände", navResorts: "Resorts", navFood: "Kulinarik",
+        heroTitle: "Erholung & Abenteuer auf Phu Quoc", heroSubtitle: "Vietnams Inselparadies mit türkisblauem Meer und bunten Märkten",
+        searchPlaceholder: "Orte, Resorts, Aktivitäten suchen...", searchBtn: "Suchen",
+        sectionDestinations: "Beliebte Reiseziele", tagSouth: "Süden", tagNorth: "Norden", tagActivity: "Aktivität",
+        titleCablecar: "Hon Thom Seilbahn", descCablecar: "Gleiten Sie über das Meer mit der längsten Seilbahn der Welt.",
+        titleStarfish: "Seestern-Strand (Rach Vem)", descStarfish: "Ein ruhiges Paradies bekannt für glasklares Wasser und rote Seesterne.",
+        titleIsland: "An Thoi Inselhopping", descIsland: "Entdecken Sie lebendige Korallenriffe und wunderschöne Buchten.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      es: {
+        navAttractions: "Atracciones", navBeaches: "Playas", navResorts: "Resorts", navFood: "Gastronomía",
+        heroTitle: "Relajación y Aventura en Phu Quoc", heroSubtitle: "La isla paraíso de Vietnam con aguas turquesas y mercados nocturnos",
+        searchPlaceholder: "Buscar lugares, resorts, actividades...", searchBtn: "Buscar",
+        sectionDestinations: "Destinos Destacados", tagSouth: "Sur", tagNorth: "Norte", tagActivity: "Actividad",
+        titleCablecar: "Teleférico de Hon Thom", descCablecar: "Vuela sobre el mar en el teleférico más largo del mundo.",
+        titleStarfish: "Playa de las Estrellas de Mar", descStarfish: "Famosa por sus aguas cristalinas y estrellas de mar rojas.",
+        titleIsland: "Tour por el Archipiélago An Thoi", descIsland: "Disfruta del snorkel y descubre impresionantes arrecifes de coral.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      ru: {
+        navAttractions: "Достопримечательности", navBeaches: "Пляжи", navResorts: "Курорты", navFood: "Рестораны",
+        heroTitle: "Отдых и Приключения на Фукуоке", heroSubtitle: "Райский остров Вьетнама с бирюзовым морем и ночными рынками",
+        searchPlaceholder: "Поиск мест, отелей, развлечений...", searchBtn: "Искать",
+        sectionDestinations: "Популярные Места", tagSouth: "Юг", tagNorth: "Север", tagActivity: "Активность",
+        titleCablecar: "Канатная дорога Хон Тхом", descCablecar: "Прокатитесь над морем на самой длинной канатной дороге в мире.",
+        titleStarfish: "Пляж Морских Звезд", descStarfish: "Известен прозрачной водой и множеством красных морских звезд.",
+        titleIsland: "Тур по архипелагу Ан Тхой", descIsland: "Исследуйте коралловые рифы и бирюзовые лагуны во время сноркелинга.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      th: {
+        navAttractions: "สถานที่ท่องเที่ยว", navBeaches: "ชายหาด", navResorts: "รีสอร์ท", navFood: "ร้านอาหาร",
+        heroTitle: "การพักผ่อนและการผจญภัยที่ฟู้โกว๊ก", heroSubtitle: "เกาะสวรรค์แห่งเวียดนาม พร้อมน้ำทะเลสีฟ้าใสและตลาดกลางคืน",
+        searchPlaceholder: "ค้นหาสถานที่, รีสอร์ท, กิจกรรม...", searchBtn: "ค้นหา",
+        sectionDestinations: "สถานที่แนะนำ", tagSouth: "ตอนใต้", tagNorth: "ตอนเหนือ", tagActivity: "กิจกรรม",
+        titleCablecar: "กระเช้าลอยฟ้าฮอนทอม", descCablecar: "นั่งกระเช้าข้ามทะเลที่ยาวที่สุดในโลก พร้อมชมวิวมหาสมุทรสุดอลังการ",
+        titleStarfish: "หาดดาวทะเล (Rach Vem)", descStarfish: "ชายหาดเงียบสงบที่มีชื่อเสียงด้านน้ำทะเลใสและดาวทะเลสีแดง",
+        titleIsland: "ทัวร์หมู่เกาะอันธอ ย", descIsland: "ดำน้ำชมปะการังและสำรวจเกาะสวยงามทางตอนใต้ของฟู้โกว๊ก",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      id: {
+        navAttractions: "Wisata", navBeaches: "Pantai", navResorts: "Resor", navFood: "Kuliner",
+        heroTitle: "Relaksasi & Petualangan di Phu Quoc", heroSubtitle: "Surga pulau Vietnam dengan laut jernih, taman hiburan, dan pasar malam",
+        searchPlaceholder: "Cari tempat wisata, resor, aktivitas...", searchBtn: "Cari",
+        sectionDestinations: "Destinasi Unggulan", tagSouth: "Selatan", tagNorth: "Utara", tagActivity: "Aktivitas",
+        titleCablecar: "Kereta Gantung Hon Thom", descCablecar: "Meluncur di atas laut dengan kereta gantung terpanjang di dunia.",
+        titleStarfish: "Pantai Bintang Laut", descStarfish: "Terkenal dengan air lautnya yang jernih dan bintang laut merah.",
+        titleIsland: "Tur Kepulauan An Thoi", descIsland: "Jelajahi terumbu karang indah dan laguna biru yang memukau.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      },
+      it: {
+        navAttractions: "Attrazioni", navBeaches: "Spiagge", navResorts: "Resort", navFood: "Ristorazione",
+        heroTitle: "Relax e Avventura a Phu Quoc", heroSubtitle: "L'isola paradisiaca del Vietnam con acque turchesi e mercati notturni",
+        searchPlaceholder: "Cerca attrazioni, resort, attività...", searchBtn: "Cerca",
+        sectionDestinations: "Destinazioni Principali", tagSouth: "Sud", tagNorth: "Nord", tagActivity: "Attività",
+        titleCablecar: "Funivia di Hon Thom", descCablecar: "Vola sul mare sulla funivia più lunga del mondo con vista mozzafiato.",
+        titleStarfish: "Spiaggia delle Stelle Marine", descStarfish: "Famosa per le acque cristalline e le stelle marine rosse.",
+        titleIsland: "Tour dell'Arcipelago An Thoi", descIsland: "Esplora barriere coralline e baie turchesi con tour in barca.",
+        footer: "© 2026 PhuQuocGo Travel Portal. All rights reserved."
+      }
+    };
+
+    function changeLanguage(lang) {
+      const data = translations[lang] || translations.en;
+      document.getElementById('nav-attractions').textContent = data.navAttractions;
+      document.getElementById('nav-beaches').textContent = data.navBeaches;
+      document.getElementById('nav-resorts').textContent = data.navResorts;
+      document.getElementById('nav-food').textContent = data.navFood;
+      document.getElementById('hero-title').textContent = data.heroTitle;
+      document.getElementById('hero-subtitle').textContent = data.heroSubtitle;
+      document.getElementById('search-input').placeholder = data.searchPlaceholder;
+      document.getElementById('search-btn').textContent = data.searchBtn;
+      document.getElementById('section-destinations').textContent = data.sectionDestinations;
+      document.getElementById('tag-south').textContent = data.tagSouth;
+      document.getElementById('tag-north').textContent = data.tagNorth;
+      document.getElementById('tag-activity').textContent = data.tagActivity;
+      document.getElementById('title-cablecar').textContent = data.titleCablecar;
+      document.getElementById('desc-cablecar').textContent = data.descCablecar;
+      document.getElementById('title-starfish').textContent = data.titleStarfish;
+      document.getElementById('desc-starfish').textContent = data.descStarfish;
+      document.getElementById('title-island').textContent = data.titleIsland;
+      document.getElementById('desc-island').textContent = data.descIsland;
+      document.getElementById('footer-text').textContent = data.footer;
+    }
+  </script>
+</body>
+</html>
