@@ -21,6 +21,9 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 
+    <!-- Google Identity Services & Drive API Client -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -349,9 +352,9 @@
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-envelope-open-text text-cyan-400 text-lg"></i>
-                    <h2 class="font-bold text-base text-slate-200">경로 데이터 내보내기 & 이메일 전송</h2>
+                    <h2 class="font-bold text-base text-slate-200">경로 데이터 내보내기 & 클라우드 저장</h2>
                 </div>
-                <span class="text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">GPX / KML / PNG Map</span>
+                <span class="text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">GPX / KML / Google Drive</span>
             </div>
 
             <!-- Captured Image Preview Box -->
@@ -380,7 +383,21 @@
                 </div>
             </div>
 
-            <!-- Email & Direct Download Form Controls -->
+            <!-- Google Drive OAuth Client ID Input Config -->
+            <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-1">
+                <div class="flex items-center justify-between text-slate-300 font-semibold">
+                    <span><i class="fa-brands fa-google-drive text-amber-400 mr-1"></i> 구글 드라이브 연동 설정</span>
+                    <span id="gdriveStatus" class="text-slate-400 text-[11px]">미인증</span>
+                </div>
+                <div class="flex gap-2 pt-1">
+                    <input type="text" id="gdriveClientId" placeholder="Google Client ID 입력 (예: 123456...apps.googleusercontent.com)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500 font-mono">
+                    <button id="btnAuthDrive" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg whitespace-nowrap transition">
+                        로그인
+                    </button>
+                </div>
+            </div>
+
+            <!-- Email, Direct Download & Google Drive Form Controls -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">수신 이메일 주소</label>
@@ -393,14 +410,17 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">GPS 데이터 파일 다운로드</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">GPS 데이터 파일 내보내기 및 드라이브 저장</label>
                     <div class="flex gap-2">
                         <select id="exportFormat" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500">
                             <option value="gpx">GPX (GPS Exchange Format)</option>
                             <option value="kml">KML (Google Earth Path)</option>
                         </select>
-                        <button id="btnDirectDownload" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl text-slate-200 flex items-center gap-1.5 transition min-h-[42px]">
-                            <i class="fa-solid fa-file-arrow-down"></i> 파일 다운로드
+                        <button id="btnDirectDownload" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl text-slate-200 flex items-center gap-1.5 transition min-h-[42px]">
+                            <i class="fa-solid fa-file-arrow-down"></i> 다운로드
+                        </button>
+                        <button id="btnSaveToDrive" class="px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition min-h-[42px]">
+                            <i class="fa-brands fa-google-drive"></i> 드라이브 저장
                         </button>
                     </div>
                 </div>
@@ -501,6 +521,10 @@
         let timerInterval = null;
         let lastCapturedBlob = null;
 
+        // Google Drive API State Variables
+        let tokenClient = null;
+        let accessToken = null;
+
         // Leaflet Map & Layer References
         let map = null;
         let polyline = null;
@@ -521,6 +545,11 @@
         const btnShareNative = document.getElementById('btnShareNative');
         const btnPrepareMailto = document.getElementById('btnPrepareMailto');
         const btnDirectDownload = document.getElementById('btnDirectDownload');
+        const btnSaveToDrive = document.getElementById('btnSaveToDrive');
+        const btnAuthDrive = document.getElementById('btnAuthDrive');
+        const gdriveClientId = document.getElementById('gdriveClientId');
+        const gdriveStatus = document.getElementById('gdriveStatus');
+
         const btnRecenter = document.getElementById('btnRecenter');
         const btnFitBounds = document.getElementById('btnFitBounds');
         const btnDemoRoute = document.getElementById('btnDemoRoute');
@@ -553,6 +582,110 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             initMapEngine();
+            initGoogleAuth();
+        });
+
+        function initGoogleAuth() {
+            btnAuthDrive.addEventListener('click', () => {
+                const clientId = gdriveClientId.value.trim();
+                if (!clientId) {
+                    alert("구글 API OAuth Client ID를 입력하세요.");
+                    return;
+                }
+
+                if (typeof google === 'undefined' || !google.accounts) {
+                    alert("Google API 서비스 로드 중입니다. 잠시 후 다시 시도하세요.");
+                    return;
+                }
+
+                tokenClient = google.accounts.oauth2.initTokenClient({
+                    client_id: clientId,
+                    scope: 'https://www.googleapis.com/auth/drive.file',
+                    callback: (response) => {
+                        if (response.error !== undefined) {
+                            console.error(response);
+                            gdriveStatus.textContent = "인증 실패";
+                            gdriveStatus.className = "text-rose-400 text-[11px]";
+                            return;
+                        }
+                        accessToken = response.access_token;
+                        gdriveStatus.textContent = "연동 완료 ✓";
+                        gdriveStatus.className = "text-emerald-400 font-bold text-[11px]";
+                    },
+                });
+
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            });
+        }
+
+        async function uploadFileToGoogleDrive(fileName, mimeType, contentBlob) {
+            if (!accessToken) {
+                alert("구글 드라이브 연동 인증을 완료해야 합니다. '로그인' 버튼을 눌러 인증을 진행해 주세요.");
+                return false;
+            }
+
+            const metadata = {
+                name: fileName,
+                mimeType: mimeType
+            };
+
+            const formData = new FormData();
+            formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+            formData.append('file', contentBlob);
+
+            try {
+                const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                    method: 'POST',
+                    headers: new Headers({ 'Authorization': 'Bearer ' + accessToken }),
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const resJson = await response.json();
+                    return resJson;
+                } else {
+                    const errText = await response.text();
+                    console.error('Upload Error Response:', errText);
+                    return false;
+                }
+            } catch (err) {
+                console.error('Google Drive Upload Failed:', err);
+                return false;
+            }
+        }
+
+        btnSaveToDrive.addEventListener('click', async () => {
+            if (gpsTrackPoints.length === 0) {
+                alert("저장할 GPS 경로 데이터가 없습니다.");
+                return;
+            }
+
+            btnSaveToDrive.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...`;
+            btnSaveToDrive.disabled = true;
+
+            const format = document.getElementById('exportFormat').value;
+            const content = format === 'gpx' ? generateGPXData() : generateKMLData();
+            const fileName = `sup-session-${Date.now()}.${format}`;
+            const mimeType = format === 'gpx' ? 'application/gpx+xml' : 'application/vnd.google-earth.kml+xml';
+
+            const routeBlob = new Blob([content], { type: mimeType });
+            const resultRoute = await uploadFileToGoogleDrive(fileName, mimeType, routeBlob);
+
+            let imgResult = true;
+            if (lastCapturedBlob) {
+                const imgFileName = `sup-route-map-${Date.now()}.png`;
+                const resImg = await uploadFileToGoogleDrive(imgFileName, 'image/png', lastCapturedBlob);
+                if (!resImg) imgResult = false;
+            }
+
+            if (resultRoute && imgResult) {
+                alert("구글 드라이브에 성공적으로 저장되었습니다!");
+            } else if (!resultRoute) {
+                alert("구글 드라이브 파일 저장에 실패하였습니다.");
+            }
+
+            btnSaveToDrive.innerHTML = `<i class="fa-brands fa-google-drive"></i> 드라이브 저장`;
+            btnSaveToDrive.disabled = false;
         });
 
         function initMapEngine() {
