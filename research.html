@@ -155,6 +155,57 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
     line-height:1.45;
     margin-top:6px;
   }
+
+  /* GPS route file controls */
+  .gps-route-box{
+    margin-top:10px;
+    padding:10px;
+    background:#081b2c;
+    border:1px solid #214d69;
+    border-radius:8px;
+  }
+  .gps-route-box input[type=file]{
+    padding:7px;
+    font-size:11px;
+    background:#071827;
+    border:1px solid #34627d;
+    color:var(--muted);
+  }
+  .gps-route-buttons{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:6px;
+  }
+  .gps-route-section{
+    position:sticky;
+    bottom:0;
+    z-index:20;
+    padding:10px 12px 12px;
+    background:linear-gradient(180deg,rgba(13,33,56,.72),rgba(13,33,56,.99) 22%);
+    border-top:1px solid #2b6b8f;
+    box-shadow:0 -8px 18px rgba(0,0,0,.22);
+  }
+  .gps-route-section h2{
+    font-size:13px;
+    margin:0 0 7px;
+    color:var(--cyan);
+  }
+  .gps-route-help{
+    margin-top:6px;
+    color:var(--muted);
+    font-size:10px;
+    line-height:1.45;
+  }
+  .gps-route-help b{color:#ff3158}
+  .gps-route-status{
+    margin-top:7px;
+    font-size:10px;
+    line-height:1.45;
+    color:var(--muted);
+    min-height:16px;
+    word-break:break-word;
+  }
   .layer-active{
     border-color:var(--cyan)!important;
     box-shadow:0 0 0 1px rgba(77,216,255,.25);
@@ -302,6 +353,32 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
       <div class="eq">x = cosφ cosλ, y = cosφ sinλ, z = sinφ</div>
       <div class="eq">p′ = R p</div>
       <div class="eq">cos(35°)Y + sin(35°)√(1-X²-Y²) = sin(φ)</div>
+    </div>
+  </div>
+
+  <div class="gps-route-section">
+    <h2>⑥ GPS 경로 파일</h2>
+    <div class="gps-route-box">
+      <label for="gpsRouteFile" style="color:var(--cyan);font-weight:700">
+        GPS 경로를 선택하세요
+      </label>
+      <input
+        id="gpsRouteFile"
+        type="file"
+        accept=".gpx,.kml,.csv,.txt"
+        onchange="handleGPSRouteFile(this.files[0])"
+      >
+      <div class="gps-route-help">
+        GPX · KML · CSV · TXT 파일을 지원합니다.<br>
+        불러온 경로는 오른쪽 세계지도에 <b>빨간 선</b>으로 표시됩니다.
+      </div>
+      <div class="gps-route-buttons">
+        <button type="button" onclick="fitGPSRoute()">경로 전체 보기</button>
+        <button type="button" class="secondary" onclick="clearGPSRoute()">경로 지우기</button>
+      </div>
+      <div id="gpsRouteStatus" class="gps-route-status">
+        아직 GPS 경로 파일을 불러오지 않았습니다.
+      </div>
     </div>
   </div>
 </aside>
@@ -1051,12 +1128,265 @@ let leafletRouteLayer = null;
 let leafletWaypointLayer = null;
 let selectedBaseMap = "custom";
 
+// 사용자 첨부 GPS 경로
+let gpsRoutePoints = [];       // [{lat, lon, ele?}]
+let gpsRouteFileName = "";
+let gpsRouteFormat = "";
+let gpsRouteDistanceKm = 0;
+let gpsRouteLeafletLayer = null;
+let gpsRouteStartMarker = null;
+let gpsRouteEndMarker = null;
+
 const baseMapDescriptions = {
   custom: "기존 국가 중심 세계지도와 GPS 표시 기능을 사용합니다.",
   osm: "도로, 도시, 해안선, 지명 중심의 OpenStreetMap입니다.",
   topo: "등고선과 지형 표현을 포함하는 OpenTopoMap입니다.",
   esri: "Esri World Imagery 기반의 위성영상 지도입니다."
 };
+
+
+function setGPSRouteStatus(message, isError=false){
+  const el = $("gpsRouteStatus");
+  if(!el) return;
+  el.textContent = message;
+  el.style.color = isError ? "#ff6675" : "var(--muted)";
+}
+
+function haversineKm(a,b){
+  const lat1=a.lat*D, lat2=b.lat*D;
+  const dLat=(b.lat-a.lat)*D, dLon=(b.lon-a.lon)*D;
+  const h=Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+  return 6371.0088 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(Math.max(0,1-h)));
+}
+
+function calculateGPSRouteDistance(points){
+  let total=0;
+  for(let i=1;i<points.length;i++) total += haversineKm(points[i-1],points[i]);
+  return total;
+}
+
+function cleanGPSPoints(points){
+  return points
+    .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lon) &&
+                 p.lat >= -90 && p.lat <= 90 && p.lon >= -180 && p.lon <= 180)
+    .map(p => ({lat:p.lat, lon:p.lon, ele:Number.isFinite(p.ele)?p.ele:null}));
+}
+
+function parseGPX(text){
+  const xml = new DOMParser().parseFromString(text, "application/xml");
+  if(xml.querySelector("parsererror")) throw new Error("GPX XML 형식을 읽을 수 없습니다.");
+  let nodes = Array.from(xml.querySelectorAll("trkpt"));
+  if(!nodes.length) nodes = Array.from(xml.querySelectorAll("rtept"));
+  return cleanGPSPoints(nodes.map(n => ({
+    lat: parseFloat(n.getAttribute("lat")),
+    lon: parseFloat(n.getAttribute("lon")),
+    ele: parseFloat(n.querySelector("ele")?.textContent)
+  })));
+}
+
+function parseKML(text){
+  const xml = new DOMParser().parseFromString(text, "application/xml");
+  if(xml.querySelector("parsererror")) throw new Error("KML XML 형식을 읽을 수 없습니다.");
+  const coordNodes = Array.from(xml.querySelectorAll("LineString coordinates"));
+  const points=[];
+  coordNodes.forEach(node=>{
+    const raw=(node.textContent||"").trim();
+    raw.split(/\s+/).forEach(token=>{
+      const p=token.split(",");
+      if(p.length>=2) points.push({lon:parseFloat(p[0]),lat:parseFloat(p[1]),ele:parseFloat(p[2])});
+    });
+  });
+  return cleanGPSPoints(points);
+}
+
+function parseCSV(text){
+  const lines=text.replace(/\r/g,"").split("\n").map(x=>x.trim()).filter(Boolean);
+  if(!lines.length) return [];
+  const first=lines[0].split(/[,;\t]/).map(x=>x.trim().toLowerCase());
+  const latNames=["lat","latitude","위도","y"];
+  const lonNames=["lon","lng","longitude","경도","x"];
+  let latIdx=first.findIndex(x=>latNames.includes(x));
+  let lonIdx=first.findIndex(x=>lonNames.includes(x));
+  let eleIdx=first.findIndex(x=>["ele","elevation","alt","altitude","고도","높이"].includes(x));
+
+  let start=1;
+  if(latIdx<0 || lonIdx<0){
+    // 헤더가 없는 일반 CSV: latitude,longitude 순서를 우선 시도
+    start=0; latIdx=0; lonIdx=1;
+  }
+
+  const points=[];
+  for(let i=start;i<lines.length;i++){
+    const parts=lines[i].split(/[,;\t]/).map(x=>x.trim());
+    if(parts.length<=Math.max(latIdx,lonIdx)) continue;
+    const lat=parseFloat(parts[latIdx]), lon=parseFloat(parts[lonIdx]);
+    const ele=eleIdx>=0 ? parseFloat(parts[eleIdx]) : NaN;
+    points.push({lat,lon,ele});
+  }
+  return cleanGPSPoints(points);
+}
+
+async function handleGPSRouteFile(file){
+  if(!file) return;
+  try{
+    const text=await file.text();
+    const ext=(file.name.split(".").pop()||"").toLowerCase();
+    let points=[];
+    if(ext==="gpx") points=parseGPX(text);
+    else if(ext==="kml") points=parseKML(text);
+    else if(ext==="csv" || ext==="txt") points=parseCSV(text);
+    else throw new Error("지원하지 않는 파일 형식입니다. GPX, KML, CSV를 사용해 주세요.");
+
+    if(points.length<2) throw new Error("GPS 경로 점이 2개 미만입니다.");
+
+    gpsRoutePoints=points;
+    gpsRouteFileName=file.name;
+    gpsRouteFormat=ext.toUpperCase();
+    gpsRouteDistanceKm=calculateGPSRouteDistance(points);
+
+    const first=points[0], last=points[points.length-1];
+    setGPSRouteStatus(
+      `${file.name} · ${points.length.toLocaleString()}개 점 · 약 ${gpsRouteDistanceKm.toFixed(2)} km` +
+      ` · 시작 ${first.lat.toFixed(6)}, ${first.lon.toFixed(6)}` +
+      ` · 종료 ${last.lat.toFixed(6)}, ${last.lon.toFixed(6)}`
+    );
+
+    render();
+    if(selectedBaseMap !== "custom"){
+      if(!leafletMap) initLeafletBaseMap();
+      updateLeafletGPSRoute();
+    }
+    fitGPSRoute();
+  }catch(err){
+    console.error("GPS route load failed:",err);
+    gpsRoutePoints=[];
+    gpsRouteDistanceKm=0;
+    removeLeafletGPSRoute();
+    setGPSRouteStatus("GPS 경로 파일을 읽지 못했습니다: " + err.message, true);
+    render();
+  }
+}
+
+function clearGPSRoute(){
+  gpsRoutePoints=[];
+  gpsRouteFileName="";
+  gpsRouteFormat="";
+  gpsRouteDistanceKm=0;
+  const input=$("gpsRouteFile");
+  if(input) input.value="";
+  removeLeafletGPSRoute();
+  setGPSRouteStatus("GPS 경로가 삭제되었습니다.");
+  render();
+}
+
+function drawGPSRouteOnCanvas(w,h,b,s){
+  if(gpsRoutePoints.length<2) return;
+
+  const pts=[];
+  for(const point of gpsRoutePoints){
+    const q=rotateSph(point.lat,point.lon,b);
+    q.lon=normalizeLon(q.lon-s.offset);
+    const p=project(q.lat,q.lon,w,h,s.proj);
+    if(pts.length){
+      const prev=pts[pts.length-1];
+      if(Math.abs(p.x-prev.x)>w*0.5) p.visible=false;
+    }
+    pts.push(p);
+  }
+
+  // 외곽 강조선 + 중심선
+  drawPath(pts,"rgba(255,255,255,.92)",7);
+  drawPath(pts,"#ff3158",4);
+
+  const first=pts.find(p=>p.visible!==false);
+  const last=[...pts].reverse().find(p=>p.visible!==false);
+  if(first){
+    ctx.fillStyle="#38bdf8";
+    ctx.beginPath(); ctx.arc(first.x,first.y,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font="bold 10px sans-serif"; ctx.fillText("GPS START",first.x+9,first.y-8);
+  }
+  if(last){
+    ctx.fillStyle="#ffd45a";
+    ctx.beginPath(); ctx.arc(last.x,last.y,7,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font="bold 10px sans-serif"; ctx.fillText("GPS END",last.x+9,last.y-8);
+  }
+
+  if($("gpsRouteStatus") && gpsRouteFileName){
+    $("gpsRouteStatus").title =
+      `${gpsRouteFileName} · ${gpsRoutePoints.length} points · ${gpsRouteDistanceKm.toFixed(2)} km`;
+  }
+}
+
+function removeLeafletGPSRoute(){
+  if(!leafletMap) return;
+  [gpsRouteLeafletLayer,gpsRouteStartMarker,gpsRouteEndMarker].forEach(layer=>{
+    if(layer && leafletMap.hasLayer(layer)) leafletMap.removeLayer(layer);
+  });
+  gpsRouteLeafletLayer=null;
+  gpsRouteStartMarker=null;
+  gpsRouteEndMarker=null;
+}
+
+function updateLeafletGPSRoute(){
+  if(!leafletMap || typeof L==="undefined") return;
+  removeLeafletGPSRoute();
+  if(gpsRoutePoints.length<2) return;
+
+  const latlngs=gpsRoutePoints.map(p=>[p.lat,p.lon]);
+  gpsRouteLeafletLayer=L.layerGroup().addTo(leafletMap);
+  L.polyline(latlngs,{
+    color:"#ffffff", weight:8, opacity:.95, lineCap:"round", lineJoin:"round"
+  }).addTo(gpsRouteLeafletLayer);
+  L.polyline(latlngs,{
+    color:"#ff3158", weight:5, opacity:1, lineCap:"round", lineJoin:"round"
+  }).addTo(gpsRouteLeafletLayer);
+
+  const first=gpsRoutePoints[0], last=gpsRoutePoints[gpsRoutePoints.length-1];
+  gpsRouteStartMarker=L.circleMarker([first.lat,first.lon],{
+    radius:8,color:"#fff",weight:2,fillColor:"#38bdf8",fillOpacity:1
+  }).bindPopup(
+    `GPS 시작점<br>위도: ${first.lat.toFixed(6)}°<br>경도: ${first.lon.toFixed(6)}°`
+  ).addTo(leafletMap);
+
+  gpsRouteEndMarker=L.circleMarker([last.lat,last.lon],{
+    radius:8,color:"#fff",weight:2,fillColor:"#ffd45a",fillOpacity:1
+  }).bindPopup(
+    `GPS 종료점<br>위도: ${last.lat.toFixed(6)}°<br>경도: ${last.lon.toFixed(6)}°`
+  ).addTo(leafletMap);
+
+  if(selectedBaseMap!=="custom"){
+    const bounds=gpsRouteLeafletLayer.getBounds();
+    if(bounds.isValid()) leafletMap.fitBounds(bounds.pad(.15),{animate:false,maxZoom:16});
+  }
+}
+
+function fitGPSRoute(){
+  if(gpsRoutePoints.length<2) return;
+
+  if(selectedBaseMap!=="custom"){
+    if(!leafletMap) initLeafletBaseMap();
+    updateLeafletGPSRoute();
+    if(leafletMap && gpsRouteLeafletLayer){
+      const b=gpsRouteLeafletLayer.getBounds();
+      if(b.isValid()) leafletMap.fitBounds(b.pad(.12),{animate:false,maxZoom:16});
+    }
+    return;
+  }
+
+  // Canvas 지도에서는 경로 전체가 보이도록 확대/이동 상태를 초기화한 뒤
+  // 중심 GPS를 경로의 중간점에 맞춥니다.
+  const lats=gpsRoutePoints.map(p=>p.lat), lons=gpsRoutePoints.map(p=>p.lon);
+  const midLat=(Math.min(...lats)+Math.max(...lats))/2;
+  const midLon=(Math.min(...lons)+Math.max(...lons))/2;
+  if(Number.isFinite(midLat) && Number.isFinite(midLon)){
+    $("lat").value=midLat.toFixed(6);
+    $("lon").value=midLon.toFixed(6);
+    zoomLevel=1;
+    panX=0; panY=0;
+    render();
+    setTimeout(()=>render(), 0);
+  }
+}
 
 function initLeafletBaseMap(){
   if(typeof L === "undefined") {
@@ -1187,8 +1517,10 @@ function changeBaseMap(type){
   });
   if(leafletLayers[type]) leafletLayers[type].addTo(leafletMap);
   updateLeafletGreatCircle();
+  updateLeafletGPSRoute();
 
   fitBaseMapToCenter();
+  if(gpsRoutePoints.length >= 2) fitGPSRoute();
   setTimeout(()=>leafletMap.invalidateSize(), 100);
 }
 
@@ -1258,6 +1590,9 @@ function render(){
     });
     drawPath(pts, "#38bdf8", 1.2, "rgba(14, 116, 144, 0.28)");
   });
+
+  // 사용자 첨부 GPS 실제 이동 경로
+  drawGPSRouteOnCanvas(w,h,b,s);
 
   // Detailed country borders
   if ($("chk-borders")?.checked && worldCountryFeatures.length){
@@ -1742,7 +2077,10 @@ window.addEventListener("resize", () => {
 
 ["lat","lon","mode","offset","projection","aLat","aLon","bLat","bLon"].forEach(id=>$(id).addEventListener("input",()=>{
   render();
-  if(selectedBaseMap!=="custom") updateLeafletGreatCircle();
+  if(selectedBaseMap!=="custom"){
+    updateLeafletGreatCircle();
+    updateLeafletGPSRoute();
+  }
 }));
 
 changeLanguage("ko");
@@ -1760,6 +2098,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if(select) select.value = "custom";
   const desc = $("baseMapDescription");
   if(desc) desc.textContent = baseMapDescriptions.custom;
+  updateLeafletGPSRoute();
 });
 
 </script>
