@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS 경로 파일로 배우는 지리와 지도 왜곡</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#073b66;--blue:#0b72b9;--sky:#eaf6ff;--green:#17845b;--orange:#e67e22;--purple:#6c4bc1;--red:#d63b3b;--ink:#17324d;--muted:#5f7284;--card:#fff;--line:#d7e2ea}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans KR",sans-serif;color:var(--ink);background:#f4f8fb;line-height:1.65}
+header{background:linear-gradient(135deg,#06335c,#0c79b9);color:#fff;padding:42px 20px 35px;text-align:center}
+header h1{margin:0 0 10px;font-size:clamp(27px,4vw,48px)}
+header p{margin:0 auto;max-width:920px;font-size:17px}
+.container{max-width:1200px;margin:auto;padding:25px 18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 5px 18px #1232  }
+.card h2,.card h3{margin-top:0;color:var(--navy)}
+.badge{display:inline-block;background:var(--sky);color:var(--blue);font-weight:bold;border-radius:999px;padding:5px 12px;margin-bottom:8px}
+.flow{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:20px 0}
+.flow .box{padding:13px 18px;border-radius:12px;background:#fff;border:2px solid var(--blue);font-weight:bold}
+.arrow{font-size:25px;color:var(--blue)}
+#map{height:520px;border-radius:14px;border:1px solid var(--line)}
+.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
+button,.file-label{border:0;border-radius:10px;padding:11px 16px;font-weight:bold;cursor:pointer;background:var(--blue);color:#fff}
+button.secondary{background:#526b7d}
+button.green{background:var(--green)}
+button.orange{background:var(--orange)}
+input[type=file]{display:none}
+.status{padding:12px;background:#f0f6fa;border-radius:10px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.stat{background:#f8fbfd;border:1px solid var(--line);border-radius:10px;padding:13px;text-align:center}
+.stat strong{display:block;font-size:20px;color:var(--blue)}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid var(--line);padding:10px;text-align:left}
+th{background:#edf6fb}
+.lesson{counter-reset:item}
+.lesson-item{display:grid;grid-template-columns:55px 1fr;gap:15px;margin:14px 0}
+.num{width:44px;height:44px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:bold;font-size:19px}
+.quiz button{margin:5px 5px 5px 0;background:#e8f1f7;color:var(--ink)}
+.quiz button.correct{background:#ccefdc}
+.quiz button.wrong{background:#f8d5d5}
+#quizResult{font-weight:bold;margin-top:10px}
+footer{background:#073b66;color:white;text-align:center;padding:28px 15px;margin-top:25px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<h1>GPS 경로 파일로 배우는 지리와 지도 왜곡</h1>
+<p>GPS 파일은 지구 위에서의 실제 이동을 기록합니다. 하지만 그 경로를 평면 지도에 표현하면 지도 투영에 따른 차이가 생깁니다.</p>
+</header>
+
+<main class="container">
+
+<section class="card">
+<span class="badge">학습 목표</span>
+<h2>오늘 무엇을 배울까요?</h2>
+<div class="grid">
+<div><h3>① GPS 이해</h3><p>위도·경도·고도·시간으로 기록된 GPS 경로 파일의 구조를 이해합니다.</p></div>
+<div><h3>② 지도 왜곡 이해</h3><p>지구는 곡면이고 지도는 평면이므로 거리·면적·형태·방향에 차이가 생길 수 있음을 이해합니다.</p></div>
+<div><h3>③ 대원과 비교</h3><p>실제 GPS 항적과 두 지점 사이의 대원 최단경로를 비교합니다.</p></div>
+</div>
+</section>
+
+<section class="card">
+<span class="badge">핵심 개념</span>
+<h2>GPS 데이터는 어떻게 지도에 들어갈까요?</h2>
+<div class="flow">
+<div class="box">GPS 파일<br><small>GPX 등</small></div><div class="arrow">→</div>
+<div class="box">위도·경도<br><small>지구 표면 위치</small></div><div class="arrow">→</div>
+<div class="box">지도 투영<br><small>평면 표현</small></div><div class="arrow">→</div>
+<div class="box">GPS 항적<br><small>Track</small></div>
+</div>
+<p><b>중요:</b> 지도에서 보이는 차이가 항상 GPS 측정 오류를 의미하는 것은 아닙니다. GPS 위치 데이터와 그것을 평면에 표현하는 지도 투영의 문제를 구분해야 합니다.</p>
+</section>
+
+<section class="card">
+<span class="badge">직접 실습</span>
+<h2>① 나의 GPS 경로 파일 불러오기</h2>
+<p>GPX 파일을 선택하면 실제 이동경로가 지도에 표시됩니다. 조깅·자전거·등산·해양활동 등에서 기록한 GPX를 사용할 수 있습니다.</p>
+<div class="controls">
+<label class="file-label">📂 GPX 파일 선택 <input id="gpxFile" type="file" accept=".gpx,application/gpx+xml,text/xml"></label>
+<button class="secondary" onclick="clearRoute()">경로 지우기</button>
+<button class="green" onclick="fitRoute()">경로 전체 보기</button>
+</div>
+<div id="status" class="status">아직 GPX 파일을 선택하지 않았습니다.</div>
+<div id="map"></div>
+<div class="stats">
+<div class="stat"><span>경로 거리</span><strong id="distance">-</strong></div>
+<div class="stat"><span>GPS 점 수</span><strong id="points">-</strong></div>
+<div class="stat"><span>최고 고도</span><strong id="elev">-</strong></div>
+<div class="stat"><span>이동 시간</span><strong id="duration">-</strong></div>
+</div>
+</section>
+
+<section class="card">
+<span class="badge">② 세 가지 지도 관점</span>
+<h2>같은 GPS 파일을 왜 여러 방식으로 볼까요?</h2>
+<table>
+<tr><th>방법</th><th>주요 질문</th><th>특징</th></tr>
+<tr><td><b>세계지도</b></td><td>전 세계에서 어디로 이동했는가?</td><td>세계적인 위치관계를 한눈에 파악</td></tr>
+<tr><td><b>지역지도</b></td><td>이 지역에서 실제 거리는 얼마인가?</td><td>특정 지역의 거리·형태 분석에 유리</td></tr>
+<tr><td><b>대원지도</b></td><td>두 지점 사이 최단거리와 실제 항적은 어떻게 다른가?</td><td>기준점 중심의 거리·방향 관계 분석</td></tr>
+</table>
+</section>
+
+<section class="card">
+<span class="badge">③ 왜 고위도에서 달라질까요?</span>
+<h2>경도 간격과 코사인 관계</h2>
+<p>위도 φ에서 같은 경도 차이 Δλ가 나타내는 동서 방향의 실제 거리는 대략 다음과 같은 관계를 가집니다.</p>
+<p style="font-size:24px;text-align:center"><b>D<sub>λ</sub> ≈ R cos(φ) Δλ</b></p>
+<p>따라서 적도에서 멀어질수록 같은 경도 차이가 나타내는 실제 동서 거리는 감소합니다. 이것이 경위도 좌표를 단순한 직교좌표처럼 평면에 놓았을 때 생기는 차이를 이해하는 핵심입니다.</p>
+</section>
+
+<section class="card">
+<span class="badge">④ 대원 실험</span>
+<h2>실제 GPS 항적과 대원 최단경로</h2>
+<p>두 지점 A와 B를 선택하면 지구 표면에서 두 지점을 연결하는 대원호를 생각할 수 있습니다. 실제 GPS 항적은 도로, 해안선, 바람, 파도, 항로 등 여러 조건 때문에 대원호와 달라질 수 있습니다.</p>
+<div class="grid">
+<div><h3>대원 경로</h3><p>구면상 두 지점 사이의 최단거리 관계를 나타냅니다.</p></div>
+<div><h3>실제 GPS 경로</h3><p>사람·동물·선박·항공기 등이 실제로 이동한 항적입니다.</p></div>
+<div><h3>비교</h3><p>두 경로의 거리와 방향 차이를 통해 이동 특성을 분석할 수 있습니다.</p></div>
+</div>
+</section>
+
+<section class="card">
+<span class="badge">⑤ 데이터 과학</span>
+<h2>GPS 경로를 연구 데이터로 보기</h2>
+<div class="lesson">
+<div class="lesson-item"><div class="num">1</div><div><b>수집</b><br>스마트폰·GPS 장치로 위치를 기록합니다.</div></div>
+<div class="lesson-item"><div class="num">2</div><div><b>저장</b><br>GPX 등의 파일로 이동경로를 저장합니다.</div></div>
+<div class="lesson-item"><div class="num">3</div><div><b>표현</b><br>세계지도·지역지도·대원 기반 지도에 표시합니다.</div></div>
+<div class="lesson-item"><div class="num">4</div><div><b>비교</b><br>거리·방향·경로 형태와 투영에 따른 차이를 비교합니다.</div></div>
+<div class="lesson-item"><div class="num">5</div><div><b>해석</b><br>지도에서 보이는 현상과 실제 지구상의 현상을 구분합니다.</div></div>
+</div>
+</section>
+
+<section class="card">
+<span class="badge">⑥ 응용</span>
+<h2>어디에 사용할 수 있을까요?</h2>
+<div class="grid">
+<div><h3>🚴 생활</h3><p>조깅·자전거·등산·여행 경로 분석</p></div>
+<div><h3>✈️ 교통</h3><p>항공항로·선박 항적 분석</p></div>
+<div><h3>🦅 생태</h3><p>철새·야생동물 이동경로 연구</p></div>
+<div><h3>🌊 해양</h3><p>SUP·카약·서핑·해양안전 이동경로</p></div>
+<div><h3>🌍 지리</h3><p>국가 중심 세계지도와 공간관계 학습</p></div>
+<div><h3>💻 프로그래밍</h3><p>GPS 파일 자동 분석·시각화 프로그램</p></div>
+</div>
+</section>
+
+<section class="card quiz">
+<span class="badge">⑦ 확인 문제</span>
+<h2>배운 내용을 확인해 봅시다</h2>
+<p><b>문제 1.</b> GPS 파일을 평면 지도에 표시할 때 왜 경로의 모습이 달라질 수 있을까요?</p>
+<button onclick="answer(this,false)">GPS가 갑자기 다른 장소를 기록하기 때문</button>
+<button onclick="answer(this,true)">지구의 곡면을 평면에 표현하는 과정에서 투영 차이가 생기기 때문</button>
+<button onclick="answer(this,false)">모든 GPS 파일은 반드시 오류가 있기 때문</button>
+<div id="quizResult"></div>
+</section>
+
+<section class="card">
+<span class="badge">핵심 정리</span>
+<h2>학생이 기억할 세 문장</h2>
+<ol>
+<li><b>GPS 파일은 지구 표면에서의 실제 위치와 이동을 기록하는 공간 데이터이다.</b></li>
+<li><b>같은 GPS 경로도 어떤 지도 투영으로 표현하느냐에 따라 화면에서 다르게 보일 수 있다.</b></li>
+<li><b>세계지도·지역지도·대원지도를 목적에 따라 비교하면 GPS 경로를 더 입체적으로 이해할 수 있다.</b></li>
+</ol>
+</section>
+
+</main>
+<footer>
+<b>GPS · GPX · 대원 · 지도 투영 · 지리정보학</b><br>
+국가 중심 세계지도 연구 — GPS 경로를 통해 지구와 지도를 함께 이해하기
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map').setView([36.5,127.8],6);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:19,attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+
+let routeLayer=null, routePoints=[], lastBounds=null;
+
+document.getElementById('gpxFile').addEventListener('change',function(e){
+ const file=e.target.files[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>parseGPX(reader.result,file.name);
+ reader.readAsText(file);
+});
+
+function parseGPX(xmlText,name){
+ const xml=new DOMParser().parseFromString(xmlText,'application/xml');
+ const nodes=[...xml.querySelectorAll('trkpt')];
+ if(!nodes.length){
+   document.getElementById('status').textContent='GPX에서 트랙 포인트(trkpt)를 찾지 못했습니다.';
+   return;
+ }
+ routePoints=nodes.map(n=>({
+   lat:parseFloat(n.getAttribute('lat')),
+   lon:parseFloat(n.getAttribute('lon')),
+   ele:parseFloat(n.querySelector('ele')?.textContent||'NaN'),
+   time:n.querySelector('time')?.textContent||''
+ })).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon));
+
+ if(routeLayer)map.removeLayer(routeLayer);
+ routeLayer=L.polyline(routePoints.map(p=>[p.lat,p.lon]),{weight:5}).addTo(map);
+ lastBounds=routeLayer.getBounds();
+ map.fitBounds(lastBounds,{padding:[25,25]});
+
+ let distance=0,maxEle=-Infinity,start=null,end=null;
+ for(let i=1;i<routePoints.length;i++){
+   distance+=haversine(routePoints[i-1],routePoints[i]);
+ }
+ routePoints.forEach(p=>{if(Number.isFinite(p.ele))maxEle=Math.max(maxEle,p.ele)});
+ const timed=routePoints.filter(p=>p.time);
+ if(timed.length){start=new Date(timed[0].time);end=new Date(timed[timed.length-1].time);}
+ document.getElementById('distance').textContent=(distance/1000).toFixed(2)+' km';
+ document.getElementById('points').textContent=routePoints.length.toLocaleString()+'개';
+ document.getElementById('elev').textContent=Number.isFinite(maxEle)?maxEle.toFixed(1)+' m':'-';
+ document.getElementById('duration').textContent=(start&&end)?formatDuration(end-start):'시간정보 없음';
+ document.getElementById('status').textContent=`${name} 불러오기 완료 · GPS 항적 ${routePoints.length.toLocaleString()}개 지점`;
+}
+
+function haversine(a,b){
+ const R=6371000,rad=Math.PI/180;
+ const dLat=(b.lat-a.lat)*rad,dLon=(b.lon-a.lon)*rad;
+ const x=Math.sin(dLat/2)**2+Math.cos(a.lat*rad)*Math.cos(b.lat*rad)*Math.sin(dLon/2)**2;
+ return 2*R*Math.asin(Math.sqrt(x));
+}
+function formatDuration(ms){
+ const m=Math.round(ms/60000),h=Math.floor(m/60),min=m%60;
+ return h+'시간 '+min+'분';
+}
+function clearRoute(){
+ if(routeLayer)map.removeLayer(routeLayer);
+ routeLayer=null;routePoints=[];lastBounds=null;
+ ['distance','points','elev','duration'].forEach(id=>document.getElementById(id).textContent='-');
+ document.getElementById('status').textContent='경로가 삭제되었습니다.';
+}
+function fitRoute(){if(lastBounds)map.fitBounds(lastBounds,{padding:[25,25]});}
+function answer(btn,correct){
+ document.querySelectorAll('.quiz button').forEach(b=>b.classList.remove('correct','wrong'));
+ btn.classList.add(correct?'correct':'wrong');
+ document.getElementById('quizResult').textContent=correct?'정답입니다! GPS 데이터와 지도 투영의 차이를 이해했습니다.':'다시 생각해 보세요. GPS 위치 데이터와 평면 지도 투영의 차이를 구분해 보세요.';
+}
+</script>
+</body>
+</html>

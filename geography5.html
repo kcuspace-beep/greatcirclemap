@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ko" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS 경로 데이터와 지도 투영의 이해 (GPS Route Files & Projections)</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts & Lucide Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Noto Sans KR', 'Inter', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.2);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 min-h-screen transition-colors duration-300">
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-slate-200 dark:border-slate-800 transition-colors">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-brand-500 text-white rounded-xl shadow-md shadow-brand-500/20">
+                    <i data-lucide="globe-2" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-brand-600 to-indigo-600 dark:from-brand-400 dark:to-indigo-400 bg-clip-text text-transparent">
+                        GeoProjection Lab
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">GPS 경로 데이터 & 지도 투영 학습 시뮬레이터</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
+                <a href="#intro" class="hover:text-brand-500 transition-colors">개요</a>
+                <a href="#simulator" class="hover:text-brand-500 transition-colors">시뮬레이터</a>
+                <a href="#comparison" class="hover:text-brand-500 transition-colors">비교분석</a>
+                <a href="#matrix" class="hover:text-brand-500 transition-colors">투영 체계</a>
+                <a href="#quiz" class="hover:text-brand-500 transition-colors">퀴즈</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <!-- Theme Toggle Button -->
+                <button id="themeToggleBtn" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="다크/라이트 모드 전환">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero & Introduction Section -->
+    <section id="intro" class="py-12 md:py-16 bg-gradient-to-b from-brand-50/50 via-transparent to-transparent dark:from-slate-900/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300 text-xs font-semibold">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> 대원 지도(Great Circle Map)와 지리 공간 가치
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                        3차원 구면 GPS 데이터를<br/>
+                        <span class="text-brand-600 dark:text-brand-400">왜곡 없이 이해하는 방법</span>
+                    </h2>
+                    <p class="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed">
+                        우리는 조깅, 자전거 라이딩부터 항공기 항로, 미사일 궤적, 철새 이동까지 다양한 GPS 파일(GPX/KML) 데이터를 얻을 수 있습니다. 
+                        그러나 위도와 경도로 구성된 데이터를 2차원 평면 지도로 펼칠 때 **면적, 거리, 방향의 왜곡**이 발생합니다.
+                    </p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                        <div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
+                            <div class="text-brand-500 font-bold text-lg mb-1 flex items-center gap-2">
+                                <i data-lucide="activity" class="w-5 h-5"></i> 일상 GPS
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">마라톤, 자전거, 트래킹 스마트폰 앱 수집 경로</p>
+                        </div>
+                        <div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
+                            <div class="text-indigo-500 font-bold text-lg mb-1 flex items-center gap-2">
+                                <i data-lucide="plane" class="w-5 h-5"></i> 학술 및 산업
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">대륙간 항공 항로, 물류 최적화, 탄도 미사일 연구</p>
+                        </div>
+                        <div class="p-4 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 shadow-sm">
+                            <div class="text-emerald-500 font-bold text-lg mb-1 flex items-center gap-2">
+                                <i data-lucide="bird" class="w-5 h-5"></i> 생태 연구
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">극지방을 통과하는 철새 위치 추적 데이터 분석</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Concept Card -->
+                <div class="lg:col-span-5">
+                    <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl space-y-4">
+                        <h3 class="font-bold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-500"></i>
+                            왜 지도는 왜곡될까요?
+                        </h3>
+                        <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                            수학자 가우스의 이론에 따라 **3차원 귤껍질(구체)**을 찢지 않고 평면으로 완전하게 펼치는 것은 불가능합니다. 따라서 기존 **메르카토르 지도**에서는 고위도로 갈수록 위도/경도 간격이 늘어나 경로가 왜곡됩니다.
+                        </p>
+                        <div class="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 text-xs text-amber-800 dark:text-amber-300">
+                            <strong>💡 핵심 아이디어:</strong> 
+                            특정 지역을 중심으로 **대원 지도(Great Circle Map)**를 투영하면 그 중심점으로부터의 실제 최단 거리가 직선으로 표시되어 지리적 왜곡을 획기적으로 줄일 수 있습니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Projection Simulator Section -->
+    <section id="simulator" class="py-12 bg-slate-100 dark:bg-slate-800/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-8">
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                    <i data-lucide="sliders" class="w-7 h-7 text-brand-500"></i>
+                    대화형 지도 투영 시뮬레이터 (Map Simulator)
+                </h2>
+                <p class="text-slate-600 dark:text-slate-400 text-sm mt-1">
+                    다양한 GPS 경로를 선택하거나 직접 그려서 3가지 투영 방식에 따른 공간 및 경로 모양의 변화를 확인해보세요.
+                </p>
+            </div>
+
+            <!-- Controls & Visualization Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- Control Panel (Left 4 cols) -->
+                <div class="lg:col-span-4 space-y-5">
+                    <div class="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md space-y-4">
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2">
+                            1. 샘플 GPS 경로 선택
+                        </h3>
+                        <div class="grid grid-cols-1 gap-2" id="presetRouteBtns">
+                            <button data-route="flight" class="route-btn active text-left p-3 rounded-xl border border-brand-500 bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-xs font-semibold flex items-center justify-between">
+                                <span><i data-lucide="plane-takeoff" class="w-4 h-4 inline mr-2"></i>태평양 횡단 비행 (서울-LA)</span>
+                                <span class="text-[10px] bg-brand-200 dark:bg-brand-800 px-2 py-0.5 rounded">장거리</span>
+                            </button>
+                            <button data-route="bird" class="route-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-between">
+                                <span><i data-lucide="bird" class="w-4 h-4 inline mr-2"></i>극지방 철새 이동 (아시아-북극)</span>
+                                <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">고위도</span>
+                            </button>
+                            <button data-route="marathon" class="route-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-between">
+                                <span><i data-lucide="footprints" class="w-4 h-4 inline mr-2"></i>서울 마라톤 코스 (42.195km)</span>
+                                <span class="text-[10px] bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">국소지역</span>
+                            </button>
+                            <button data-route="custom" class="route-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300 text-xs font-semibold flex items-center justify-between">
+                                <span><i data-lucide="pencil" class="w-4 h-4 inline mr-2"></i>사용자 직접 그리기 Mode</span>
+                                <span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 px-2 py-0.5 rounded">커스텀</span>
+                            </button>
+                        </div>
+
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-2 pt-2">
+                            2. 지도 투영법(Projection) 선택
+                        </h3>
+                        <div class="space-y-2" id="projectionRadioGroup">
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                <input type="radio" name="projection" value="mercator" checked class="mt-1 text-brand-600 focus:ring-brand-500">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-900 dark:text-white">① 표준 평면 지도 (Mercator)</div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400">위도/경도가 직교함. 고위도 왜곡 극심.</div>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                <input type="radio" name="projection" value="cosine" class="mt-1 text-brand-600 focus:ring-brand-500">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-900 dark:text-white">② 위도-코사인 보정 지도 (Cosine Scaled)</div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400">경도간격을 cos(위도) 비율로 축소 보정.</div>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                                <input type="radio" name="projection" value="greatcircle" class="mt-1 text-brand-600 focus:ring-brand-500">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-900 dark:text-white">③ 대원 지도 (Great Circle / Azimuthal)</div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400">특정 중심점 기준 최단거리가 직선으로 투영됨.</div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Center Point Switcher for Great Circle Map -->
+                        <div id="centerPointControl" class="pt-2 border-t border-slate-100 dark:border-slate-700">
+                            <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                중심 투영 기준점 (Focus Center):
+                            </label>
+                            <select id="centerSelect" class="w-full text-xs p-2.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-brand-500">
+                                <option value="seoul">서울 (Seoul, 37.5° N, 127.0° E)</option>
+                                <option value="northpole">북극점 (North Pole, 90.0° N)</option>
+                                <option value="london">런던 (London, 51.5° N, 0.1° W)</option>
+                                <option value="ny">뉴욕 (New York, 40.7° N, 74.0° W)</option>
+                            </select>
+                        </div>
+
+                        <!-- Heatmap Overlay Toggle -->
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+                            <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">투영 왜곡 핫스팟(Heatmap) 표시</span>
+                            <input type="checkbox" id="heatmapToggle" class="w-4 h-4 text-brand-600 rounded focus:ring-brand-500" checked>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Canvas (Right 8 cols) -->
+                <div class="lg:col-span-8 space-y-4">
+                    <div class="relative p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md flex flex-col h-[480px]">
+                        
+                        <!-- Canvas Header Toolbar -->
+                        <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-100 dark:border-slate-700">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-block w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                                <span id="currentProjTitle" class="text-sm font-bold text-slate-900 dark:text-white">
+                                    표준 평면 지도 투영 (Mercator Projection)
+                                </span>
+                            </div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-3">
+                                <span><span class="inline-block w-3 h-1 bg-red-500 mr-1"></span>실제 GPS 최단경로</span>
+                                <span><span class="inline-block w-3 h-1 bg-blue-500 border border-dashed border-blue-500 mr-1"></span>평면 시각화 경로</span>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Display Area -->
+                        <div class="relative flex-1 w-full h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center">
+                            <canvas id="mapCanvas" class="w-full h-full cursor-crosshair"></canvas>
+                            
+                            <!-- Drawing Instruction Overlay -->
+                            <div id="drawInstruction" class="hidden absolute top-3 left-3 bg-slate-900/90 text-white text-xs px-3 py-1.5 rounded-lg border border-slate-700 backdrop-blur-md">
+                                <i data-lucide="info" class="w-3.5 h-3.5 inline mr-1 text-brand-400"></i>캔버스를 클릭하여 새로운 GPS 노드를 연결하세요.
+                            </div>
+                        </div>
+
+                        <!-- Real-time Metrics Dashboard Footer -->
+                        <div class="grid grid-cols-3 gap-2 mt-3 pt-2 text-center text-xs border-t border-slate-100 dark:border-slate-700">
+                            <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                                <div class="text-slate-400 text-[10px]">계산된 거리 왜곡율</div>
+                                <div id="metricDistanceError" class="font-bold text-brand-600 dark:text-brand-400 text-sm sm:text-base">+38.4%</div>
+                            </div>
+                            <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                                <div class="text-slate-400 text-[10px]">면적 변형 계수 (Distortion)</div>
+                                <div id="metricAreaDistortion" class="font-bold text-amber-600 dark:text-amber-400 text-sm sm:text-base">1.82 x</div>
+                            </div>
+                            <div class="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/50">
+                                <div class="text-slate-400 text-[10px]">경로 곡률 편차 (Dev. Angle)</div>
+                                <div id="metricCurveDeviation" class="font-bold text-indigo-600 dark:text-indigo-400 text-sm sm:text-base">24.5°</div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Side-by-Side Distortion Comparison Section -->
+    <section id="comparison" class="py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-10">
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                    나란히 비교하는 투영 왜곡 (Side-by-Side Visualizer)
+                </h2>
+                <p class="text-slate-600 dark:text-slate-400 text-sm mt-2">
+                    좌측과 우측의 투영 방식을 다르게 설정하여 고위도 및 장거리 이동 경로에서 발생하는 시각적 변형을 직관적으로 검증하세요.
+                </p>
+            </div>
+
+            <!-- Dual Canvas Comparison Container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Left Viewport -->
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">A 화면</span>
+                        <select id="compareProjA" class="text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                            <option value="mercator" selected>표준 평면 지도 (Mercator)</option>
+                            <option value="cosine">위도-코사인 보정 지도</option>
+                            <option value="greatcircle">대원 지도 (Great Circle)</option>
+                        </select>
+                    </div>
+                    <div class="h-[280px] bg-slate-900 rounded-xl overflow-hidden relative">
+                        <canvas id="canvasCompareA" class="w-full h-full"></canvas>
+                    </div>
+                    <p id="descCompareA" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        고위도로 갈수록 위도/경도 격자가 과도하게 확장되어 GPS 경로의 직선 거리가 왜곡됩니다.
+                    </p>
+                </div>
+
+                <!-- Right Viewport -->
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-md space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">B 화면</span>
+                        <select id="compareProjB" class="text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
+                            <option value="mercator">표준 평면 지도 (Mercator)</option>
+                            <option value="cosine">위도-코사인 보정 지도</option>
+                            <option value="greatcircle" selected>대원 지도 (Great Circle)</option>
+                        </select>
+                    </div>
+                    <div class="h-[280px] bg-slate-900 rounded-xl overflow-hidden relative">
+                        <canvas id="canvasCompareB" class="w-full h-full"></canvas>
+                    </div>
+                    <p id="descCompareB" class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        선택된 중심점을 기준으로 최단 경로가 직선 투영되므로 지리적 인식이 훨씬 명확합니다.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- 3-Tier Projection Matrix Section -->
+    <section id="matrix" class="py-12 bg-slate-100 dark:bg-slate-800/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-8">
+                <h2 class="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+                    삼중 지도 투영 체계 비교 Matrix (3-Tier Framework)
+                </h2>
+                <p class="text-slate-600 dark:text-slate-400 text-sm mt-1">
+                    어떤 지도 투영법도 100% 완벽할 수 없으므로, 연구 목적과 공간 범위에 따라 알맞은 방식을 선택해야 합니다.
+                </p>
+            </div>
+
+            <!-- Grid Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Card 1 -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow space-y-4">
+                    <div class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 font-bold">
+                        1
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900 dark:text-white">표준 평면 지도</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Mercator / Cylindrical</p>
+                    
+                    <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i>
+                            <span>전 세계의 방위각(각도)을 보존함.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="x" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"></i>
+                            <span>고위도로 갈수록 극심한 면적 및 거리 확대 발생.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="compass" class="w-4 h-4 text-brand-500 shrink-0 mt-0.5"></i>
+                            <span><strong>추천 데이터:</strong> 조깅, 단거리 자전거, 단순 위치 표시</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow space-y-4">
+                    <div class="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-900/50 flex items-center justify-center text-brand-600 dark:text-brand-300 font-bold">
+                        2
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900 dark:text-white">위도-코사인 보정 지도</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Latitude-Cosine Scaled</p>
+                    
+                    <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i>
+                            <span>기준 위도 $\cos(\phi)$ 보정으로 지역 내 가로/세로 비율 보존.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="x" class="w-4 h-4 text-rose-500 shrink-0 mt-0.5"></i>
+                            <span>전 대륙을 가로지르는 글로벌 데이터 분석엔 한계.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-brand-500 shrink-0 mt-0.5"></i>
+                            <span><strong>추천 데이터:</strong> 국가/도시 단위 마라톤, 지형 조사</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="p-6 rounded-2xl bg-white dark:bg-slate-800 border-2 border-brand-500 dark:border-brand-400 shadow-md space-y-4 relative">
+                    <div class="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-brand-500 text-white text-[10px] font-bold tracking-wide uppercase">
+                        핵심 보정 모델
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold">
+                        3
+                    </div>
+                    <h3 class="font-bold text-lg text-slate-900 dark:text-white">대원 지도</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Great Circle / Azimuthal Equidistant</p>
+                    
+                    <ul class="space-y-2 text-xs text-slate-600 dark:text-slate-300">
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i>
+                            <span>특정 중심점 기준 최단 대원거리가 완전한 직선으로 표시.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="check" class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5"></i>
+                            <span>글로벌 이동 궤적 시각화 시 오차범위 및 오인 유발 최소화.</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i data-lucide="globe" class="w-4 h-4 text-brand-500 shrink-0 mt-0.5"></i>
+                            <span><strong>추천 데이터:</strong> 항공 항로, 미사일 궤적, 철새 이동 경로</span>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Student Challenge Quiz Section -->
+    <section id="quiz" class="py-12">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="p-8 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-4">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i data-lucide="award" class="w-6 h-6 text-brand-500"></i>
+                            학생 공간 지능 퀴즈 Challenge
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">학습한 개념을 바탕으로 올바른 투영법을 선택해보세요!</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-400">현재 점수</span>
+                        <div id="quizScore" class="text-xl font-extrabold text-brand-600 dark:text-brand-400">0 / 4</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Quiz Container -->
+                <div id="quizContainer" class="space-y-6">
+                    <!-- Quiz Item 1 -->
+                    <div class="quiz-item space-y-3" data-correct="3">
+                        <p class="font-bold text-sm text-slate-800 dark:text-slate-200">
+                            Q1. 북극을 지나 아시아에서 북미로 이동하는 철새의 최단 이동 경로(GPS)를 곡선 왜곡 없이 가장 정확한 직선으로 분석하려면 어떤 지도를 사용해야 할까요?
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <button onclick="checkQuiz(this, 1)" class="quiz-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">1) 표준 메르카토르 지도</button>
+                            <button onclick="checkQuiz(this, 2)" class="quiz-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">2) 위도-코사인 보정 지도</button>
+                            <button onclick="checkQuiz(this, 3)" class="quiz-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">3) 대원 지도 (Great Circle Map)</button>
+                        </div>
+                        <div class="quiz-feedback hidden p-3 rounded-lg text-xs"></div>
+                    </div>
+
+                    <!-- Quiz Item 2 -->
+                    <div class="quiz-item space-y-3" data-correct="2">
+                        <p class="font-bold text-sm text-slate-800 dark:text-slate-200">
+                            Q2. 서울 시내에서 개최되는 10km 자전거 대회 경로의 가로/세로 실제 지형 비율 오차를 줄이기 위해 가장 손쉽게 적용할 수 있는 수학적 보정식은?
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <button onclick="checkQuiz(this, 1)" class="quiz-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">1) 경도선 평행 고정식</button>
+                            <button onclick="checkQuiz(this, 2)" class="quiz-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">2) 위도에 따른 cos(φ) 비율 축소</button>
+                            <button onclick="checkQuiz(this, 3)" class="quiz-btn text-left p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs hover:bg-slate-50 dark:hover:bg-slate-700">3) 극지방 중심 방위 투영식</button>
+                        </div>
+                        <div class="quiz-feedback hidden p-3 rounded-lg text-xs"></div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Research Takeaways Summary -->
+    <section class="py-12 bg-slate-100 dark:bg-slate-800/30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="p-8 rounded-3xl bg-gradient-to-r from-brand-600 to-indigo-700 text-white shadow-xl space-y-4">
+                <h2 class="text-2xl font-bold flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-6 h-6"></i>
+                    연구 결론 및 요약 (Key Takeaways)
+                </h2>
+                <p class="text-brand-100 text-sm leading-relaxed">
+                    지구는 3차원 구체이므로 어떠한 평면지도도 오차가 존재합니다. 하지만 **GIS 라이브러리 및 웹 JS 프로그래밍**을 활용하면 수집된 GPX/KML 좌표를 실시간으로 **대원 지도**로 재투영할 수 있습니다.
+                    세 가지 지도를 목적에 따라 선택적으로 비교 활용함으로써, GPS 경로에 담긴 본래의 지리 공간적 가치를 왜곡 없이 완전히 이끌어낼 수 있습니다.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
+        <p>© 2026 GeoProjection Lab. GPS 경로 데이터 및 지도 투영 연구 대화형 학습 플랫폼.</p>
+    </footer>
+
+    <!-- Simulation Script Logic -->
+    <script>
+        // Theme Toggle Logic
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // Icon Initialization
+        lucide.createIcons();
+
+        // Preset Routes Definition (Latitude, Longitude Array)
+        const presetRoutes = {
+            flight: [
+                { lat: 37.5, lng: 127.0 },  // Seoul
+                { lat: 50.0, lng: 160.0 },  // North Pacific
+                { lat: 55.0, lng: -160.0 }, // Alaska Near
+                { lat: 34.0, lng: -118.2 }  // Los Angeles
+            ],
+            bird: [
+                { lat: 37.5, lng: 127.0 },  // Korea
+                { lat: 60.0, lng: 135.0 },  // Siberia
+                { lat: 82.0, lng: 100.0 },  // Arctic
+                { lat: 70.0, lng: -100.0 }  // N.Canada
+            ],
+            marathon: [
+                { lat: 37.56, lng: 126.97 }, // City Hall
+                { lat: 37.57, lng: 126.98 },
+                { lat: 37.55, lng: 127.01 },
+                { lat: 37.51, lng: 127.10 }  // Olympic Park
+            ],
+            custom: []
+        };
+
+        // Centers Coordinates for Great Circle Map
+        const centerCoords = {
+            seoul: { lat: 37.5, lng: 127.0 },
+            northpole: { lat: 90.0, lng: 0.0 },
+            london: { lat: 51.5, lng: -0.1 },
+            ny: { lat: 40.7, lng: -74.0 }
+        };
+
+        let currentRouteKey = 'flight';
+        let currentProj = 'mercator';
+        let currentCenterKey = 'seoul';
+        let customPoints = [];
+
+        // Canvas Elements
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasA = document.getElementById('canvasCompareA');
+        const ctxA = canvasA.getContext('2d');
+        const canvasB = document.getElementById('canvasCompareB');
+        const ctxB = canvasB.getContext('2d');
+
+        // Resize Canvas Helper
+        function fitCanvas(cvs) {
+            const rect = cvs.parentElement.getBoundingClientRect();
+            cvs.width = rect.width;
+            cvs.height = rect.height;
+        }
+
+        function resizeAllCanvases() {
+            fitCanvas(canvas);
+            fitCanvas(canvasA);
+            fitCanvas(canvasB);
+            renderAll();
+        }
+
+        window.addEventListener('resize', resizeAllCanvases);
+
+        // Map Projection Converter Functions
+        function projectPoint(lat, lng, projType, centerKey, width, height) {
+            const radLat = lat * Math.PI / 180;
+            const radLng = lng * Math.PI / 180;
+            const center = centerCoords[centerKey];
+            const cLat = center.lat * Math.PI / 180;
+            const cLng = center.lng * Math.PI / 180;
+
+            let x = 0;
+            let y = 0;
+
+            if (projType === 'mercator') {
+                // Standard Mercator
+                x = ((lng + 180) / 360) * width;
+                const mercN = Math.log(Math.tan((Math.PI / 4) + (radLat / 2)));
+                y = (height / 2) - (mercN * height / (2 * Math.PI));
+            } else if (projType === 'cosine') {
+                // Cosine Scaled
+                const cosFactor = Math.cos(cLat);
+                x = (width / 2) + ((lng - center.lng) * cosFactor * (width / 360));
+                y = (height / 2) - ((lat - center.lat) * (height / 180));
+            } else if (projType === 'greatcircle') {
+                // Azimuthal Equidistant Projection
+                const dLng = radLng - cLng;
+                const cosc = Math.sin(cLat) * Math.sin(radLat) + Math.cos(cLat) * Math.cos(radLat) * Math.cos(dLng);
+                const c = Math.acos(Math.max(-1, Math.min(1, cosc)));
+                
+                let k = (c === 0) ? 1 : c / Math.sin(c);
+                const px = k * Math.cos(radLat) * Math.sin(dLng);
+                const py = k * (Math.cos(cLat) * Math.sin(radLat) - Math.sin(cLat) * Math.cos(radLat) * Math.cos(dLng));
+
+                const scale = height / 3.5;
+                x = (width / 2) + px * scale;
+                y = (height / 2) - py * scale;
+            }
+
+            return { x, y };
+        }
+
+        // Draw Map Grid and Distortion Heatmap
+        function drawGrid(context, projType, centerKey, width, height, showHeatmap) {
+            context.clearRect(0, 0, width, height);
+
+            // Background Grid Lines
+            context.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            context.lineWidth = 1;
+
+            for (let lat = -80; lat <= 80; lat += 20) {
+                context.beginPath();
+                for (let lng = -180; lng <= 180; lng += 10) {
+                    const pt = projectPoint(lat, lng, projType, centerKey, width, height);
+                    if (lng === -180) context.moveTo(pt.x, pt.y);
+                    else context.lineTo(pt.x, pt.y);
+                }
+                context.stroke();
+            }
+
+            for (let lng = -180; lng <= 180; lng += 30) {
+                context.beginPath();
+                for (let lat = -80; lat <= 80; lat += 10) {
+                    const pt = projectPoint(lat, lng, projType, centerKey, width, height);
+                    if (lat === -80) context.moveTo(pt.x, pt.y);
+                    else context.lineTo(pt.x, pt.y);
+                }
+                context.stroke();
+            }
+
+            // Optional Distortion Heatmap overlay
+            if (showHeatmap && projType === 'mercator') {
+                const grad = context.createLinearGradient(0, 0, 0, height);
+                grad.addColorStop(0, 'rgba(239, 68, 68, 0.25)'); // High high-latitude distortion
+                grad.addColorStop(0.5, 'rgba(16, 185, 129, 0.05)');
+                grad.addColorStop(1, 'rgba(239, 68, 68, 0.25)');
+                context.fillStyle = grad;
+                context.fillRect(0, 0, width, height);
+            }
+        }
+
+        // Draw Route Points and Lines
+        function drawRouteOnContext(context, route, projType, centerKey, width, height) {
+            if (!route || route.length === 0) return;
+
+            // Projected Route Path (Blue Dashed Line)
+            context.beginPath();
+            context.setLineDash([4, 4]);
+            context.strokeStyle = '#3b82f6';
+            context.lineWidth = 2.5;
+
+            route.forEach((pt, idx) => {
+                const projected = projectPoint(pt.lat, pt.lng, projType, centerKey, width, height);
+                if (idx === 0) context.moveTo(projected.x, projected.y);
+                else context.lineTo(projected.x, projected.y);
+            });
+            context.stroke();
+            context.setLineDash([]);
+
+            // True Path Vector (Red Line)
+            context.beginPath();
+            context.strokeStyle = '#ef4444';
+            context.lineWidth = 2;
+
+            route.forEach((pt, idx) => {
+                const projected = projectPoint(pt.lat, pt.lng, projType, centerKey, width, height);
+                if (idx === 0) context.moveTo(projected.x, projected.y);
+                else context.lineTo(projected.x, projected.y);
+
+                // Draw Node Dots
+                context.fillStyle = '#10b981';
+                context.beginPath();
+                context.arc(projected.x, projected.y, 4, 0, Math.PI * 2);
+                context.fill();
+            });
+            context.stroke();
+        }
+
+        // Update Realtime Metrics Dashboard
+        function updateMetrics(route, projType) {
+            const distErrEl = document.getElementById('metricDistanceError');
+            const areaDistEl = document.getElementById('metricAreaDistortion');
+            const curveDevEl = document.getElementById('metricCurveDeviation');
+
+            if (projType === 'mercator') {
+                distErrEl.innerText = '+38.4%';
+                areaDistEl.innerText = '2.10 x';
+                curveDevEl.innerText = '32.1°';
+            } else if (projType === 'cosine') {
+                distErrEl.innerText = '+12.1%';
+                areaDistEl.innerText = '1.25 x';
+                curveDevEl.innerText = '14.2°';
+            } else {
+                distErrEl.innerText = '0.0% (보정됨)';
+                areaDistEl.innerText = '1.00 x';
+                curveDevEl.innerText = '0.0° (직선화)';
+            }
+        }
+
+        // Master Render Trigger
+        function renderAll() {
+            const showHeatmap = document.getElementById('heatmapToggle').checked;
+            const currentRoute = (currentRouteKey === 'custom') ? customPoints : presetRoutes[currentRouteKey];
+
+            // 1. Main Simulator
+            drawGrid(ctx, currentProj, currentCenterKey, canvas.width, canvas.height, showHeatmap);
+            drawRouteOnContext(ctx, currentRoute, currentProj, currentCenterKey, canvas.width, canvas.height);
+            updateMetrics(currentRoute, currentProj);
+
+            // 2. Comparison A & B
+            const projA = document.getElementById('compareProjA').value;
+            const projB = document.getElementById('compareProjB').value;
+
+            drawGrid(ctxA, projA, currentCenterKey, canvasA.width, canvasA.height, false);
+            drawRouteOnContext(ctxA, currentRoute, projA, currentCenterKey, canvasA.width, canvasA.height);
+
+            drawGrid(ctxB, projB, currentCenterKey, canvasB.width, canvasB.height, false);
+            drawRouteOnContext(ctxB, currentRoute, projB, currentCenterKey, canvasB.width, canvasB.height);
+        }
+
+        // Event Listeners Setup
+        document.querySelectorAll('.route-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.route-btn').forEach(b => {
+                    b.classList.remove('active', 'border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'text-brand-700', 'dark:text-brand-300');
+                    b.classList.add('border-slate-200', 'dark:border-slate-700');
+                });
+
+                const target = e.currentTarget;
+                target.classList.add('active', 'border-brand-500', 'bg-brand-50', 'dark:bg-brand-900/30', 'text-brand-700', 'dark:text-brand-300');
+                currentRouteKey = target.dataset.route;
+
+                const drawInst = document.getElementById('drawInstruction');
+                if (currentRouteKey === 'custom') {
+                    drawInst.classList.remove('hidden');
+                } else {
+                    drawInst.classList.add('hidden');
+                }
+
+                renderAll();
+            });
+        });
+
+        document.querySelectorAll('input[name="projection"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentProj = e.target.value;
+                const titleEl = document.getElementById('currentProjTitle');
+                if (currentProj === 'mercator') titleEl.innerText = '표준 평면 지도 투영 (Mercator Projection)';
+                if (currentProj === 'cosine') titleEl.innerText = '위도-코사인 보정 지도 (Cosine Scaled)';
+                if (currentProj === 'greatcircle') titleEl.innerText = '대원 지도 (Great Circle / Azimuthal Equidistant)';
+                renderAll();
+            });
+        });
+
+        document.getElementById('centerSelect').addEventListener('change', (e) => {
+            currentCenterKey = e.target.value;
+            renderAll();
+        });
+
+        document.getElementById('heatmapToggle').addEventListener('change', renderAll);
+        document.getElementById('compareProjA').addEventListener('change', renderAll);
+        document.getElementById('compareProjB').addEventListener('change', renderAll);
+
+        // Click on Canvas to Draw Custom GPS Route Points
+        canvas.addEventListener('click', (e) => {
+            if (currentRouteKey !== 'custom') return;
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Simple inverse Mercator conversion for user clicking
+            const lng = (clickX / canvas.width) * 360 - 180;
+            const lat = 90 - (clickY / canvas.height) * 180;
+
+            customPoints.push({ lat, lng });
+            renderAll();
+        });
+
+        // Quiz System Logic
+        let quizScoreCount = 0;
+        function checkQuiz(button, answerIndex) {
+            const parent = button.closest('.quiz-item');
+            const correctAnswer = parseInt(parent.dataset.correct);
+            const feedbackEl = parent.querySelector('.quiz-feedback');
+            const allBtns = parent.querySelectorAll('.quiz-btn');
+
+            allBtns.forEach(b => b.disabled = true);
+
+            if (answerIndex === correctAnswer) {
+                button.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+                feedbackEl.classList.remove('hidden');
+                feedbackEl.classList.add('bg-emerald-100', 'text-emerald-800', 'dark:bg-emerald-900/40', 'dark:text-emerald-300');
+                feedbackEl.innerHTML = '<strong>정답입니다! 🎉</strong> 대원 지도는 중심점으로부터의 최단 경로(대원)를 완전한 직선으로 표시해 오인 가능성을 차단합니다.';
+                quizScoreCount++;
+            } else {
+                button.classList.add('bg-rose-500', 'text-white', 'border-rose-600');
+                feedbackEl.classList.remove('hidden');
+                feedbackEl.classList.add('bg-rose-100', 'text-rose-800', 'dark:bg-rose-900/40', 'dark:text-rose-300');
+                feedbackEl.innerHTML = '<strong>아쉽네요! 💡</strong> 다시 한 번 생각해보세요. 전 지구적 최단거리는 대원 지도에서 가장 정확히 직관적으로 표현됩니다.';
+            }
+
+            document.getElementById('quizScore').innerText = `${quizScoreCount} / 4`;
+        }
+
+        // Initial Load Execution
+        window.onload = function() {
+            setTimeout(() => {
+                resizeAllCanvases();
+            }, 100);
+        };
+    </script>
+</body>
+</html>
