@@ -513,13 +513,31 @@
         let isTracking = false;
         let isPaused = false;
         let watchId = null;
-        let gpsTrackPoints = []; // Stores {lat, lng, alt, speed, timestamp}
+        let gpsTrackPoints = []; // Stores {lat, lng, alt, accuracy, speed, timestamp}
         let totalDistance = 0; // meters
         let maxSpeedMs = 0; // m/s
         let startTime = null;
         let elapsedTime = 0; // milliseconds
         let timerInterval = null;
         let lastCapturedBlob = null;
+        let wakeLock = null;
+
+        // Screen Wake Lock API (화면 꺼짐 방지)
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) {
+                console.warn("Wake Lock 요청 실패:", err);
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release().then(() => { wakeLock = null; });
+            }
+        }
 
         // Google Drive API State Variables
         let tokenClient = null;
@@ -763,11 +781,13 @@
         btnFitBounds.addEventListener('click', fitRouteBounds);
         btnDemoRoute.addEventListener('click', generateDemoRoute);
 
-        function startTracking() {
+        async function startTracking() {
             if (!("geolocation" in navigator)) {
                 alert("이 브라우저에서는 GPS 위치 서비스가 지원되지 않습니다.");
                 return;
             }
+
+            await requestWakeLock();
 
             isTracking = true;
             isPaused = false;
@@ -813,6 +833,8 @@
         function stopTracking() {
             if (!confirm("현재 SUP 세션을 종료하고 경로 요약을 저장하시겠습니까?")) return;
 
+            releaseWakeLock();
+
             isTracking = false;
             isPaused = false;
             clearInterval(timerInterval);
@@ -839,14 +861,31 @@
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const alt = position.coords.altitude || 0;
+            const accuracy = position.coords.accuracy || 999;
             const speedMs = position.coords.speed || 0;
             const time = new Date(position.timestamp);
+
+            // [개선 1] GPS 정확도가 30m 초과 시 거르는 필터링
+            if (accuracy > 30) {
+                console.warn(`GPS 정확도 불량으로 제외됨: ±${accuracy}m`);
+                return;
+            }
 
             const lastPoint = gpsTrackPoints[gpsTrackPoints.length - 1];
             
             if (lastPoint) {
                 const distIncrement = calculateHaversineDistance(lastPoint.lat, lastPoint.lng, lat, lng);
-                if (distIncrement > 1.2) {
+                const timeDiffSec = (time - new Date(lastPoint.timestamp)) / 1000;
+                const calculatedSpeed = timeDiffSec > 0 ? (distIncrement / timeDiffSec) : 0;
+
+                // [개선 2] 비정상적인 GPS 점프/튀는 좌표 필터링 (속도 12 m/s 초과 시 제외)
+                if (calculatedSpeed > 12) {
+                    console.warn("비정상적인 GPS 점프 감지: 거리 계산 제외");
+                    return;
+                }
+
+                // [개선 3] 최소 이동 임계값을 1.2m -> 0.3m로 완화하여 미세 이동 누락 방지
+                if (distIncrement >= 0.3) {
                     totalDistance += distIncrement;
                 }
             }
@@ -855,7 +894,7 @@
                 maxSpeedMs = speedMs;
             }
 
-            gpsTrackPoints.push({ lat, lng, alt, speed: speedMs, timestamp: time });
+            gpsTrackPoints.push({ lat, lng, alt, accuracy, speed: speedMs, timestamp: time });
 
             if (gpsTrackPoints.length === 1) {
                 renderStartMarker(lat, lng);
@@ -1038,6 +1077,7 @@
                     lat: ptLat,
                     lng: ptLng,
                     alt: 0,
+                    accuracy: 5,
                     speed: speed,
                     timestamp: ptTime
                 });
