@@ -169,6 +169,26 @@
             </button>
         </div>
 
+        <!-- Paddle Calculation Setting Bar -->
+        <div class="glass-panel p-3.5 rounded-2xl border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 text-amber-300 font-bold">
+                <i class="fa-solid fa-sliders text-base"></i>
+                <span>패들링 계산 설정:</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-4 text-slate-200">
+                <div class="flex items-center gap-2">
+                    <label for="paddleDistCm" class="text-slate-400">1회 패들 거리:</label>
+                    <input type="number" id="paddleDistCm" value="150" min="10" max="500" class="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-amber-300 font-bold focus:outline-none focus:border-amber-400">
+                    <span class="text-slate-400">cm</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="paddleTimeSec" class="text-slate-400">1회 패들 소요시간:</label>
+                    <input type="number" id="paddleTimeSec" value="1.71" step="0.1" min="0.3" max="10" class="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-center font-mono text-amber-300 font-bold focus:outline-none focus:border-amber-400">
+                    <span class="text-slate-400">초</span>
+                </div>
+            </div>
+        </div>
+
         <!-- Map & Layer Control Section -->
         <div class="glass-panel p-3 sm:p-4 rounded-2xl border border-slate-800 shadow-2xl flex flex-col gap-3">
             
@@ -293,7 +313,7 @@
                     <span class="text-xs text-amber-400 font-bold">회</span>
                 </div>
                 <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    ~35 strokes/min
+                    시간기준: <span id="valStrokesTime">0</span>회
                 </div>
             </div>
 
@@ -573,6 +593,9 @@
         const btnDemoRoute = document.getElementById('btnDemoRoute');
         const routeColorPicker = document.getElementById('routeColorPicker');
 
+        const paddleDistCmInput = document.getElementById('paddleDistCm');
+        const paddleTimeSecInput = document.getElementById('paddleTimeSec');
+
         const valDistanceKm = document.getElementById('valDistanceKm');
         const valDistanceNm = document.getElementById('valDistanceNm');
         const valTime = document.getElementById('valTime');
@@ -581,6 +604,7 @@
         const valAvgSpeed = document.getElementById('valAvgSpeed');
         const valMaxSpeed = document.getElementById('valMaxSpeed');
         const valStrokes = document.getElementById('valStrokes');
+        const valStrokesTime = document.getElementById('valStrokesTime');
         const valCalories = document.getElementById('valCalories');
         const gpsStatusBadge = document.getElementById('gpsStatusBadge');
         const routePointCountText = document.getElementById('routePointCountText');
@@ -601,6 +625,15 @@
         window.addEventListener('DOMContentLoaded', () => {
             initMapEngine();
             initGoogleAuth();
+
+            paddleDistCmInput.addEventListener('input', () => {
+                const lastPoint = gpsTrackPoints[gpsTrackPoints.length - 1];
+                updateTelemetryDisplay(lastPoint ? lastPoint.speed : 0);
+            });
+            paddleTimeSecInput.addEventListener('input', () => {
+                const lastPoint = gpsTrackPoints[gpsTrackPoints.length - 1];
+                updateTelemetryDisplay(lastPoint ? lastPoint.speed : 0);
+            });
         });
 
         function initGoogleAuth() {
@@ -865,7 +898,6 @@
             const speedMs = position.coords.speed || 0;
             const time = new Date(position.timestamp);
 
-            // [개선 1] GPS 정확도가 30m 초과 시 거르는 필터링
             if (accuracy > 30) {
                 console.warn(`GPS 정확도 불량으로 제외됨: ±${accuracy}m`);
                 return;
@@ -878,13 +910,11 @@
                 const timeDiffSec = (time - new Date(lastPoint.timestamp)) / 1000;
                 const calculatedSpeed = timeDiffSec > 0 ? (distIncrement / timeDiffSec) : 0;
 
-                // [개선 2] 비정상적인 GPS 점프/튀는 좌표 필터링 (속도 12 m/s 초과 시 제외)
                 if (calculatedSpeed > 12) {
                     console.warn("비정상적인 GPS 점프 감지: 거리 계산 제외");
                     return;
                 }
 
-                // [개선 3] 최소 이동 임계값을 1.2m -> 0.3m로 완화하여 미세 이동 누락 방지
                 if (distIncrement >= 0.3) {
                     totalDistance += distIncrement;
                 }
@@ -1013,9 +1043,18 @@
                 const avgSpeedKmh = (distKm / (elapsedSecs / 3600));
                 valAvgSpeed.textContent = avgSpeedKmh.toFixed(1);
 
-                const totalMinutes = elapsedSecs / 60;
-                const estStrokes = Math.round(totalMinutes * 35);
-                valStrokes.textContent = estStrokes.toLocaleString();
+                // 패들링 수 사용자 매개변수 기반 계산
+                const paddleDistCm = parseFloat(paddleDistCmInput.value) || 150;
+                const paddleTimeSec = parseFloat(paddleTimeSecInput.value) || 1.71;
+
+                const distMeters = totalDistance;
+                const strokeDistMeters = paddleDistCm / 100;
+
+                const estStrokesByDistance = strokeDistMeters > 0 ? Math.round(distMeters / strokeDistMeters) : 0;
+                const estStrokesByTime = paddleTimeSec > 0 ? Math.round(elapsedSecs / paddleTimeSec) : 0;
+
+                valStrokes.textContent = estStrokesByDistance.toLocaleString();
+                valStrokesTime.textContent = estStrokesByTime.toLocaleString();
 
                 const estCalories = Math.round((elapsedSecs / 3600) * 450);
                 valCalories.textContent = estCalories;
@@ -1115,7 +1154,7 @@
                     lastCapturedBlob = blob;
                     const imgUrl = URL.createObjectURL(blob);
                     capturedImagePreview.src = imgUrl;
-                    modalImage.src = imgUrl; // Lightbox 모달 이미지에도 지정
+                    modalImage.src = imgUrl;
                     capturedImageContainer.classList.remove('hidden');
 
                     btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> 캡처 완료!`;
@@ -1132,14 +1171,12 @@
             }
         });
 
-        // Open Lightbox Modal
         function openImageModal() {
             if (!capturedImagePreview.src) return;
             imageModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
         }
 
-        // Close Lightbox Modal
         function closeImageModal() {
             imageModal.classList.add('hidden');
             document.body.style.overflow = '';
@@ -1149,14 +1186,12 @@
         btnZoomImage.addEventListener('click', openImageModal);
         btnCloseModal.addEventListener('click', closeImageModal);
 
-        // Close Modal when clicking outer background
         imageModal.addEventListener('click', (e) => {
             if (e.target === imageModal || e.target.classList.contains('flex-1')) {
                 closeImageModal();
             }
         });
 
-        // Close Modal with Escape key
         window.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !imageModal.classList.contains('hidden')) {
                 closeImageModal();
@@ -1286,13 +1321,15 @@ ${trkpts}
             const dist = valDistanceKm.textContent;
             const distNm = valDistanceNm.textContent;
             const time = valTime.textContent;
+            const strokeDist = valStrokes.textContent;
+            const strokeTime = valStrokesTime.textContent;
             
             const body = encodeURIComponent(
                 `안녕하세요,\n\nStand Up Paddleboard 세션 데이터 요약입니다:\n\n` +
                 `- 이동 거리: ${dist} km (${distNm} Nautical Miles)\n` +
                 `- 소요 시간: ${time}\n` +
                 `- 평균 속도: ${valAvgSpeed.textContent} km/h\n` +
-                `- 추정 패들링 수: ${valStrokes.textContent} 회\n` +
+                `- 추정 패들링 수: ${strokeDist} 회 (거리기준) / ${strokeTime} 회 (시간기준)\n` +
                 `- 소모 칼로리: ${valCalories.textContent} kcal\n\n` +
                 `SUP GPS Pro Suite에서 작성됨.`
             );
