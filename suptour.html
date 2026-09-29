@@ -96,7 +96,6 @@
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
-        /* Custom Leaflet Map Pin Badges */
         .custom-pin {
             display: flex;
             align-items: center;
@@ -111,13 +110,61 @@
         .start-pin { background: #10b981; }
         .finish-pin { background: #ef4444; }
 
-        /* Leaflet Controls Customization */
         .leaflet-control-layers {
             background: rgba(15, 23, 42, 0.9) !important;
             color: #f1f5f9 !important;
             border: 1px solid rgba(255, 255, 255, 0.15) !important;
             border-radius: 0.75rem !important;
             padding: 8px 12px !important;
+        }
+
+        /* Compass Component UI Styles */
+        .compass-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 15px 0;
+        }
+        .compass-dial {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #0b192c 60%, #070f1e 100%);
+            border: 6px solid #00f2fe;
+            box-shadow: inset 0 0 15px rgba(0,242,254,0.2), 0 6px 20px rgba(0,242,254,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s ease-out;
+            transform: rotate(calc(var(--heading, 0) * -1deg));
+        }
+        .compass-pointer {
+            position: absolute;
+            top: 10px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 22px solid #ef4444;
+            z-index: 10;
+        }
+        .compass-mark {
+            position: absolute;
+            font-weight: 800;
+            font-size: 14px;
+            color: #cbd5e1;
+        }
+        .compass-mark.n { top: 8px; color: #ef4444; font-size: 16px; }
+        .compass-mark.s { bottom: 8px; }
+        .compass-mark.e { right: 12px; }
+        .compass-mark.w { left: 12px; }
+        .compass-needle {
+            width: 6px;
+            height: 120px;
+            background: linear-gradient(to bottom, #ef4444 50%, #64748b 50%);
+            border-radius: 4px;
         }
     </style>
 </head>
@@ -139,12 +186,24 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- 다국어 선택 언어 드롭다운 -->
+                <select id="langSelect" onchange="changeLanguage(this.value)" class="bg-slate-900 border border-slate-700 text-teal-300 text-xs rounded-xl px-2.5 py-2 font-semibold outline-none cursor-pointer">
+                    <option value="ko">한국어</option>
+                    <option value="en">English</option>
+                    <option value="vi">Tiếng Việt</option>
+                    <option value="ja">日本語</option>
+                    <option value="zh">中文</option>
+                    <option value="es">Español</option>
+                    <option value="fr">Français</option>
+                    <option value="th">ไทย</option>
+                </select>
+
                 <button id="btnDemoRoute" class="px-3 py-2 bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition min-h-[40px]">
                     <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span class="hidden sm:inline">경로 시뮬레이션</span>
+                    <span class="hidden sm:inline" id="text-demo-btn">경로 시뮬레이션</span>
                 </button>
                 <span id="gpsStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700 min-h-[40px]">
-                    <span class="w-2 h-2 rounded-full bg-slate-500"></span> GPS 대기 중
+                    <span class="w-2 h-2 rounded-full bg-slate-500"></span> <span id="text-gps-status">GPS 대기 중</span>
                 </span>
             </div>
         </div>
@@ -191,14 +250,11 @@
 
         <!-- Map & Layer Control Section -->
         <div class="glass-panel p-3 sm:p-4 rounded-2xl border border-slate-800 shadow-2xl flex flex-col gap-3">
-            
-            <!-- Layer Selector Bar -->
             <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900/80 p-2 rounded-xl border border-slate-800">
                 <div class="flex items-center gap-1.5 text-xs text-slate-300 font-semibold px-2">
                     <i class="fa-solid fa-layer-group text-cyan-400"></i>
                     <span>지도 선택:</span>
                 </div>
-                
                 <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
                     <button id="btnMapOSM" class="px-3 py-1.5 rounded-md font-medium text-slate-300 hover:text-white transition bg-teal-600 text-white shadow-sm" onclick="switchBaseMap('osm')">
                         <i class="fa-solid fa-map"></i> Standard
@@ -210,8 +266,11 @@
                         <i class="fa-solid fa-earth-americas text-blue-400"></i> Satellite
                     </button>
                 </div>
-
                 <div class="flex items-center gap-2 ml-auto">
+                    <!-- 내 위치 확인 상단 버튼 -->
+                    <button onclick="getCurrentLocation()" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-lg shadow-md transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-crosshairs"></i> 내 위치 확인
+                    </button>
                     <div class="flex items-center gap-1.5 text-xs text-slate-400">
                         <span>경로 색상:</span>
                         <input type="color" id="routeColorPicker" value="#00f2fe" class="w-7 h-7 rounded cursor-pointer bg-transparent border-0">
@@ -219,21 +278,16 @@
                 </div>
             </div>
 
-            <!-- Map Viewport -->
             <div id="map-container" class="relative border border-slate-800/80 shadow-inner">
                 <div id="map"></div>
-
-                <!-- Floating Recenter & Snapshot Action Tools -->
                 <div class="absolute top-3 right-3 z-[400] flex flex-col gap-2">
-                    <button id="btnRecenter" class="w-11 h-11 glass-panel rounded-xl flex items-center justify-center text-teal-300 hover:bg-slate-800 active:scale-95 transition shadow-xl" title="현재 위치">
+                    <button id="btnRecenter" onclick="getCurrentLocation()" class="w-11 h-11 glass-panel rounded-xl flex items-center justify-center text-teal-300 hover:bg-slate-800 active:scale-95 transition shadow-xl" title="내 위치 조회 및 중앙 이동">
                         <i class="fa-solid fa-crosshairs text-lg"></i>
                     </button>
                     <button id="btnFitBounds" class="w-11 h-11 glass-panel rounded-xl flex items-center justify-center text-cyan-300 hover:bg-slate-800 active:scale-95 transition shadow-xl" title="전체 경로보기">
                         <i class="fa-solid fa-expand text-lg"></i>
                     </button>
                 </div>
-
-                <!-- Route Status Overlay Banner on Map -->
                 <div id="mapOverlayInfo" class="absolute bottom-3 left-3 z-[400] glass-panel px-3 py-1.5 rounded-xl border border-slate-700/80 text-xs flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
                     <span id="routePointCountText" class="font-mono text-slate-300">0 Route Points Logged</span>
@@ -243,7 +297,6 @@
 
         <!-- Telemetry Dashboard -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <!-- Distance (KM / NM) -->
             <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>이동 거리</span>
@@ -253,26 +306,18 @@
                     <span id="valDistanceKm" class="text-2xl font-extrabold text-white">0.00</span>
                     <span class="text-xs text-teal-400 font-bold">km</span>
                 </div>
-                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    <span id="valDistanceNm">0.00</span> nmi
-                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5"><span id="valDistanceNm">0.00</span> nmi</div>
             </div>
 
-            <!-- Elapsed Time -->
             <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>소요 시간</span>
                     <i class="fa-regular fa-clock text-cyan-400"></i>
                 </div>
-                <div id="valTime" class="text-2xl font-extrabold text-white font-mono">
-                    00:00:00
-                </div>
-                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    Active Session
-                </div>
+                <div id="valTime" class="text-2xl font-extrabold text-white font-mono">00:00:00</div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">Active Session</div>
             </div>
 
-            <!-- Speed (KM/H & Knots) -->
             <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>현재 속도</span>
@@ -282,12 +327,9 @@
                     <span id="valSpeedKmh" class="text-2xl font-extrabold text-white">0.0</span>
                     <span class="text-xs text-emerald-400 font-bold">km/h</span>
                 </div>
-                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    <span id="valSpeedKnots">0.0</span> kts
-                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5"><span id="valSpeedKnots">0.0</span> kts</div>
             </div>
 
-            <!-- Avg & Max Speed -->
             <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>평균 / 최고 속도</span>
@@ -297,12 +339,9 @@
                     <span id="valAvgSpeed" class="text-xl font-bold text-white">0.0</span>
                     <span class="text-xs text-blue-400 font-semibold">km/h</span>
                 </div>
-                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    최고: <span id="valMaxSpeed">0.0</span> km/h
-                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">최고: <span id="valMaxSpeed">0.0</span> km/h</div>
             </div>
 
-            <!-- Paddle Strokes -->
             <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>추정 패들링 수</span>
@@ -312,12 +351,9 @@
                     <span id="valStrokes" class="text-2xl font-extrabold text-white">0</span>
                     <span class="text-xs text-amber-400 font-bold">회</span>
                 </div>
-                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    시간기준: <span id="valStrokesTime">0</span>회
-                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">시간기준: <span id="valStrokesTime">0</span>회</div>
             </div>
 
-            <!-- Burned Calories -->
             <div class="glass-panel p-3.5 rounded-2xl border border-slate-800">
                 <div class="flex items-center justify-between text-slate-400 text-xs mb-1">
                     <span>소모 칼로리</span>
@@ -327,39 +363,32 @@
                     <span id="valCalories" class="text-2xl font-extrabold text-white">0</span>
                     <span class="text-xs text-rose-400 font-bold">kcal</span>
                 </div>
-                <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                    Moderate SUP
-                </div>
+                <div class="text-[10px] text-slate-400 font-mono mt-0.5">Moderate SUP</div>
             </div>
         </div>
 
         <!-- Session Controls -->
         <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row gap-3 items-center justify-between border border-slate-800">
-            <!-- Tracking Controls -->
             <div class="flex items-center gap-2.5 w-full md:w-auto">
                 <button id="btnStart" class="flex-1 md:flex-none min-h-[52px] px-6 py-3.5 bg-gradient-to-r from-teal-500 via-emerald-500 to-teal-600 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-extrabold rounded-xl glow-button flex items-center justify-center gap-2 text-base">
                     <i class="fa-solid fa-play text-lg"></i>
                     <span>세션 시작 (Start)</span>
                 </button>
-
                 <button id="btnPause" class="hidden flex-1 md:flex-none min-h-[52px] px-5 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95">
                     <i class="fa-solid fa-pause"></i>
                     <span>일시정지</span>
                 </button>
-
                 <button id="btnStop" class="hidden flex-1 md:flex-none min-h-[52px] px-5 py-3.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95">
                     <i class="fa-solid fa-flag-checkered"></i>
                     <span>종료 (Finish)</span>
                 </button>
             </div>
 
-            <!-- Route Image Capture & File Export Actions -->
             <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
                 <button id="btnCaptureMap" class="flex-1 md:flex-none min-h-[48px] px-4 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-xl border border-cyan-400/30 flex items-center justify-center gap-2 transition shadow-md active:scale-95">
                     <i class="fa-solid fa-camera text-emerald-300"></i>
                     <span>지도 캡처하기</span>
                 </button>
-
                 <button id="btnShareNative" class="flex-1 md:flex-none min-h-[48px] px-4 py-3 bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold rounded-xl border border-teal-500/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-40 disabled:pointer-events-none" disabled>
                     <i class="fa-solid fa-share-nodes"></i>
                     <span>공유하기</span>
@@ -367,7 +396,7 @@
             </div>
         </div>
 
-        <!-- Advanced Export & Email Attachment Hub -->
+        <!-- Export Hub -->
         <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-4">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <div class="flex items-center gap-2">
@@ -377,22 +406,14 @@
                 <span class="text-xs text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">GPX / KML / Google Drive</span>
             </div>
 
-            <!-- Captured Image Preview Box -->
             <div id="capturedImageContainer" class="hidden p-3 bg-slate-900/90 rounded-xl border border-cyan-500/30 space-y-2">
                 <div class="flex items-center justify-between text-xs font-semibold text-cyan-300">
-                    <span><i class="fa-solid fa-image mr-1"></i> 캡처된 SUP 경로 지도 스냅샷 (클릭하여 확대)</span>
+                    <span><i class="fa-solid fa-image mr-1"></i> 캡처된 SUP 경로 지도 스냅샷</span>
                     <button id="btnDiscardCapture" class="text-slate-400 hover:text-rose-400"><i class="fa-solid fa-xmark"></i> 삭제</button>
                 </div>
-                
-                <!-- Preview Thumbnail with Zoom Hint -->
                 <div class="relative group cursor-pointer overflow-hidden rounded-lg border border-slate-800" id="previewImageWrapper">
                     <img id="capturedImagePreview" class="w-full max-h-56 object-contain rounded-lg transition duration-300 group-hover:scale-105" alt="Route Map Capture Preview">
-                    <div class="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition text-white font-medium text-xs gap-2">
-                        <i class="fa-solid fa-magnifying-glass-plus text-lg text-cyan-400"></i>
-                        <span>크게 보기 (확대)</span>
-                    </div>
                 </div>
-
                 <div class="flex justify-end gap-2 pt-1">
                     <button id="btnZoomImage" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold text-xs rounded-lg border border-slate-700 flex items-center gap-1.5">
                         <i class="fa-solid fa-magnifying-glass-plus"></i> 크게 보기
@@ -403,21 +424,19 @@
                 </div>
             </div>
 
-            <!-- Google Drive OAuth Client ID Input Config -->
             <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs space-y-1">
                 <div class="flex items-center justify-between text-slate-300 font-semibold">
                     <span><i class="fa-brands fa-google-drive text-amber-400 mr-1"></i> 구글 드라이브 연동 설정</span>
                     <span id="gdriveStatus" class="text-slate-400 text-[11px]">미인증</span>
                 </div>
                 <div class="flex gap-2 pt-1">
-                    <input type="text" id="gdriveClientId" placeholder="Google Client ID 입력 (예: 123456...apps.googleusercontent.com)" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500 font-mono">
+                    <input type="text" id="gdriveClientId" placeholder="Google Client ID 입력" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500 font-mono">
                     <button id="btnAuthDrive" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg whitespace-nowrap transition">
                         로그인
                     </button>
                 </div>
             </div>
 
-            <!-- Email, Direct Download & Google Drive Form Controls -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">수신 이메일 주소</label>
@@ -447,11 +466,127 @@
             </div>
         </div>
 
+        <!-- 1. 스마트폰 나침반 카드 -->
+        <div class="glass-panel p-5 rounded-2xl border border-cyan-500/30 flex flex-col items-center">
+            <h2 id="title-compass" class="font-bold text-base text-cyan-300 flex items-center gap-2 mb-2">
+                <i class="fa-regular fa-compass text-lg"></i> 스마트폰 나침반 (Compass)
+            </h2>
+            <div class="compass-container">
+                <div class="compass-pointer"></div>
+                <div id="compassDial" class="compass-dial">
+                    <span class="compass-mark n">N</span>
+                    <span class="compass-mark e">E</span>
+                    <span class="compass-mark s">S</span>
+                    <span class="compass-mark w">W</span>
+                    <div class="compass-needle"></div>
+                </div>
+                <div class="compass-info text-center mt-3">
+                    <div id="compassDeg" class="text-3xl font-extrabold text-cyan-400 font-mono">--°</div>
+                    <div id="compassDir" class="text-xs text-slate-400 font-bold mt-1">나침반 대기 중</div>
+                </div>
+            </div>
+            <button id="compassBtn" onclick="startCompass()" class="mt-2 px-5 py-2.5 bg-cyan-950 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 text-xs font-bold rounded-xl transition flex items-center gap-2">
+                <i class="fa-solid fa-location-arrow"></i> 나침반 시작 / 권한 허용
+            </button>
+        </div>
+
+        <!-- 2. 바다활동 추천 필수 정보 사이트 (바다타임, 윈디, 윈드그루) -->
+        <div class="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3">
+            <div class="flex items-center gap-2 border-b border-slate-800 pb-2">
+                <i class="fa-solid fa-anchor text-teal-400 text-lg"></i>
+                <h2 id="title-sea-sites" class="font-bold text-base text-slate-200">🌊 바다활동 추천 필수 사이트 정보</h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <a href="https://www.badatime.com/" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-teal-500/50 transition flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-300 text-xl group-hover:scale-110 transition">
+                        ⚓
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-teal-300">바다타임</div>
+                        <div class="text-[11px] text-slate-400">물때표 및 바다 날씨 정보</div>
+                    </div>
+                </a>
+
+                <a href="https://www.windy.com/" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-cyan-500/50 transition flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl group-hover:scale-110 transition">
+                        🌀
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-cyan-300">윈디 (Windy)</div>
+                        <div class="text-[11px] text-slate-400">실시간 바람·파도·기상 레이더</div>
+                    </div>
+                </a>
+
+                <a href="https://old.windguru.cz/int/index.php?sc=452361&sty=m_spot" target="_blank" rel="noopener noreferrer" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-blue-500/50 transition flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-300 text-xl group-hover:scale-110 transition">
+                        🏄
+                    </div>
+                    <div>
+                        <div class="font-bold text-sm text-blue-300">윈드그루</div>
+                        <div class="text-[11px] text-slate-400">해양 스포츠 풍향·파고 상세예보</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. 빠른 위치 공유 & 좌표 복사 액션 키 -->
+        <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2 text-slate-300 font-semibold">
+                <i class="fa-solid fa-location-dot text-rose-400 text-base"></i>
+                <span id="title-share">위치 바로 공유하기:</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="getCurrentLocation()" class="px-3.5 py-2 bg-teal-700 hover:bg-teal-600 text-white font-bold rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-crosshairs"></i> 내 위치 조회
+                </button>
+                <button id="copyBtn" onclick="copyCoordinates()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 font-bold rounded-xl border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-regular fa-copy"></i> 좌표 복사
+                </button>
+                <button id="smsBtn" onclick="openSMS()" class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-bold rounded-xl transition flex items-center gap-1.5">
+                    <i class="fa-regular fa-comment-dots"></i> SMS 보내기
+                </button>
+            </div>
+        </div>
+
+        <!-- 만리포 바다캠프 패들보드 투어 안내광고 -->
+        <section class="w-full mt-2">
+            <div class="relative overflow-hidden rounded-2xl border border-cyan-400/40 bg-gradient-to-r from-teal-950 via-slate-900 to-blue-950 shadow-2xl p-5 sm:p-7 text-center">
+                <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-cyan-400/10 blur-2xl"></div>
+                <div class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-400/10 blur-2xl"></div>
+
+                <div class="relative z-10">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/15 border border-teal-400/30 text-teal-300 text-xs sm:text-sm font-bold mb-3">
+                        <i class="fa-solid fa-water"></i>
+                        만리포 바다캠프
+                    </div>
+
+                    <h2 class="text-xl sm:text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-teal-200 via-cyan-200 to-blue-300 bg-clip-text text-transparent">
+                        패들보드 투어 프로그램
+                    </h2>
+
+                    <p class="mt-3 text-base sm:text-lg md:text-xl text-white font-bold leading-relaxed">
+                        초보자도 차근 차근 배워서 투어할 수 있어요!
+                    </p>
+
+                    <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <a href="tel:01032586747" class="inline-flex items-center justify-center gap-2 min-h-[48px] px-6 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold shadow-lg transition active:scale-95">
+                            <i class="fa-solid fa-phone"></i>
+                            010-3258-6747
+                        </a>
+                        <span class="text-xs sm:text-sm text-slate-400">
+                            <i class="fa-solid fa-location-dot mr-1 text-cyan-400"></i>
+                            태안 만리포 바다캠프
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
-    <!-- Fullscreen Image Zoom Lightbox Modal -->
+    <!-- Fullscreen Image Lightbox Modal -->
     <div id="imageModal" class="fixed inset-0 z-[999] hidden bg-slate-950/90 backdrop-blur-md flex flex-col justify-between p-4 sm:p-6 transition-opacity duration-300">
-        <!-- Modal Top Bar -->
         <div class="max-w-6xl w-full mx-auto flex items-center justify-between text-white border-b border-slate-800/80 pb-3">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-map-location-dot text-cyan-400 text-lg"></i>
@@ -467,61 +602,14 @@
             </div>
         </div>
 
-        <!-- Modal Center Viewport -->
         <div class="flex-1 flex items-center justify-center p-2 sm:p-4 overflow-hidden">
             <img id="modalImage" class="max-w-full max-h-[80vh] object-contain rounded-xl border border-slate-700 shadow-2xl" alt="Expanded Route Map Snapshot">
         </div>
 
-        <!-- Modal Bottom Status -->
         <div class="max-w-6xl w-full mx-auto text-center text-xs text-slate-400 pt-2 border-t border-slate-800/80">
             <span>배경이나 ✕ 버튼, 또는 Esc 키를 눌러 닫을 수 있습니다.</span>
         </div>
     </div>
-
-
-    <!-- 만리포 바다캠프 패들보드 투어 안내광고 -->
-    <section class="max-w-6xl w-full mx-auto px-3 sm:px-5 mt-4">
-        <div class="relative overflow-hidden rounded-2xl border border-cyan-400/40
-                    bg-gradient-to-r from-teal-950 via-slate-900 to-blue-950
-                    shadow-2xl p-5 sm:p-7 text-center">
-            <div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-cyan-400/10 blur-2xl"></div>
-            <div class="absolute -bottom-12 -left-12 w-32 h-32 rounded-full bg-teal-400/10 blur-2xl"></div>
-
-            <div class="relative z-10">
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full
-                            bg-teal-500/15 border border-teal-400/30 text-teal-300
-                            text-xs sm:text-sm font-bold mb-3">
-                    <i class="fa-solid fa-water"></i>
-                    만리포 바다캠프
-                </div>
-
-                <h2 class="text-xl sm:text-2xl md:text-3xl font-extrabold
-                           bg-gradient-to-r from-teal-200 via-cyan-200 to-blue-300
-                           bg-clip-text text-transparent">
-                    패들보드 투어 프로그램
-                </h2>
-
-                <p class="mt-3 text-base sm:text-lg md:text-xl text-white font-bold leading-relaxed">
-                    초보자도 차근 차근 배워서 투어할 수 있어요!
-                </p>
-
-                <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="tel:01032586747"
-                       class="inline-flex items-center justify-center gap-2 min-h-[48px]
-                              px-6 py-3 rounded-xl bg-teal-500 hover:bg-teal-400
-                              text-slate-950 font-extrabold shadow-lg transition
-                              active:scale-95">
-                        <i class="fa-solid fa-phone"></i>
-                        010-3258-6747
-                    </a>
-                    <span class="text-xs sm:text-sm text-slate-400">
-                        <i class="fa-solid fa-location-dot mr-1 text-cyan-400"></i>
-                        태안 만리포 바다캠프
-                    </span>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- Footer -->
     <footer class="glass-panel border-t border-slate-800/80 py-3 px-4 text-center text-xs text-slate-500 mt-4">
@@ -529,20 +617,20 @@
     </footer>
 
     <script>
-        // Application Logic & State Variables
+        // Application State & Telemetry Logic
         let isTracking = false;
         let isPaused = false;
         let watchId = null;
-        let gpsTrackPoints = []; // Stores {lat, lng, alt, accuracy, speed, timestamp}
-        let totalDistance = 0; // meters
-        let maxSpeedMs = 0; // m/s
+        let gpsTrackPoints = [];
+        let totalDistance = 0;
+        let maxSpeedMs = 0;
         let startTime = null;
-        let elapsedTime = 0; // milliseconds
+        let elapsedTime = 0;
         let timerInterval = null;
         let lastCapturedBlob = null;
         let wakeLock = null;
 
-        // Screen Wake Lock API (화면 꺼짐 방지)
+        // Wake Lock
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
@@ -559,7 +647,7 @@
             }
         }
 
-        // Google Drive API State Variables
+        // Google Drive State
         let tokenClient = null;
         let accessToken = null;
 
@@ -570,7 +658,6 @@
         let startMarker = null;
         let finishMarker = null;
 
-        // Base Map Tile Layers
         let tileOsm = null;
         let tileTopo = null;
         let tileEsri = null;
@@ -616,7 +703,6 @@
         const btnDownloadCapturedImg = document.getElementById('btnDownloadCapturedImg');
         const btnZoomImage = document.getElementById('btnZoomImage');
 
-        // Modal Elements
         const imageModal = document.getElementById('imageModal');
         const modalImage = document.getElementById('modalImage');
         const btnCloseModal = document.getElementById('btnCloseModal');
@@ -635,6 +721,26 @@
                 updateTelemetryDisplay(lastPoint ? lastPoint.speed : 0);
             });
         });
+
+        // 현재 GPS 위치 가져오는 기능 (내 위치 확인 함수)
+        function getCurrentLocation() {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const lat = pos.coords.latitude;
+                        const lng = pos.coords.longitude;
+                        map.setView([lat, lng], 16);
+                        updateUserMarker(lat, lng);
+                    },
+                    (err) => {
+                        alert("GPS 위치 정보를 가져올 수 없습니다. 위치 권한을 확인해주세요.");
+                    },
+                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                );
+            } else {
+                alert("이 브라우저는 GPS 위치 서비스를 지원하지 않습니다.");
+            }
+        }
 
         function initGoogleAuth() {
             btnAuthDrive.addEventListener('click', () => {
@@ -671,15 +777,11 @@
 
         async function uploadFileToGoogleDrive(fileName, mimeType, contentBlob) {
             if (!accessToken) {
-                alert("구글 드라이브 연동 인증을 완료해야 합니다. '로그인' 버튼을 눌러 인증을 진행해 주세요.");
+                alert("구글 드라이브 연동 인증을 완료해야 합니다.");
                 return false;
             }
 
-            const metadata = {
-                name: fileName,
-                mimeType: mimeType
-            };
-
+            const metadata = { name: fileName, mimeType: mimeType };
             const formData = new FormData();
             formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             formData.append('file', contentBlob);
@@ -692,15 +794,11 @@
                 });
 
                 if (response.ok) {
-                    const resJson = await response.json();
-                    return resJson;
+                    return await response.json();
                 } else {
-                    const errText = await response.text();
-                    console.error('Upload Error Response:', errText);
                     return false;
                 }
             } catch (err) {
-                console.error('Google Drive Upload Failed:', err);
                 return false;
             }
         }
@@ -722,17 +820,10 @@
             const routeBlob = new Blob([content], { type: mimeType });
             const resultRoute = await uploadFileToGoogleDrive(fileName, mimeType, routeBlob);
 
-            let imgResult = true;
-            if (lastCapturedBlob) {
-                const imgFileName = `sup-route-map-${Date.now()}.png`;
-                const resImg = await uploadFileToGoogleDrive(imgFileName, 'image/png', lastCapturedBlob);
-                if (!resImg) imgResult = false;
-            }
-
-            if (resultRoute && imgResult) {
+            if (resultRoute) {
                 alert("구글 드라이브에 성공적으로 저장되었습니다!");
-            } else if (!resultRoute) {
-                alert("구글 드라이브 파일 저장에 실패하였습니다.");
+            } else {
+                alert("구글 드라이브 저장에 실패하였습니다.");
             }
 
             btnSaveToDrive.innerHTML = `<i class="fa-brands fa-google-drive"></i> 드라이브 저장`;
@@ -741,21 +832,17 @@
 
         function initMapEngine() {
             tileOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
+                maxZoom: 19, attribution: '© OpenStreetMap'
             });
 
             tileTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                maxZoom: 17,
-                attribution: '© OpenTopoMap'
+                maxZoom: 17, attribution: '© OpenTopoMap'
             });
 
             tileEsri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 18,
-                attribution: 'Tiles © Esri'
+                maxZoom: 18, attribution: 'Tiles © Esri'
             });
 
-            // 태안 만리포 해수욕장 기준 초기 위치
             map = L.map('map', {
                 zoomControl: false,
                 attributionControl: false,
@@ -774,16 +861,7 @@
                 if (polyline) polyline.setStyle({ color: e.target.value });
             });
 
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-                    map.setView([lat, lng], 15);
-                    updateUserMarker(lat, lng);
-                }, () => {
-                    console.log("Waiting for user position lock...");
-                });
-            }
+            getCurrentLocation();
         }
 
         function switchBaseMap(layerName) {
@@ -810,18 +888,16 @@
         btnStart.addEventListener('click', startTracking);
         btnPause.addEventListener('click', togglePause);
         btnStop.addEventListener('click', stopTracking);
-        btnRecenter.addEventListener('click', recenterMap);
         btnFitBounds.addEventListener('click', fitRouteBounds);
         btnDemoRoute.addEventListener('click', generateDemoRoute);
 
         async function startTracking() {
             if (!("geolocation" in navigator)) {
-                alert("이 브라우저에서는 GPS 위치 서비스가 지원되지 않습니다.");
+                alert("GPS 서비스를 이용할 수 없습니다.");
                 return;
             }
 
             await requestWakeLock();
-
             isTracking = true;
             isPaused = false;
             
@@ -843,8 +919,7 @@
             timerInterval = setInterval(updateTimer, 1000);
 
             watchId = navigator.geolocation.watchPosition(
-                handleGpsSuccess,
-                handleGpsError,
+                handleGpsSuccess, handleGpsError,
                 { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
             );
         }
@@ -853,21 +928,18 @@
             if (isPaused) {
                 isPaused = false;
                 btnPause.innerHTML = `<i class="fa-solid fa-pause"></i><span>일시정지</span>`;
-                btnPause.className = "flex-1 md:flex-none min-h-[52px] px-5 py-3.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95";
                 timerInterval = setInterval(updateTimer, 1000);
             } else {
                 isPaused = true;
                 btnPause.innerHTML = `<i class="fa-solid fa-play"></i><span>재개</span>`;
-                btnPause.className = "flex-1 md:flex-none min-h-[52px] px-5 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl flex items-center justify-center gap-2 transition active:scale-95";
                 clearInterval(timerInterval);
             }
         }
 
         function stopTracking() {
-            if (!confirm("현재 SUP 세션을 종료하고 경로 요약을 저장하시겠습니까?")) return;
+            if (!confirm("현재 SUP 세션을 종료하시겠습니까?")) return;
 
             releaseWakeLock();
-
             isTracking = false;
             isPaused = false;
             clearInterval(timerInterval);
@@ -898,37 +970,20 @@
             const speedMs = position.coords.speed || 0;
             const time = new Date(position.timestamp);
 
-            if (accuracy > 30) {
-                console.warn(`GPS 정확도 불량으로 제외됨: ±${accuracy}m`);
-                return;
-            }
+            if (accuracy > 30) return;
 
             const lastPoint = gpsTrackPoints[gpsTrackPoints.length - 1];
-            
             if (lastPoint) {
                 const distIncrement = calculateHaversineDistance(lastPoint.lat, lastPoint.lng, lat, lng);
-                const timeDiffSec = (time - new Date(lastPoint.timestamp)) / 1000;
-                const calculatedSpeed = timeDiffSec > 0 ? (distIncrement / timeDiffSec) : 0;
-
-                if (calculatedSpeed > 12) {
-                    console.warn("비정상적인 GPS 점프 감지: 거리 계산 제외");
-                    return;
-                }
-
                 if (distIncrement >= 0.3) {
                     totalDistance += distIncrement;
                 }
             }
 
-            if (speedMs > maxSpeedMs) {
-                maxSpeedMs = speedMs;
-            }
-
+            if (speedMs > maxSpeedMs) maxSpeedMs = speedMs;
             gpsTrackPoints.push({ lat, lng, alt, accuracy, speed: speedMs, timestamp: time });
 
-            if (gpsTrackPoints.length === 1) {
-                renderStartMarker(lat, lng);
-            }
+            if (gpsTrackPoints.length === 1) renderStartMarker(lat, lng);
 
             const currentLatLng = [lat, lng];
             polyline.addLatLng(currentLatLng);
@@ -947,8 +1002,7 @@
                 const paddleIcon = L.divIcon({
                     className: 'custom-user-marker',
                     html: `<div class="w-5 h-5 bg-cyan-400 border-2 border-white rounded-full shadow-lg pulse-live"></div>`,
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
+                    iconSize: [20, 20], iconAnchor: [10, 10]
                 });
                 userMarker = L.marker([lat, lng], { icon: paddleIcon }).addTo(map);
             } else {
@@ -958,40 +1012,20 @@
 
         function renderStartMarker(lat, lng) {
             if (startMarker) map.removeLayer(startMarker);
-
-            const startIcon = L.divIcon({
-                className: 'custom-pin start-pin',
-                html: 'START',
-                iconSize: [44, 22],
-                iconAnchor: [22, 11]
-            });
-
-            startMarker = L.marker([lat, lng], { icon: startIcon }).addTo(map)
-                .bindPopup("<b>출발 지점</b><br>Paddleboard Launch Point");
+            const startIcon = L.divIcon({ className: 'custom-pin start-pin', html: 'START', iconSize: [44, 22], iconAnchor: [22, 11] });
+            startMarker = L.marker([lat, lng], { icon: startIcon }).addTo(map);
         }
 
         function renderFinishMarker(lat, lng) {
             if (finishMarker) map.removeLayer(finishMarker);
-
-            const finishIcon = L.divIcon({
-                className: 'custom-pin finish-pin',
-                html: 'FINISH',
-                iconSize: [48, 22],
-                iconAnchor: [24, 11]
-            });
-
-            finishMarker = L.marker([lat, lng], { icon: finishIcon }).addTo(map)
-                .bindPopup("<b>도착 지점</b><br>Final Landing Location");
+            const finishIcon = L.divIcon({ className: 'custom-pin finish-pin', html: 'FINISH', iconSize: [48, 22], iconAnchor: [24, 11] });
+            finishMarker = L.marker([lat, lng], { icon: finishIcon }).addTo(map);
         }
 
         function renderStartAndFinishMarkers() {
             if (gpsTrackPoints.length === 0) return;
-
-            const firstPt = gpsTrackPoints[0];
-            const lastPt = gpsTrackPoints[gpsTrackPoints.length - 1];
-
-            renderStartMarker(firstPt.lat, firstPt.lng);
-            renderFinishMarker(lastPt.lat, lastPt.lng);
+            renderStartMarker(gpsTrackPoints[0].lat, gpsTrackPoints[0].lng);
+            renderFinishMarker(gpsTrackPoints[gpsTrackPoints.length - 1].lat, gpsTrackPoints[gpsTrackPoints.length - 1].lng);
         }
 
         function clearRouteMarkers() {
@@ -999,17 +1033,10 @@
             if (finishMarker) { map.removeLayer(finishMarker); finishMarker = null; }
         }
 
-        function recenterMap() {
-            if (userMarker) {
-                map.setView(userMarker.getLatLng(), 16);
-            }
-        }
-
         function fitRouteBounds() {
             if (gpsTrackPoints.length > 0) {
                 const latLngs = gpsTrackPoints.map(p => [p.lat, p.lng]);
-                const bounds = L.latLngBounds(latLngs);
-                map.fitBounds(bounds, { padding: [40, 40] });
+                map.fitBounds(L.latLngBounds(latLngs), { padding: [40, 40] });
             }
         }
 
@@ -1033,31 +1060,19 @@
             valDistanceNm.textContent = distNm.toFixed(2);
 
             const speedKmh = currentSpeedMs * 3.6;
-            const speedKnots = speedKmh * 0.539957;
-
             valSpeedKmh.textContent = speedKmh.toFixed(1);
-            valSpeedKnots.textContent = speedKnots.toFixed(1);
+            valSpeedKnots.textContent = (speedKmh * 0.539957).toFixed(1);
 
             const elapsedSecs = elapsedTime / 1000;
             if (elapsedSecs > 0) {
-                const avgSpeedKmh = (distKm / (elapsedSecs / 3600));
-                valAvgSpeed.textContent = avgSpeedKmh.toFixed(1);
+                valAvgSpeed.textContent = (distKm / (elapsedSecs / 3600)).toFixed(1);
 
-                // 패들링 수 사용자 매개변수 기반 계산
                 const paddleDistCm = parseFloat(paddleDistCmInput.value) || 150;
                 const paddleTimeSec = parseFloat(paddleTimeSecInput.value) || 1.71;
 
-                const distMeters = totalDistance;
-                const strokeDistMeters = paddleDistCm / 100;
-
-                const estStrokesByDistance = strokeDistMeters > 0 ? Math.round(distMeters / strokeDistMeters) : 0;
-                const estStrokesByTime = paddleTimeSec > 0 ? Math.round(elapsedSecs / paddleTimeSec) : 0;
-
-                valStrokes.textContent = estStrokesByDistance.toLocaleString();
-                valStrokesTime.textContent = estStrokesByTime.toLocaleString();
-
-                const estCalories = Math.round((elapsedSecs / 3600) * 450);
-                valCalories.textContent = estCalories;
+                valStrokes.textContent = Math.round(totalDistance / (paddleDistCm / 100)).toLocaleString();
+                valStrokesTime.textContent = Math.round(elapsedSecs / paddleTimeSec).toLocaleString();
+                valCalories.textContent = Math.round((elapsedSecs / 3600) * 450);
             }
 
             valMaxSpeed.textContent = (maxSpeedMs * 3.6).toFixed(1);
@@ -1074,16 +1089,11 @@
             const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
                       Math.cos(φ1) * Math.cos(φ2) *
                       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-            return R * c;
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
         }
 
         function generateDemoRoute() {
-            if (isTracking) {
-                alert("실시간 세션을 먼저 종료해 주세요.");
-                return;
-            }
+            if (isTracking) return;
 
             gpsTrackPoints = [];
             totalDistance = 0;
@@ -1091,251 +1101,150 @@
             polyline.setLatLngs([]);
             clearRouteMarkers();
 
-            // 태안 만리포 연안 SUP 경로 시뮬레이션 좌표
-            const baseLat = 36.7845;
-            const baseLng = 126.1432;
+            const baseLat = 36.7845, baseLng = 126.1432;
             const routeOffsets = [
                 [0, 0], [0.0015, 0.0020], [0.0028, 0.0045], [0.0040, 0.0070],
-                [0.0032, 0.0095], [0.0010, 0.0110], [-0.0012, 0.0090], [-0.0025, 0.0060],
-                [-0.0020, 0.0030], [-0.0005, 0.0005]
+                [0.0032, 0.0095], [0.0010, 0.0110], [-0.0012, 0.0090], [-0.0025, 0.0060]
             ];
 
             const now = Date.now();
             routeOffsets.forEach((offset, idx) => {
                 const ptLat = baseLat + offset[0];
                 const ptLng = baseLng + offset[1];
-                const ptTime = new Date(now + idx * 120000);
-                const speed = 1.8 + Math.random() * 0.8;
-
                 if (idx > 0) {
                     const prev = gpsTrackPoints[idx - 1];
                     totalDistance += calculateHaversineDistance(prev.lat, prev.lng, ptLat, ptLng);
                 }
-
-                gpsTrackPoints.push({
-                    lat: ptLat,
-                    lng: ptLng,
-                    alt: 0,
-                    accuracy: 5,
-                    speed: speed,
-                    timestamp: ptTime
-                });
+                gpsTrackPoints.push({ lat: ptLat, lng: ptLng, alt: 0, accuracy: 5, speed: 2.0, timestamp: new Date(now + idx * 120000) });
             });
 
             elapsedTime = (routeOffsets.length - 1) * 120000;
-            maxSpeedMs = 2.6;
-
-            const latLngs = gpsTrackPoints.map(p => [p.lat, p.lng]);
-            polyline.setLatLngs(latLngs);
+            polyline.setLatLngs(gpsTrackPoints.map(p => [p.lat, p.lng]));
             renderStartAndFinishMarkers();
             fitRouteBounds();
-
             updateTimer();
             btnShareNative.disabled = false;
-            
-            gpsStatusBadge.className = "inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 text-teal-300 border border-teal-500/30";
-            gpsStatusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-cyan-400"></span> 데모 경로 로드됨`;
         }
 
         btnCaptureMap.addEventListener('click', async () => {
             const mapContainer = document.getElementById('map-container');
-            btnCaptureMap.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 지도 캡처 중...`;
             btnCaptureMap.disabled = true;
 
             try {
-                const canvas = await html2canvas(mapContainer, {
-                    useCORS: true,
-                    allowTaint: true,
-                    scale: 2,
-                    logging: false
-                });
-
+                const canvas = await html2canvas(mapContainer, { useCORS: true, allowTaint: true, scale: 2 });
                 canvas.toBlob((blob) => {
                     lastCapturedBlob = blob;
                     const imgUrl = URL.createObjectURL(blob);
                     capturedImagePreview.src = imgUrl;
                     modalImage.src = imgUrl;
                     capturedImageContainer.classList.remove('hidden');
-
-                    btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> 캡처 완료!`;
-                    setTimeout(() => {
-                        btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> 지도 캡처하기`;
-                        btnCaptureMap.disabled = false;
-                    }, 1500);
+                    btnCaptureMap.disabled = false;
                 }, 'image/png');
-
             } catch (err) {
-                alert("지도 이미지 캡처 실패: " + err.message);
-                btnCaptureMap.innerHTML = `<i class="fa-solid fa-camera text-emerald-300"></i> 지도 캡처하기`;
+                alert("지도 이미지 캡처 실패");
                 btnCaptureMap.disabled = false;
             }
         });
 
-        function openImageModal() {
-            if (!capturedImagePreview.src) return;
-            imageModal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeImageModal() {
-            imageModal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-
-        previewImageWrapper.addEventListener('click', openImageModal);
-        btnZoomImage.addEventListener('click', openImageModal);
-        btnCloseModal.addEventListener('click', closeImageModal);
-
-        imageModal.addEventListener('click', (e) => {
-            if (e.target === imageModal || e.target.classList.contains('flex-1')) {
-                closeImageModal();
-            }
-        });
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !imageModal.classList.contains('hidden')) {
-                closeImageModal();
-            }
-        });
-
-        btnDiscardCapture.addEventListener('click', () => {
-            capturedImageContainer.classList.add('hidden');
-            lastCapturedBlob = null;
-        });
-
-        function triggerDownloadCapturedImage() {
-            if (!lastCapturedBlob) return;
-            const fileName = `sup-route-map-${Date.now()}.png`;
-            const url = URL.createObjectURL(lastCapturedBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        btnDownloadCapturedImg.addEventListener('click', triggerDownloadCapturedImage);
-        btnModalDownload.addEventListener('click', triggerDownloadCapturedImage);
-
         function generateGPXData() {
-            const trackName = `SUP Paddle - ${new Date().toLocaleDateString()}`;
-            let trkpts = gpsTrackPoints.map(p => {
-                return `      <trkpt lat="${p.lat}" lon="${p.lng}">
-        <ele>${p.alt}</ele>
-        <time>${p.timestamp.toISOString()}</time>
-      </trkpt>`;
-            }).join('\n');
-
-            return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="SUP GPS Pro Suite" xmlns="http://www.topografix.com/GPX/1/1">
-  <metadata>
-    <name>${trackName}</name>
-    <time>${new Date().toISOString()}</time>
-  </metadata>
-  <trk>
-    <name>${trackName}</name>
-    <trkseg>
-${trkpts}
-    </trkseg>
-  </trk>
-</gpx>`;
+            let trkpts = gpsTrackPoints.map(p => `      <trkpt lat="${p.lat}" lon="${p.lng}"><ele>${p.alt}</ele><time>${p.timestamp.toISOString()}</time></trkpt>`).join('\n');
+            return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="SUP GPS Pro Suite"><trk><trkseg>\n${trkpts}\n</trkseg></trk></gpx>`;
         }
 
         function generateKMLData() {
-            const trackName = `SUP Paddle - ${new Date().toLocaleDateString()}`;
             const coords = gpsTrackPoints.map(p => `${p.lng},${p.lat},${p.alt}`).join(' ');
-
-            return `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-  <Document>
-    <name>${trackName}</name>
-    <Placemark>
-      <name>SUP Trajectory</name>
-      <LineString>
-        <extrude>1</extrude>
-        <tessellate>1</tessellate>
-        <coordinates>${coords}</coordinates>
-      </LineString>
-    </Placemark>
-  </Document>
-</kml>`;
+            return `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark><LineString><coordinates>${coords}</coordinates></LineString></Placemark></Document></kml>`;
         }
 
-        btnShareNative.addEventListener('click', async () => {
-            if (gpsTrackPoints.length === 0) {
-                alert("공유할 경로 데이터가 없습니다.");
-                return;
-            }
-
-            const format = document.getElementById('exportFormat').value;
-            const content = format === 'gpx' ? generateGPXData() : generateKMLData();
-            const fileName = `sup-session-${Date.now()}.${format}`;
-            const mimeType = format === 'gpx' ? 'application/gpx+xml' : 'application/vnd.google-earth.kml+xml';
-
-            const filesToShare = [new File([content], fileName, { type: mimeType })];
-
-            if (lastCapturedBlob) {
-                filesToShare.push(new File([lastCapturedBlob], `sup-route-map.png`, { type: 'image/png' }));
-            }
-
-            if (navigator.canShare && navigator.canShare({ files: filesToShare })) {
-                try {
-                    await navigator.share({
-                        title: 'SUP Paddleboard Route',
-                        text: `패들보드 라이딩 경로 기록: ${valDistanceKm.textContent} km (${valDistanceNm.textContent} nmi)`,
-                        files: filesToShare
-                    });
-                } catch (err) {
-                    if (err.name !== 'AbortError') console.warn("Share cancelled or error:", err);
-                }
-            } else {
-                alert("이 기기에서는 직접 공유가 지원되지 않습니다. 아래 '파일 다운로드'를 사용하세요.");
-            }
-        });
-
         btnDirectDownload.addEventListener('click', () => {
-            if (gpsTrackPoints.length === 0) {
-                alert("다운로드할 경로 데이터가 없습니다.");
-                return;
-            }
+            if (gpsTrackPoints.length === 0) return alert("다운로드할 경로가 없습니다.");
             const format = document.getElementById('exportFormat').value;
             const content = format === 'gpx' ? generateGPXData() : generateKMLData();
-            const fileName = `sup-session-${Date.now()}.${format}`;
-
             const blob = new Blob([content], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
+            a.download = `sup-session-${Date.now()}.${format}`;
             a.click();
-            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         });
 
         btnPrepareMailto.addEventListener('click', () => {
             const email = document.getElementById('targetEmail').value.trim();
-            const subject = encodeURIComponent("SUP 패들보딩 경로 요약 리포트");
-            const dist = valDistanceKm.textContent;
-            const distNm = valDistanceNm.textContent;
-            const time = valTime.textContent;
-            const strokeDist = valStrokes.textContent;
-            const strokeTime = valStrokesTime.textContent;
-            
-            const body = encodeURIComponent(
-                `안녕하세요,\n\nStand Up Paddleboard 세션 데이터 요약입니다:\n\n` +
-                `- 이동 거리: ${dist} km (${distNm} Nautical Miles)\n` +
-                `- 소요 시간: ${time}\n` +
-                `- 평균 속도: ${valAvgSpeed.textContent} km/h\n` +
-                `- 추정 패들링 수: ${strokeDist} 회 (거리기준) / ${strokeTime} 회 (시간기준)\n` +
-                `- 소모 칼로리: ${valCalories.textContent} kcal\n\n` +
-                `SUP GPS Pro Suite에서 작성됨.`
-            );
-
-            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            const body = encodeURIComponent(`SUP Session Data:\nDistance: ${valDistanceKm.textContent} km\nDuration: ${valTime.textContent}`);
+            window.location.href = `mailto:${email}?subject=SUP%20Route%20Report&body=${body}`;
         });
+
+        // 나침반 기능
+        let compassActive = false;
+        const dirs = ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"];
+
+        function startCompass() {
+            if (window.DeviceOrientationEvent) {
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('deviceorientation', handleOrientation, true);
+                            } else {
+                                alert("나침반 권한이 거부되었습니다.");
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                    window.addEventListener('deviceorientation', handleOrientation, true);
+                }
+            } else {
+                alert("이 기기는 방위각 센서를 지원하지 않습니다.");
+            }
+        }
+
+        function handleOrientation(event) {
+            let heading = null;
+            if (event.webkitCompassHeading) {
+                heading = event.webkitCompassHeading;
+            } else if (event.alpha !== null) {
+                heading = 360 - event.alpha;
+            }
+
+            if (heading !== null) {
+                const deg = Math.round(heading);
+                document.getElementById('compassDial').style.setProperty('--heading', deg);
+                document.getElementById('compassDeg').textContent = `${deg}°`;
+                
+                const dirIdx = Math.floor(((deg + 11.25) % 360) / 22.5);
+                document.getElementById('compassDir').textContent = dirs[dirIdx];
+            }
+        }
+
+        function copyCoordinates() {
+            if (userMarker) {
+                const latLng = userMarker.getLatLng();
+                const text = `위도: ${latLng.lat.toFixed(6)}, 경도: ${latLng.lng.toFixed(6)}\nhttps://maps.google.com/?q=${latLng.lat},${latLng.lng}`;
+                navigator.clipboard.writeText(text).then(() => {
+                    alert("현재 GPS 위치 좌표가 클립보드에 복사되었습니다!");
+                }).catch(err => {
+                    alert("복사 실패: " + err);
+                });
+            } else {
+                alert("현재 GPS 위치를 찾을 수 없습니다.");
+            }
+        }
+
+        function openSMS() {
+            if (userMarker) {
+                const latLng = userMarker.getLatLng();
+                const body = encodeURIComponent(`[내 위치 전송]\n위도: ${latLng.lat.toFixed(6)}, 경도: ${latLng.lng.toFixed(6)}\nhttps://maps.google.com/?q=${latLng.lat},${latLng.lng}`);
+                window.location.href = `sms:?body=${body}`;
+            } else {
+                alert("전송할 GPS 위치를 찾을 수 없습니다.");
+            }
+        }
+
+        function changeLanguage(lang) {
+            console.log("Language changed to: " + lang);
+        }
     </script>
 </body>
 </html>
