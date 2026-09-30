@@ -1156,16 +1156,45 @@
             return `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark><LineString><coordinates>${coords}</coordinates></LineString></Placemark></Document></kml>`;
         }
 
-        btnDirectDownload.addEventListener('click', () => {
+        // 경로 지정 다운로드 (File System Access API 적용)
+        btnDirectDownload.addEventListener('click', async () => {
             if (gpsTrackPoints.length === 0) return alert("다운로드할 경로가 없습니다.");
+            
             const format = document.getElementById('exportFormat').value;
             const content = format === 'gpx' ? generateGPXData() : generateKMLData();
-            const blob = new Blob([content], { type: 'application/octet-stream' });
+            const fileName = `sup-session-${Date.now()}.${format}`;
+            const mimeType = format === 'gpx' ? 'application/gpx+xml' : 'application/vnd.google-earth.kml+xml';
+
+            // 1. File System Access API 지원 환경 (모바일 크롬 등): 저장 경로 선택 대화상자 노출
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{
+                            description: format.toUpperCase() + ' Route File',
+                            accept: { [mimeType]: ['.' + format] },
+                        }],
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+                    alert("선택하신 폴더에 파일이 성공적으로 저장되었습니다!");
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return; // 사용자가 저장 창에서 취소를 누른 경우
+                    console.warn("File System Access API 실패, 기존 다운로드 방식으로 전환합니다.", err);
+                }
+            }
+
+            // 2. Fallback: API 미지원 환경 (iOS Safari 등)
+            const blob = new Blob([content], { type: mimeType });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `sup-session-${Date.now()}.${format}`;
+            a.download = fileName;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
             URL.revokeObjectURL(url);
         });
 
