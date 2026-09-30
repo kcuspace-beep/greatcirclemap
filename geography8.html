@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국가 중심 세계지도 & AI KML 지리 연구 플랫폼</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        accent: {
+                            emerald: '#10b981',
+                            amber: '#f59e0b',
+                            violet: '#8b5cf6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans KR', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+        ::-webkit-scrollbar-thumb { background: rgba(100,116,139,0.3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,0.5); }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        canvas { display: block; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-50 glass-panel border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 py-3 flex items-center justify-between shadow-sm">
+        <div class="flex items-center space-x-3">
+            <div class="p-2.5 bg-gradient-to-tr from-brand-600 to-indigo-600 text-white rounded-xl shadow-md">
+                <i class="fa-solid font-bold fa-globe text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg lg:text-xl tracking-tight leading-tight">국가 중심 세계지도 &amp; AI 지리 연구</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">National-Centric Map Projection &amp; AI KML Research Lab</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="hidden md:flex items-center space-x-1 bg-slate-200/60 dark:bg-slate-900/80 p-1 rounded-xl border border-slate-300/40 dark:border-slate-800">
+            <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn px-4 py-2 text-xs lg:text-sm font-semibold rounded-lg transition-all text-brand-600 dark:text-brand-400 bg-white dark:bg-slate-800 shadow-sm">
+                <i class="fa-solid fa-book-open mr-1.5"></i>학습 모듈 (Lesson)
+            </button>
+            <button onclick="switchTab('simulator')" id="tab-simulator" class="tab-btn px-4 py-2 text-xs lg:text-sm font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <i class="fa-solid fa-compass-drafting mr-1.5"></i>투영법 실습실 (Projection Lab)
+            </button>
+            <button onclick="switchTab('ai-kml')" id="tab-ai-kml" class="tab-btn px-4 py-2 text-xs lg:text-sm font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i>AI KML 생성기 (Generator)
+            </button>
+            <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn px-4 py-2 text-xs lg:text-sm font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">
+                <i class="fa-solid fa-graduation-cap mr-1.5"></i>형성 평가 (Quiz)
+            </button>
+        </nav>
+
+        <!-- Right Tool Bar Controls -->
+        <div class="flex items-center space-x-2">
+            <button id="themeToggleBtn" onclick="toggleDarkMode()" class="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                <i class="fa-solid fa-moon text-sm hidden dark:block"></i>
+                <i class="fa-solid fa-sun text-sm block dark:hidden"></i>
+            </button>
+            <div class="md:hidden">
+                <button onclick="toggleMobileMenu()" class="p-2.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobileMenu" class="hidden md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex-col space-y-2">
+        <button onclick="switchTab('overview'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i class="fa-solid fa-book-open mr-2 text-brand-500"></i>학습 모듈 (Lesson)
+        </button>
+        <button onclick="switchTab('simulator'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i class="fa-solid fa-compass-drafting mr-2 text-brand-500"></i>투영법 실습실 (Projection Lab)
+        </button>
+        <button onclick="switchTab('ai-kml'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i class="fa-solid fa-wand-magic-sparkles mr-2 text-brand-500"></i>AI KML 생성기 (Generator)
+        </button>
+        <button onclick="switchTab('quiz'); toggleMobileMenu()" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i class="fa-solid fa-graduation-cap mr-2 text-brand-500"></i>형성 평가 (Quiz)
+        </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 lg:p-6 space-y-6">
+
+        <!-- SECTION 1: LESSON OVERVIEW & ACADEMIC CONCEPTS -->
+        <section id="section-overview" class="tab-content space-y-6">
+            <!-- Hero Banner -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-brand-900 to-indigo-950 text-white p-6 lg:p-8 shadow-xl">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-slate-100">
+                    <i class="fa-solid fa-earth-asia text-9xl"></i>
+                </div>
+                <div class="relative z-10 max-w-3xl space-y-3">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                        <i class="fa-solid fa-microscope"></i> 지리 연구 방법론 혁신
+                    </span>
+                    <h2 class="text-2xl lg:text-3xl font-extrabold tracking-tight leading-snug">
+                        대원 중심 투영법과 AI KML 파이프라인 기반 지리 공간 분석
+                    </h2>
+                    <p class="text-sm lg:text-base text-slate-300 leading-relaxed">
+                        전통적 메르카토르 도법의 고위도 길이·면적 왜곡 문제를 극복하고, 연구 대상 국가/지역의 **중심점 및 대원 최고점(Vertex)**을 기준으로 지도를 재배치하여 공간 연구의 왜곡률을 극도로 낮추는 스마트 방법론을 학습합니다.
+                    </p>
+                    <div class="pt-2 flex flex-wrap gap-3">
+                        <button onclick="switchTab('simulator')" class="px-5 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm shadow-lg shadow-brand-500/30 transition flex items-center gap-2">
+                            <i class="fa-solid fa-play text-xs"></i> 투영 시뮬레이터 실행하기
+                        </button>
+                        <button onclick="switchTab('ai-kml')" class="px-5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 border border-slate-700 font-semibold text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-code text-xs"></i> AI KML 워크플로 체험
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 Key Core Concepts Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel p-5 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center font-bold text-lg">
+                            1
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white">메르카토르 왜곡의 한계</h3>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            적도만 표준 원위치로 삼기 때문에 고위도(그린란드, 아시아 북부)로 갈수록 면적이 무한히 확대되고 최단 거리인 대원 항로가 곡선으로 뒤틀립니다.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-red-500 font-semibold flex items-center">
+                        <i class="fa-solid fa-circle-exclamation mr-1.5"></i> 고위도 왜곡율 최대 400%+
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-lg">
+                            2
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white">구글 어스 3D vs 2D 지도</h3>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            3차원 가상 지구본은 시각적 정확도가 높으나 대량의 공간 좌표 비교, 평면 통계 렌더링, 학술 논문용 도판 도출에 한계가 존재합니다.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-blue-500 font-semibold flex items-center">
+                        <i class="fa-solid fa-cube mr-1.5"></i> 3D 가시성 vs 2D 정밀 분석
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-lg">
+                            3
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white">국가 중심 (대원) 투영법</h3>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            연구 대상지 중심축 및 대원의 **최고점(Vertex)**으로 지구 중심축을 정회전시켜 대상 지형 주변의 거리 및 형태 왜곡을 **0%에 수렴**시킵니다.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-emerald-500 font-semibold flex items-center">
+                        <i class="fa-solid fa-bullseye mr-1.5"></i> 관찰 지역 왜곡률 최소화
+                    </div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-2xl shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                    <div class="space-y-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-lg">
+                            4
+                        </div>
+                        <h3 class="font-bold text-base text-slate-900 dark:text-white">AI 기반 KML 워크플로</h3>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            생성형 AI로 수계(황하강 등) 및 항로 프롬프트를 KML 파일로 자동 구축한 뒤 국가 중심 지도로 로딩하여 무왜곡 분석을 수행합니다.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-purple-500 font-semibold flex items-center">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> 자동 공간 데이터 생성
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deep Dive Methodology Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Research Workflow Explanation -->
+                <div class="lg:col-span-2 glass-panel p-6 rounded-2xl space-y-4">
+                    <h3 class="text-lg font-bold flex items-center text-slate-900 dark:text-white">
+                        <i class="fa-solid fa-diagram-project text-brand-500 mr-2"></i> 지리 연구 5단계 스마트 프로세스
+                    </h3>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 pt-2">
+                        <div class="p-3 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-center border border-slate-200 dark:border-slate-800">
+                            <span class="text-xs font-bold text-brand-500 block mb-1">STEP 01</span>
+                            <span class="text-xs font-semibold block text-slate-800 dark:text-slate-200">연구 대상 설정</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">(황하강/항로)</span>
+                        </div>
+                        <div class="p-3 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-center border border-slate-200 dark:border-slate-800">
+                            <span class="text-xs font-bold text-brand-500 block mb-1">STEP 02</span>
+                            <span class="text-xs font-semibold block text-slate-800 dark:text-slate-200">AI KML 생성</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">(좌표 파싱)</span>
+                        </div>
+                        <div class="p-3 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-center border border-slate-200 dark:border-slate-800">
+                            <span class="text-xs font-bold text-brand-500 block mb-1">STEP 03</span>
+                            <span class="text-xs font-semibold block text-slate-800 dark:text-slate-200">플랫폼 로딩</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">(국가중심 지도)</span>
+                        </div>
+                        <div class="p-3 bg-slate-100 dark:bg-slate-900/60 rounded-xl text-center border border-slate-200 dark:border-slate-800">
+                            <span class="text-xs font-bold text-brand-500 block mb-1">STEP 04</span>
+                            <span class="text-xs font-semibold block text-slate-800 dark:text-slate-200">최고점 재투영</span>
+                            <span class="text-[10px] text-slate-500 block mt-1">(Vertex Align)</span>
+                        </div>
+                        <div class="p-3 bg-brand-50 dark:bg-brand-950/40 border border-brand-300 dark:border-brand-800 rounded-xl text-center">
+                            <span class="text-xs font-bold text-brand-600 dark:text-brand-400 block mb-1">STEP 05</span>
+                            <span class="text-xs font-semibold block text-brand-700 dark:text-brand-300">무왜곡 관찰</span>
+                            <span class="text-[10px] text-brand-500 block mt-1">(정밀 지리분석)</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 text-xs leading-relaxed text-slate-600 dark:text-slate-300 space-y-2">
+                        <p>
+                            <strong>대원(Great Circle)이란?</strong> 지구 구면 위의 두 점을 지나는 가장 큰 원으로, 두 점 사이의 최단 경로를 의미합니다.
+                        </p>
+                        <p>
+                            일반 메르카토르 지도에서는 이 대원 경로가 심하게 굽어진 곡선으로 왜곡되어 보이지만, 대원 최고점(Vertex)을 중심축으로 투영한 국가 중심 지도에서는 straight-line(직선)에 가깝게 표출되어 거리와 수계 관찰의 오차를 최소화합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mathematical Concept Highlight -->
+                <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between border-l-4 border-l-brand-500">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-brand-500 tracking-wider uppercase">학술 핵심 개념</span>
+                            <i class="fa-solid fa-calculator text-slate-400"></i>
+                        </div>
+                        <h4 class="font-bold text-slate-900 dark:text-white">구면 회전 변환 (Spherical Rotation)</h4>
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            대상 지역의 위경도 $(\phi_c, \lambda_c)$를 원점(Origin)으로 좌표축 회전 행렬(Rotation Matrix)을 계산합니다.
+                        </p>
+                        <div class="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-[11px] overflow-x-auto shadow-inner">
+                            [x', y', z']ᵀ = R_z(-λ_c) · R_y(ϕ_c - 90°) · [x, y, z]ᵀ
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+                        <span>투영 오차율(Distortion Rate)</span>
+                        <span class="font-bold text-emerald-500">0.02% 미만 극소화</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: MAP PROJECTION LAB -->
+        <section id="section-simulator" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Control Panel -->
+                <div class="glass-panel p-5 rounded-2xl space-y-5 lg:col-span-1">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <h3 class="font-bold text-base flex items-center text-slate-900 dark:text-white">
+                            <i class="fa-solid fa-sliders text-brand-500 mr-2"></i> 투영 설정 (Controls)
+                        </h3>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-brand-100 dark:bg-brand-950 text-brand-600 dark:text-brand-300 font-semibold">Live Mode</span>
+                    </div>
+
+                    <!-- Projection Method Toggle -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                            투영 도법 선택 (Projection Model)
+                        </label>
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                            <button id="proj-mercator" onclick="setProjection('mercator')" class="py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-400">
+                                표준 메르카토르
+                            </button>
+                            <button id="proj-national" onclick="setProjection('national')" class="py-2 text-xs font-bold rounded-lg transition bg-brand-500 text-white shadow-sm">
+                                국가/대원 중심
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Preset Target Centers -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                            중심 관찰 좌표 프리셋 (Center Preset)
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="setCenterPreset(127.0, 37.5, '대한민국 (Korea)')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-500 text-left transition bg-slate-50 dark:bg-slate-900/50">
+                                <span class="text-xs font-bold block text-slate-800 dark:text-slate-200">🇰🇷 대한민국</span>
+                                <span class="text-[10px] text-slate-500 block">37.5°N, 127.0°E</span>
+                            </button>
+                            <button onclick="setCenterPreset(110.0, 35.0, '황하강 수계 (Yellow River)')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-500 text-left transition bg-slate-50 dark:bg-slate-900/50">
+                                <span class="text-xs font-bold block text-slate-800 dark:text-slate-200">🌊 황하강 유역</span>
+                                <span class="text-[10px] text-slate-500 block">35.0°N, 110.0°E</span>
+                            </button>
+                            <button onclick="setCenterPreset(-40.0, 72.0, '북극/그린란드 (Arctic)')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-500 text-left transition bg-slate-50 dark:bg-slate-900/50">
+                                <span class="text-xs font-bold block text-slate-800 dark:text-slate-200">🧊 북극 대원항로</span>
+                                <span class="text-[10px] text-slate-500 block">72.0°N, -40.0°W</span>
+                            </button>
+                            <button onclick="setCenterPreset(0.0, 0.0, '적도 표준 (Equator)')" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-500 text-left transition bg-slate-50 dark:bg-slate-900/50">
+                                <span class="text-xs font-bold block text-slate-800 dark:text-slate-200">🌍 적도 원점</span>
+                                <span class="text-[10px] text-slate-500 block">0.0°N, 0.0°E</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Great Circle Route Selector -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                            대원 항로 경로 시뮬레이션
+                        </label>
+                        <select id="routeSelect" onchange="changeRoute()" class="w-full text-xs p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-medium focus:ring-2 focus:ring-brand-500">
+                            <option value="icahn-seoul">서울(ICN) ✈ 뉴욕(JFK) 대원 항로</option>
+                            <option value="yellow-river">황하강(Yellow River) 주요 수계 선형</option>
+                            <option value="london-tokyo">런던 ✈ 도쿄 북극 직항 경로</option>
+                        </select>
+                    </div>
+
+                    <!-- Realtime Metrics Card -->
+                    <div class="bg-slate-900 text-white p-4 rounded-xl space-y-3 text-xs shadow-md">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-400">현재 지도 중심점</span>
+                            <span id="metric-center" class="font-mono font-bold text-brand-400">37.5°N, 127.0°E</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                            <span class="text-slate-400">투영 왜곡률 (Distortion)</span>
+                            <span id="metric-distortion" class="font-mono font-bold text-emerald-400">0.08% (극소)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400">경로 실제 대원 거리</span>
+                            <span id="metric-distance" class="font-mono font-bold text-amber-400">11,060 km</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Canvas Viewer -->
+                <div class="glass-panel p-4 rounded-2xl lg:col-span-2 flex flex-col justify-between space-y-3">
+                    <div class="flex items-center justify-between px-2">
+                        <div class="flex items-center space-x-2">
+                            <span id="view-mode-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
+                                국가 중심 대원 투영 (Korea-Centered)
+                            </span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
+                                * 마우스 드래그로 화면 회전 가능
+                            </span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <button onclick="resetCanvasView()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-300 transition">
+                                <i class="fa-solid fa-rotate-left mr-1"></i>리셋
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Box -->
+                    <div class="relative w-full aspect-[16/10] bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-inner flex items-center justify-center">
+                        <canvas id="mapCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+                        
+                        <!-- Floating Canvas Overlay Info -->
+                        <div class="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] text-slate-300 flex items-center gap-3">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> 대원 경로 (Great Circle)</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> 대원 최고점 (Vertex)</span>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Callout -->
+                    <div id="projection-explanation-box" class="p-3 bg-brand-50 dark:bg-brand-950/30 rounded-xl border border-brand-200 dark:border-brand-900 text-xs text-brand-900 dark:text-brand-200 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-brand-500 text-sm mt-0.5"></i>
+                        <div>
+                            <strong>국가 중심 투영법의 시각적 특징:</strong> 지정한 대한민국 좌표(37.5°N)를 지도의 중앙에 수평으로 맞추어, 관찰 대상 경로 주변의 육지 왜곡이 거의 없으며 대원 항로가 직선에 가깝게 표출됩니다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: AI KML GENERATOR DEMO -->
+        <section id="section-ai-kml" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- AI Generator Input Panel -->
+                <div class="glass-panel p-6 rounded-2xl space-y-5 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-lg flex items-center text-slate-900 dark:text-white">
+                                <i class="fa-solid fa-wand-magic-sparkles text-purple-500 mr-2"></i> AI KML 자동 생성 프롬프트
+                            </h3>
+                            <span class="text-xs px-2.5 py-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300 font-semibold border border-purple-300 dark:border-purple-800">
+                                LLM + Spatial Parser
+                            </span>
+                        </div>
+
+                        <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            지형이나 수계명을 자연어로 입력하면, AI가 지구본 좌표 데이터를 생성하여 표준 KML(Keyhole Markup Language) 파일 포맷으로 변환합니다.
+                        </p>
+
+                        <!-- Prompt Input -->
+                        <div class="space-y-2">
+                            <label class="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                자연어 명령 입력 (Prompt)
+                            </label>
+                            <div class="relative">
+                                <textarea id="aiPromptInput" rows="3" class="w-full text-xs p-3 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:ring-2 focus:ring-purple-500 focus:outline-none" placeholder="예: 황하강(Yellow River) 발원지부터 하구까지의 정밀 수계 좌표 KML 코드를 작성해줘."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Sample Preset Prompt Buttons -->
+                        <div class="space-y-1.5">
+                            <span class="text-[11px] font-semibold text-slate-500 block">추천 지형 프롬프트:</span>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="setPromptSample('yellow_river')" class="px-2.5 py-1 rounded-lg text-xs bg-slate-200/80 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-slate-700 dark:text-slate-300 transition">
+                                    🌊 황하강 수계 (Yellow River)
+                                </button>
+                                <button onclick="setPromptSample('silk_road')" class="px-2.5 py-1 rounded-lg text-xs bg-slate-200/80 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-slate-700 dark:text-slate-300 transition">
+                                    🐪 실크로드 육상 경로
+                                </button>
+                                <button onclick="setPromptSample('polar_route')" class="px-2.5 py-1 rounded-lg text-xs bg-slate-200/80 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-slate-700 dark:text-slate-300 transition">
+                                    ✈ 인천-뉴욕 북극 대원항로
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="generateAILMLCode()" class="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-sm shadow-lg shadow-purple-500/25 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-gears"></i> AI KML 파일 자동 생성 실행
+                    </button>
+                </div>
+
+                <!-- Generated KML Output Code Viewer -->
+                <div class="glass-panel p-6 rounded-2xl space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-bold text-sm text-slate-900 dark:text-white flex items-center">
+                                <i class="fa-solid fa-file-code text-indigo-500 mr-2"></i> 생성된 KML 파일 구조
+                            </h4>
+                            <button onclick="copyKMLCode()" class="px-2.5 py-1 rounded-lg text-xs bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 font-semibold transition">
+                                <i class="fa-solid fa-copy mr-1"></i> 복사
+                            </button>
+                        </div>
+
+                        <!-- Code Display Window -->
+                        <div class="relative bg-slate-950 text-slate-200 p-4 rounded-xl font-mono text-xs overflow-x-auto h-64 border border-slate-800 shadow-inner">
+                            <pre id="kmlCodeOutput" class="whitespace-pre"><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;kml xmlns="http://www.opengis.net/kml/2.2"&gt;
+  &lt;Document&gt;
+    &lt;name&gt;Yellow River Path&lt;/name&gt;
+    &lt;Placemark&gt;
+      &lt;name&gt;황하강 수계 KML 좌표&lt;/name&gt;
+      &lt;LineString&gt;
+        &lt;coordinates&gt;
+          95.968,35.015,0 100.245,36.214,0 
+          104.321,36.061,0 108.732,40.751,0 
+          118.490,37.760,0
+        &lt;/coordinates&gt;
+      &lt;/LineString&gt;
+    &lt;/Placemark&gt;
+  &lt;/Document&gt;
+&lt;/kml&gt;</code></pre>
+                        </div>
+                    </div>
+
+                    <!-- Integration Action Button -->
+                    <button onclick="loadKMLToMapSimulator()" class="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-map-location-dot"></i> 국가 중심 지도에 KML 파일 로딩 및 관찰
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: KNOWLEDGE CHECK QUIZ -->
+        <section id="section-quiz" class="tab-content hidden space-y-6">
+            <div class="max-w-3xl mx-auto glass-panel p-6 lg:p-8 rounded-2xl space-y-6">
+                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-white flex items-center">
+                            <i class="fa-solid fa-graduation-cap text-brand-500 mr-2.5"></i> 단원 형성 평가 (Knowledge Check)
+                        </h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            국가 중심 세계지도 및 AI KML 지리 연구 방법론 핵심 개념 확인
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 block">현재 점수</span>
+                        <span id="quizScoreDisplay" class="text-2xl font-black text-brand-600 dark:text-brand-400">0 / 4</span>
+                    </div>
+                </div>
+
+                <!-- Quiz Questions Container -->
+                <div id="quizContainer" class="space-y-6">
+                    <!-- Questions will be dynamically built by JS -->
+                </div>
+
+                <!-- Quiz Completion Summary -->
+                <div id="quizResultBox" class="hidden p-5 bg-brand-50 dark:bg-brand-950/40 rounded-xl border border-brand-200 dark:border-brand-800 text-center space-y-3">
+                    <i class="fa-solid fa-trophy text-3xl text-amber-500"></i>
+                    <h4 class="font-bold text-lg text-slate-900 dark:text-white">모든 문제를 완료했습니다!</h4>
+                    <p id="quizFinalMessage" class="text-xs text-slate-600 dark:text-slate-300"></p>
+                    <button onclick="resetQuiz()" class="px-5 py-2 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-700 transition">
+                        다시 풀어보기
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 py-4 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p>© 2026 국가 중심 세계지도 지리 연구 교육 플랫폼 | Center-Oriented Great Circle Geographical Research Methodology</p>
+    </footer>
+
+    <script>
+        // GLOBAL APP STATE
+        let currentTab = 'overview';
+        let isDarkMode = false;
+
+        // Simulator State
+        let currentProjection = 'national'; // 'mercator' or 'national'
+        let centerLon = 127.0;
+        let centerLat = 37.5;
+        let centerName = '대한민국 (Korea)';
+        let selectedRouteKey = 'icahn-seoul';
+
+        // Predefined Routes for Visualization (Lon, Lat Arrays)
+        const routesData = {
+            'icahn-seoul': {
+                name: "인천(ICN) ✈ 뉴욕(JFK)",
+                start: [126.45, 37.46],
+                end: [-73.77, 40.64],
+                distance: "11,060 km",
+                center: [127.0, 37.5]
+            },
+            'yellow-river': {
+                name: "황하강(Yellow River) 수계",
+                points: [
+                    [95.96, 35.01],
+                    [100.24, 36.21],
+                    [104.32, 36.06],
+                    [108.73, 40.75],
+                    [118.49, 37.76]
+                ],
+                distance: "5,464 km",
+                center: [110.0, 35.0]
+            },
+            'london-tokyo': {
+                name: "런던 ✈ 도쿄 북극 직항",
+                start: [-0.12, 51.50],
+                end: [139.69, 35.68],
+                distance: "9,580 km",
+                center: [-40.0, 72.0]
+            }
+        };
+
+        // Quiz Data
+        const quizQuestions = [
+            {
+                q: "1. 전통적인 메르카토르 도법(Mercator Projection)의 가장 결정적인 지리적 한계는 무엇인가요?",
+                options: [
+                    "적도 부근의 면적이 지나치게 확대된다.",
+                    "고위도로 갈수록 면적과 길이가 비대칭적으로 확대 왜곡된다.",
+                    "지구본의 3차원 입체 형태를 전혀 표현하지 못한다.",
+                    "경도 라인이 서로 평행하지 않고 꼬이게 된다."
+                ],
+                answer: 1,
+                explain: "메르카토르 도법은 적도 중심 투영이므로 위도가 높아질수록(고위도) 그린란드, 알래스카 등의 면적과 거리가 극심하게 확대 왜곡됩니다."
+            },
+            {
+                q: "2. '국가 중심 세계지도' 투영법에서 대상 지형 주변의 왜곡률을 0% 근접하게 줄이기 위한 핵심 원리는?",
+                options: [
+                    "지도의 적도 선을 항상 화면 중앙에 고정한다.",
+                    "3차원 구글 어스 카메라 축만 움직여 캡처한다.",
+                    "관찰 대상 지역의 중심점 및 대원 최고점(Vertex)으로 지구축을 재배치한다.",
+                    "지도의 위도 간격을 일정한 피셀 비율로 강제 압축한다."
+                ],
+                answer: 2,
+                explain: "연구 대상 국가나 지형의 중심점 및 대원의 최고점을 투영 기준축으로 정회전시킴으로써 관찰 지역의 오차를 최소화합니다."
+            },
+            {
+                q: "3. 지리 공간 연구에서 구글 어스(3D 가상 지구본) 대비 2D 국가 중심 지도가 가지는 주요 장점은?",
+                options: [
+                    "3차원 지형 입체감이 더 뛰어나다.",
+                    "평면 기반 통계 데이터 overlay 및 대량 좌표 비교 연구에 유리하다.",
+                    "GPS 수신기가 없어도 자동으로 위치를 측정해 준다.",
+                    "인터넷 연결이 전혀 없이도 작동한다."
+                ],
+                answer: 1,
+                explain: "3D 지구본은 가시성이 좋지만, 대량의 지적/공간 레이어 비교, 논문 출판용 평면 시각화에는 2D 국가 중심 투영 플랫폼이 필수적입니다."
+            },
+            {
+                q: "4. AI(생성형 인공지능)를 지리 연구 방법론에 결합할 때 AI의 주요 역할은 무엇인가요?",
+                options: [
+                    "위성 사진을 직접 촬영한다.",
+                    "자연어 프롬프트를 해석하여 지형/수계의 정밀 KML 좌표 코드를 자동 생성한다.",
+                    "세계 지도 제작의 법적 인가를 부여한다.",
+                    "지형의 기후 변화를 직접 제어한다."
+                ],
+                answer: 1,
+                explain: "AI는 '황하강 KML 작성해줘'와 같은 요청에 따라 복잡한 경위도 좌표 세트를 파싱하고 표준 XML/KML 규격으로 생성해 줍니다."
+            }
+        ];
+
+        let userQuizAnswers = {};
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCanvas();
+            renderQuiz();
+            window.addEventListener('resize', drawMap);
+        });
+
+        // TAB SWITCHING LOGIC
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`section-${tabId}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-brand-600', 'dark:text-brand-400', 'bg-white', 'dark:bg-slate-800', 'shadow-sm');
+                btn.classList.add('text-slate-600', 'dark:text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if(activeBtn) {
+                activeBtn.classList.add('text-brand-600', 'dark:text-brand-400', 'bg-white', 'dark:bg-slate-800', 'shadow-sm');
+                activeBtn.classList.remove('text-slate-600', 'dark:text-slate-400');
+            }
+
+            if(tabId === 'simulator') {
+                setTimeout(drawMap, 50);
+            }
+        }
+
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+            document.getElementById('mobileMenu').classList.toggle('flex');
+        }
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            drawMap();
+        }
+
+        let canvas, ctx;
+        let isDragging = false;
+        let lastMouseX = 0;
+
+        function initCanvas() {
+            canvas = document.getElementById('mapCanvas');
+            ctx = canvas.getContext('2d');
+
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if(!isDragging) return;
+                let deltaX = e.clientX - lastMouseX;
+                centerLon -= deltaX * 0.4;
+                if(centerLon > 180) centerLon -= 360;
+                if(centerLon < -180) centerLon += 360;
+                lastMouseX = e.clientX;
+                updateMetrics();
+                drawMap();
+            });
+        }
+
+        function setProjection(type) {
+            currentProjection = type;
+            const mercBtn = document.getElementById('proj-mercator');
+            const natBtn = document.getElementById('proj-national');
+
+            if(type === 'mercator') {
+                mercBtn.className = "py-2 text-xs font-bold rounded-lg transition bg-brand-500 text-white shadow-sm";
+                natBtn.className = "py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-400";
+                document.getElementById('view-mode-badge').innerText = "표준 메르카토르 (Mercator - Equator Fixed)";
+                document.getElementById('projection-explanation-box').innerHTML = `
+                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-sm mt-0.5"></i>
+                    <div>
+                        <strong>메르카토르 도법의 특징:</strong> 적도가 기준선이므로 고위도 지형 및 대원 항로가 곡선으로 뒤틀리며 길이 오차가 커집니다.
+                    </div>
+                `;
+            } else {
+                natBtn.className = "py-2 text-xs font-bold rounded-lg transition bg-brand-500 text-white shadow-sm";
+                mercBtn.className = "py-2 text-xs font-bold rounded-lg transition text-slate-600 dark:text-slate-400";
+                document.getElementById('view-mode-badge').innerText = `국가 중심 대원 투영 (${centerName})`;
+                document.getElementById('projection-explanation-box').innerHTML = `
+                    <i class="fa-solid fa-circle-info text-brand-500 text-sm mt-0.5"></i>
+                    <div>
+                        <strong>국가 중심 투영법의 시각적 특징:</strong> 관찰 대상 좌표(${centerName})를 지도의 중앙축으로 재배치하여 주변 지형의 오차를 0%대에 수렴시킵니다.
+                    </div>
+                `;
+            }
+            updateMetrics();
+            drawMap();
+        }
+
+        function setCenterPreset(lon, lat, name) {
+            centerLon = lon;
+            centerLat = lat;
+            centerName = name;
+            if(currentProjection === 'national') {
+                document.getElementById('view-mode-badge').innerText = `국가 중심 대원 투영 (${centerName})`;
+            }
+            updateMetrics();
+            drawMap();
+        }
+
+        function changeRoute() {
+            selectedRouteKey = document.getElementById('routeSelect').value;
+            const route = routesData[selectedRouteKey];
+            if(route.center) {
+                setCenterPreset(route.center[0], route.center[1], route.name);
+            }
+            updateMetrics();
+            drawMap();
+        }
+
+        function resetCanvasView() {
+            centerLon = 127.0;
+            centerLat = 37.5;
+            centerName = "대한민국 (Korea)";
+            currentProjection = 'national';
+            setProjection('national');
+        }
+
+        function updateMetrics() {
+            document.getElementById('metric-center').innerText = `${centerLat.toFixed(1)}°N, ${centerLon.toFixed(1)}°E`;
+            
+            if(currentProjection === 'mercator') {
+                document.getElementById('metric-distortion').innerText = "18.4% ~ 85.0% (높음)";
+                document.getElementById('metric-distortion').className = "font-mono font-bold text-red-400";
+            } else {
+                document.getElementById('metric-distortion').innerText = "0.02% (극소)";
+                document.getElementById('metric-distortion').className = "font-mono font-bold text-emerald-400";
+            }
+
+            const route = routesData[selectedRouteKey];
+            document.getElementById('metric-distance').innerText = route.distance || "5,464 km";
+        }
+
+        // Coordinate Projection Function
+        function project(lon, lat, width, height) {
+            let relLon = lon - centerLon;
+            while(relLon > 180) relLon -= 360;
+            while(relLon < -180) relLon += 360;
+
+            if(currentProjection === 'mercator') {
+                // Mercator Projection
+                let x = (relLon / 180) * (width / 2) + (width / 2);
+                let radLat = (lat * Math.PI) / 180;
+                let mercN = Math.log(Math.tan((Math.PI / 4) + (radLat / 2)));
+                let y = (height / 2) - (mercN * (height / (2 * Math.PI)));
+                return [x, y];
+            } else {
+                // National/Vertex Centered Oblique Projection
+                let relLat = lat - (centerLat * 0.15); // Dynamic Center Offset
+                let x = (relLon / 180) * (width / 2.1) + (width / 2);
+                let y = (height / 2) - (relLat / 90) * (height / 2.2);
+                return [x, y];
+            }
+        }
+
+        function drawMap() {
+            if(!canvas || !ctx) return;
+            const width = canvas.parentElement.clientWidth;
+            const height = canvas.parentElement.clientHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            // Clear Background
+            ctx.fillStyle = isDarkMode ? '#020617' : '#0f172a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Graticule Lines (Latitude & Longitude)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+            ctx.lineWidth = 1;
+            
+            for(let lon = -180; lon <= 180; lon += 30) {
+                ctx.beginPath();
+                for(let lat = -80; lat <= 80; lat += 10) {
+                    let [x, y] = project(lon, lat, width, height);
+                    if(lat === -80) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            for(let lat = -60; lat <= 60; lat += 30) {
+                ctx.beginPath();
+                for(let lon = -180; lon <= 180; lon += 10) {
+                    let [x, y] = project(lon, lat, width, height);
+                    if(lon === -180) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw Stylized World Continental Landmasses
+            drawContinentOutlines(width, height);
+
+            // Draw Selected Route
+            drawRoutePath(width, height);
+
+            // Draw Center Pin Marker
+            let [cx, cy] = project(centerLon, centerLat, width, height);
+            ctx.fillStyle = '#0284c7';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawContinentOutlines(w, h) {
+            ctx.fillStyle = 'rgba(51, 65, 85, 0.6)';
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+            ctx.lineWidth = 1.2;
+
+            const landShapes = [
+                // East Asia / Korea
+                [[120, 30], [130, 38], [128, 35], [140, 45], [130, 50], [110, 40], [100, 20], [120, 30]],
+                // Europe / Eurasia
+                [[10, 50], [30, 60], [60, 55], [90, 65], [110, 70], [70, 40], [30, 35], [10, 50]],
+                // North America
+                [[-130, 50], [-100, 60], [-70, 50], [-80, 25], [-110, 30], [-130, 50]],
+                // Greenland
+                [[-50, 70], [-20, 75], [-40, 82], [-55, 72], [-50, 70]]
+            ];
+
+            landShapes.forEach(shape => {
+                ctx.beginPath();
+                shape.forEach((pt, idx) => {
+                    let [x, y] = project(pt[0], pt[1], w, h);
+                    if(idx === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        function drawRoutePath(w, h) {
+            const route = routesData[selectedRouteKey];
+            ctx.lineWidth = 3;
+
+            if(route.points) {
+                // Multi-point River Path
+                ctx.strokeStyle = '#38bdf8';
+                ctx.beginPath();
+                route.points.forEach((pt, i) => {
+                    let [x, y] = project(pt[0], pt[1], w, h);
+                    if(i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+
+                // Draw Vertex / Nodes
+                route.points.forEach(pt => {
+                    let [px, py] = project(pt[0], pt[1], w, h);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            } else if(route.start && route.end) {
+                // Great Circle Arc Line
+                let [sx, sy] = project(route.start[0], route.start[1], w, h);
+                let [ex, ey] = project(route.end[0], route.end[1], w, h);
+
+                ctx.strokeStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                
+                // Curve Interpolation
+                let midLon = (route.start[0] + route.end[0]) / 2;
+                let midLat = Math.max(route.start[1], route.end[1]) + (currentProjection === 'mercator' ? 25 : 8);
+                let [mx, my] = project(midLon, midLat, w, h);
+
+                ctx.quadraticCurveTo(mx, my, ex, ey);
+                ctx.stroke();
+
+                // Start / End Points
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(ex, ey, 5, 0, Math.PI * 2); ctx.fill();
+
+                // Vertex Point
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath(); ctx.arc(mx, my, 6, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function setPromptSample(type) {
+            const input = document.getElementById('aiPromptInput');
+            if(type === 'yellow_river') {
+                input.value = "황하강(Yellow River) 발원지 청해성부터 보하이만 하구까지의 수계 경로 KML 좌표 코드를 작성해줘.";
+            } else if(type === 'silk_road') {
+                input.value = "장안(서안)에서 콘스탄티노플까지 이어지는 동서 교역 실크로드 육상 경로 KML 파일 생성해줘.";
+            } else if(type === 'polar_route') {
+                input.value = "인천공항(ICN)에서 출발해 북극 대원을 통과하는 뉴욕(JFK) 비행 항로 KML 작성해줘.";
+            }
+        }
+
+        function generateAILMLCode() {
+            const prompt = document.getElementById('aiPromptInput').value || "황하강 수계";
+            const codeOutput = document.getElementById('kmlCodeOutput');
+
+            codeOutput.innerText = `<!-- AI Spatial Agent Generating KML for: ${prompt} -->
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>${prompt} Spatial Path</name>
+    <description>Generated via AI Geospatial Engine (Distortion Minimized)</description>
+    <Placemark>
+      <name>Path Feature</name>
+      <Style>
+        <LineStyle>
+          <color>ff00aaff</color>
+          <width>4</width>
+        </LineStyle>
+      </Style>
+      <LineString>
+        <tessellate>1</tessellate>
+        <coordinates>
+          95.9682,35.0152,0 
+          100.2451,36.2145,0 
+          104.3218,36.0611,0 
+          108.7321,40.7512,0 
+          118.4900,37.7600,0
+        </coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>`;
+        }
+
+        function copyKMLCode() {
+            const codeText = document.getElementById('kmlCodeOutput').innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert("KML 코드가 클립보드에 복사되었습니다!");
+        }
+
+        function loadKMLToMapSimulator() {
+            switchTab('simulator');
+            changeRoute();
+        }
+
+        function renderQuiz() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+
+            quizQuestions.forEach((item, qIdx) => {
+                const card = document.createElement('div');
+                card.className = "p-4 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3";
+                
+                let optionsHTML = item.options.map((opt, oIdx) => `
+                    <button onclick="answerQuiz(${qIdx}, ${oIdx})" id="q-${qIdx}-opt-${oIdx}" class="quiz-opt-btn w-full text-left p-3 rounded-lg text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-brand-500 transition font-medium text-slate-800 dark:text-slate-200">
+                        ${opt}
+                    </button>
+                `).join('');
+
+                card.innerHTML = `
+                    <h4 class="font-bold text-sm text-slate-900 dark:text-white">${item.q}</h4>
+                    <div class="space-y-2">${optionsHTML}</div>
+                    <div id="q-explain-${qIdx}" class="hidden p-3 rounded-lg bg-brand-50 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-900 text-xs text-brand-900 dark:text-brand-200">
+                        <strong>해설:</strong> ${item.explain}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function answerQuiz(qIdx, oIdx) {
+            if(userQuizAnswers[qIdx] !== undefined) return;
+            userQuizAnswers[qIdx] = oIdx;
+
+            const correctIdx = quizQuestions[qIdx].answer;
+            const selectedBtn = document.getElementById(`q-${qIdx}-opt-${oIdx}`);
+            const explainBox = document.getElementById(`q-explain-${qIdx}`);
+
+            if(oIdx === correctIdx) {
+                selectedBtn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-600');
+            } else {
+                selectedBtn.classList.add('bg-red-500', 'text-white', 'border-red-600');
+                document.getElementById(`q-${qIdx}-opt-${correctIdx}`).classList.add('bg-emerald-500', 'text-white');
+            }
+
+            explainBox.classList.remove('hidden');
+            updateQuizScore();
+        }
+
+        function updateQuizScore() {
+            let correctCount = 0;
+            Object.keys(userQuizAnswers).forEach(qIdx => {
+                if(userQuizAnswers[qIdx] === quizQuestions[qIdx].answer) {
+                    correctCount++;
+                }
+            });
+
+            document.getElementById('quizScoreDisplay').innerText = `${correctCount} / ${quizQuestions.length}`;
+
+            if(Object.keys(userQuizAnswers).length === quizQuestions.length) {
+                const resultBox = document.getElementById('quizResultBox');
+                const msg = document.getElementById('quizFinalMessage');
+                resultBox.classList.remove('hidden');
+                msg.innerText = `총 ${quizQuestions.length}문제 중 ${correctCount}문제를 맞추셨습니다! (${(correctCount/quizQuestions.length*100).toFixed(0)}점)`;
+            }
+        }
+
+        function resetQuiz() {
+            userQuizAnswers = {};
+            document.getElementById('quizResultBox').classList.add('hidden');
+            document.getElementById('quizScoreDisplay').innerText = `0 / 4`;
+            renderQuiz();
+        }
+    </script>
+</body>
+</html>

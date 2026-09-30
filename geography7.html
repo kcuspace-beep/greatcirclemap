@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>국가 중심 세계지도 · KML/GPX 지리 연구 플랫폼</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans KR",sans-serif;background:#f4f7fb;color:#172033}
+header{background:linear-gradient(135deg,#07345f,#0b6ea8);color:white;padding:28px 5%;box-shadow:0 3px 12px #0003}
+header h1{margin:0 0 10px;font-size:clamp(24px,4vw,42px)}
+header p{margin:0;max-width:1100px;line-height:1.65}
+.container{max-width:1450px;margin:auto;padding:20px}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+.panel,.card{background:white;border-radius:14px;padding:18px;box-shadow:0 3px 14px #17324d18;margin-bottom:16px}
+.panel h2,.card h2{font-size:20px;margin:0 0 12px;color:#07538a}
+label{display:block;font-weight:bold;font-size:13px;margin:10px 0 5px}
+input,select,button{width:100%;padding:10px;border:1px solid #c8d3df;border-radius:8px;font-size:14px}
+button{background:#0969a8;color:white;border:0;font-weight:bold;cursor:pointer;margin-top:8px}
+button:hover{filter:brightness(.92)}
+button.secondary{background:#516274}
+button.green{background:#238653}
+.mapwrap{background:white;border-radius:14px;overflow:hidden;box-shadow:0 3px 14px #17324d18}
+#map{height:680px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{background:#eef7ff;border-radius:10px;padding:12px}
+.stat b{display:block;font-size:12px;color:#52708b;margin-bottom:5px}
+.stat span{font-size:20px;font-weight:bold;color:#07538a}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid #e5eaf0;padding:9px;text-align:left}
+th{background:#eef5fa}
+.section{margin-top:20px}
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.flow div{background:#eef7ff;border-radius:10px;padding:15px;text-align:center;font-weight:bold}
+.note{background:#fff8df;border-left:5px solid #e1ad22;padding:13px;border-radius:8px;line-height:1.6}
+.formula{background:#101b2a;color:#e9f3ff;padding:15px;border-radius:10px;font-family:monospace;overflow:auto}
+small.muted{color:#667789}
+@media(max-width:950px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}#map{height:520px}.flow{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.container{padding:10px}.stats{grid-template-columns:1fr 1fr}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<header>
+<h1>국가 중심 세계지도와 KML 기반 지리 연구</h1>
+<p>지구를 평면의 고정된 세계지도로만 관찰하지 않고, 연구 대상 지역을 중심으로 지구의 곡면·대원·GPS 경로·KML/GPX 데이터를 함께 분석하는 교육·연구용 웹 플랫폼입니다.</p>
+</header>
+
+<div class="container">
+<div class="grid">
+<aside>
+<div class="panel">
+<h2>① 연구 중심점 설정</h2>
+<label>중심 위도 (°)</label><input id="clat" type="number" step="0.000001" value="37.5665">
+<label>중심 경도 (°)</label><input id="clon" type="number" step="0.000001" value="126.9780">
+<label>중심 이름</label><input id="cname" value="서울">
+<button onclick="setCenter()">국가 중심 지도 재설정</button>
+</div>
+
+<div class="panel">
+<h2>② 대원 출발·도착점</h2>
+<label>출발 위도</label><input id="lat1" type="number" step="0.000001" value="37.5665">
+<label>출발 경도</label><input id="lon1" type="number" step="0.000001" value="126.9780">
+<label>도착 위도</label><input id="lat2" type="number" step="0.000001" value="52.3676">
+<label>도착 경도</label><input id="lon2" type="number" step="0.000001" value="4.9041">
+<button onclick="calculateRoute()">대원 계산 및 표시</button>
+<button class="secondary" onclick="clearAnalysis()">분석 초기화</button>
+</div>
+
+<div class="panel">
+<h2>③ KML / GPX 경로 불러오기</h2>
+<input id="fileInput" type="file" accept=".kml,.kmz,.gpx">
+<button class="green" onclick="loadRoute()">경로 지도에 표시</button>
+<p><small class="muted">Google Earth, GPS 앱 등에서 저장한 KML/GPX 파일을 불러올 수 있습니다. 브라우저에서 직접 처리됩니다.</small></p>
+</div>
+
+<div class="panel">
+<h2>④ 지도 중심 이동</h2>
+<select id="zoom">
+<option value="3">세계 전체</option>
+<option value="4" selected>대륙권</option>
+<option value="6">국가권</option>
+<option value="9">지역권</option>
+<option value="12">도시권</option>
+</select>
+<button onclick="setCenter()">중심점으로 이동</button>
+</div>
+
+<div class="panel">
+<h2>⑤ 연구 메모</h2>
+<textarea id="memo" rows="6" style="width:100%;border:1px solid #c8d3df;border-radius:8px;padding:10px" placeholder="연구 대상, 경로, 관찰 결과, 왜곡 관련 메모를 작성하세요."></textarea>
+<button onclick="saveMemo()">메모 저장</button>
+</div>
+</aside>
+
+<main>
+<div class="mapwrap"><div id="map"></div></div>
+
+<div class="card section">
+<h2>분석 결과</h2>
+<div class="stats">
+<div class="stat"><b>대원 거리</b><span id="distance">-</span></div>
+<div class="stat"><b>대원 방위각</b><span id="bearing">-</span></div>
+<div class="stat"><b>대원 최고 위도</b><span id="maxlat">-</span></div>
+<div class="stat"><b>중심점</b><span id="centerout">-</span></div>
+</div>
+</div>
+
+<div class="card">
+<h2>연구 데이터</h2>
+<table>
+<thead><tr><th>항목</th><th>값</th><th>연구 의미</th></tr></thead>
+<tbody>
+<tr><td>출발점</td><td id="startout">-</td><td>경로의 시작 위치</td></tr>
+<tr><td>도착점</td><td id="endout">-</td><td>경로의 종료 위치</td></tr>
+<tr><td>대원 중간점</td><td id="midout">-</td><td>구면상 경로의 중간 좌표</td></tr>
+<tr><td>대원 최고점</td><td id="vertexout">-</td><td>연구 중심 후보로 활용 가능</td></tr>
+<tr><td>실제 경로</td><td id="fileout">없음</td><td>KML/GPX와 이론적 대원 비교</td></tr>
+</tbody>
+</table>
+</div>
+</main>
+</div>
+
+<div class="card section">
+<h2>지리 연구 방법론</h2>
+<div class="flow">
+<div>1. GPS 좌표 확보</div><div>2. KML/GPX 저장</div><div>3. 대원 계산</div><div>4. 중심점 설정</div><div>5. 실제 경로 비교</div>
+</div>
+<div class="note" style="margin-top:15px">
+<strong>핵심 연구 질문:</strong> 같은 GPS 경로라도 어떤 중심점과 지도 표현 방법을 사용하느냐에 따라 경로의 형태와 공간관계가 어떻게 달라지는가?
+</div>
+</div>
+
+<div class="card">
+<h2>지도 왜곡과 국가 중심 접근</h2>
+<p>지구는 곡면 공간이므로 평면 지도에 표현할 때 거리·방향·면적·형태 중 일부는 투영법에 따라 달라질 수 있습니다. 따라서 “왜곡이 전혀 없는 세계지도”를 찾는 것보다 <strong>연구 대상에 맞는 중심과 분석 기준을 선택하는 것</strong>이 중요합니다.</p>
+<p>국가 중심 세계지도는 특정 국가·지역·도시 또는 GPS 지점을 중심으로 지구를 재구성하여, 해당 연구 대상 주변의 공간적 관계를 집중적으로 관찰하는 방법으로 활용할 수 있습니다.</p>
+</div>
+
+<div class="card">
+<h2>대원의 수학적 원리</h2>
+<p>두 GPS 지점 사이의 구면거리는 다음과 같이 계산할 수 있습니다.</p>
+<div class="formula">d = R × arccos(sin φ₁ sin φ₂ + cos φ₁ cos φ₂ cos(λ₂ − λ₁))</div>
+<p>여기서 R은 지구 반지름, φ는 위도, λ는 경도입니다. 이 웹페이지에서는 평균 지구 반지름을 약 6,371 km로 사용합니다.</p>
+</div>
+
+<div class="card">
+<h2>KML/GPX를 활용한 연구</h2>
+<p>KML은 위치점, 선, 경로, 영역 등을 저장할 수 있으며 Google Earth와 같은 지리정보 환경에서 활용됩니다. GPX는 GPS 장치와 운동·등산·자전거·해양활동 등에서 얻은 트랙 데이터 교환에 널리 사용됩니다.</p>
+<p>연구자는 실제 이동경로를 지도에 표시한 뒤, 같은 출발점과 도착점을 연결하는 대원경로를 추가하여 두 경로를 비교할 수 있습니다.</p>
+<table>
+<tr><th>데이터</th><th>활용</th></tr>
+<tr><td>GPS Track</td><td>실제 이동경로</td></tr>
+<tr><td>KML</td><td>Google Earth 및 웹 지도 공유</td></tr>
+<tr><td>GPX</td><td>운동·탐방·자전거·해양 GPS 기록</td></tr>
+<tr><td>Great Circle</td><td>구면상 두 지점의 최단경로 기준</td></tr>
+<tr><td>Waypoint</td><td>연구 대상의 주요 지점 표시</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h2>연구 절차 예시: 황하강·장거리 이동경로</h2>
+<ol>
+<li>연구 대상의 실제 좌표 또는 신뢰할 수 있는 GIS 데이터를 확보합니다.</li>
+<li>좌표를 KML 또는 GPX로 구성합니다.</li>
+<li>웹페이지에서 파일을 불러옵니다.</li>
+<li>관찰하려는 국가 또는 지역을 중심점으로 설정합니다.</li>
+<li>필요하면 시작점과 끝점을 입력하여 대원을 계산합니다.</li>
+<li>대원 최고 위도점과 실제 GPS 경로를 비교합니다.</li>
+<li>거리·방향·경로 차이를 기록하고 지리적 의미를 해석합니다.</li>
+</ol>
+<div class="note"><strong>주의:</strong> AI로 생성한 KML 좌표는 연구 가설이나 시각화의 출발점으로 사용할 수 있지만, 학술 연구에서는 공식 GIS 자료·측량자료·GPS 기록 등 독립적인 자료와 좌표를 검증해야 합니다.</div>
+</div>
+
+<div class="card">
+<h2>교육용 연구 과제</h2>
+<ul>
+<li>서울–도쿄의 대원거리와 평면지도상의 직선 표현을 비교한다.</li>
+<li>서울–암스테르담 대원의 중간점과 최고 위도점을 찾아본다.</li>
+<li>자신의 자전거·달리기·SUP GPS 파일을 불러와 실제 경로를 관찰한다.</li>
+<li>실제 이동경로와 출발·도착점을 연결한 대원의 차이를 분석한다.</li>
+<li>중심점을 변경했을 때 지도에서 경로의 형태가 어떻게 달라지는지 비교한다.</li>
+</ul>
+</div>
+
+<div class="card">
+<h2>향후 플랫폼 발전 방향</h2>
+<p>향후 이 연구 플랫폼은 KML/GPX 업로드, 대원 자동 계산, 웨이포인트 생성, 국가·도시 중심 자동 설정, 거리·방위각 계산, 실제 경로와 대원 경로 비교, 위성·지형지도 선택, 연구결과 저장 및 공유 기능을 하나의 시스템으로 통합할 수 있습니다.</p>
+</div>
+</div>
+
+<footer style="text-align:center;padding:30px;color:#64748b">
+국가 중심 세계지도 · KML/GPX 지리 연구 플랫폼<br>
+<strong>지구의 곡면을 이해하고, 연구 대상에 맞는 중심에서 지리를 관찰합니다.</strong>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const R=6371;
+let map=L.map('map',{worldCopyJump:true}).setView([37.5665,126.978],4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+
+let routeLayer=null,gcLayer=null,centerMarker=null,vertexMarker=null;
+
+function rad(x){return x*Math.PI/180}
+function deg(x){return x*180/Math.PI}
+function normLon(x){return ((x+540)%360)-180}
+
+function hav(a,b){
+ const p1=rad(a[0]),p2=rad(b[0]),dp=rad(b[0]-a[0]),dl=rad(b[1]-a[1]);
+ const h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;
+ return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function initialBearing(a,b){
+ const p1=rad(a[0]),p2=rad(b[0]),dl=rad(b[1]-a[1]);
+ const y=Math.sin(dl)*Math.cos(p2);
+ const x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);
+ return (deg(Math.atan2(y,x))+360)%360;
+}
+function toXYZ(p){
+ const la=rad(p[0]),lo=rad(p[1]);
+ return [Math.cos(la)*Math.cos(lo),Math.cos(la)*Math.sin(lo),Math.sin(la)];
+}
+function fromXYZ(v){
+ const h=Math.hypot(v[0],v[1]);
+ return [deg(Math.atan2(v[2],h)),normLon(deg(Math.atan2(v[1],v[0])))];
+}
+function slerp(a,b,t){
+ const A=toXYZ(a),B=toXYZ(b);
+ let dot=A[0]*B[0]+A[1]*B[1]+A[2]*B[2];
+ dot=Math.max(-1,Math.min(1,dot));
+ const w=Math.acos(dot);
+ if(w<1e-12)return a;
+ const s=Math.sin(w);
+ return fromXYZ([
+  (Math.sin((1-t)*w)/s)*A[0]+(Math.sin(t*w)/s)*B[0],
+  (Math.sin((1-t)*w)/s)*A[1]+(Math.sin(t*w)/s)*B[1],
+  (Math.sin((1-t)*w)/s)*A[2]+(Math.sin(t*w)/s)*B[2]
+ ]);
+}
+function gcPoints(a,b,n=240){
+ let arr=[];for(let i=0;i<=n;i++)arr.push(slerp(a,b,i/n));return arr;
+}
+function setCenter(){
+ const lat=parseFloat(document.getElementById('clat').value);
+ const lon=parseFloat(document.getElementById('clon').value);
+ const name=document.getElementById('cname').value||'연구 중심점';
+ const z=parseInt(document.getElementById('zoom').value);
+ if(!Number.isFinite(lat)||!Number.isFinite(lon))return;
+ map.setView([lat,lon],z);
+ if(centerMarker)map.removeLayer(centerMarker);
+ centerMarker=L.marker([lat,lon]).addTo(map).bindPopup('<b>'+name+'</b><br>'+lat.toFixed(6)+'°, '+lon.toFixed(6)+'°').openPopup();
+ document.getElementById('centerout').textContent=name;
+}
+function calculateRoute(){
+ const a=[parseFloat(lat1.value),parseFloat(lon1.value)];
+ const b=[parseFloat(lat2.value),parseFloat(lon2.value)];
+ if(!a.every(Number.isFinite)||!b.every(Number.isFinite)){alert('좌표를 확인하세요.');return;}
+ if(gcLayer)map.removeLayer(gcLayer); if(vertexMarker)map.removeLayer(vertexMarker);
+ const pts=gcPoints(a,b);
+ gcLayer=L.polyline(pts,{weight:4,dashArray:'10 8'}).addTo(map);
+ const d=hav(a,b),bear=initialBearing(a,b);
+ let max=pts[0],maxI=0;
+ pts.forEach((p,i)=>{if(p[0]>max[0]){max=p;maxI=i}});
+ const mid=pts[Math.floor(pts.length/2)];
+ vertexMarker=L.marker(max).addTo(map).bindPopup('<b>대원 최고점</b><br>'+max[0].toFixed(6)+'°, '+max[1].toFixed(6)+'°');
+ L.marker(a).addTo(gcLayer).bindPopup('출발점');
+ L.marker(b).addTo(gcLayer).bindPopup('도착점');
+ distance.textContent=d.toFixed(2)+' km';
+ bearing.textContent=bear.toFixed(2)+'°';
+ maxlat.textContent=max[0].toFixed(6)+'°';
+ startout.textContent=a.map(x=>x.toFixed(6)).join(', ');
+ endout.textContent=b.map(x=>x.toFixed(6)).join(', ');
+ midout.textContent=mid.map(x=>x.toFixed(6)).join(', ');
+ vertexout.textContent=max.map(x=>x.toFixed(6)).join(', ');
+ map.fitBounds(gcLayer.getBounds(),{padding:[30,30]});
+}
+function clearAnalysis(){
+ if(gcLayer){map.removeLayer(gcLayer);gcLayer=null}
+ if(vertexMarker){map.removeLayer(vertexMarker);vertexMarker=null}
+ distance.textContent=bearing.textContent=maxlat.textContent='-';
+}
+function loadRoute(){
+ const f=document.getElementById('fileInput').files[0];
+ if(!f){alert('KML 또는 GPX 파일을 선택하세요.');return}
+ const r=new FileReader();
+ r.onload=e=>{
+  const text=e.target.result;
+  let coords=[];
+  if(f.name.toLowerCase().endsWith('.kml')){
+   const xml=new DOMParser().parseFromString(text,'text/xml');
+   xml.querySelectorAll('coordinates').forEach(el=>{
+    el.textContent.trim().split(/\s+/).forEach(v=>{
+     const p=v.split(',');
+     if(p.length>=2){const lon=parseFloat(p[0]),lat=parseFloat(p[1]);if(Number.isFinite(lat)&&Number.isFinite(lon))coords.push([lat,lon])}
+    })
+   });
+  }else{
+   const xml=new DOMParser().parseFromString(text,'text/xml');
+   xml.querySelectorAll('trkpt,rtept,wpt').forEach(el=>{
+    const lat=parseFloat(el.getAttribute('lat')),lon=parseFloat(el.getAttribute('lon'));
+    if(Number.isFinite(lat)&&Number.isFinite(lon))coords.push([lat,lon])
+   });
+  }
+  if(coords.length<2){alert('경로 좌표를 찾지 못했습니다.');return}
+  if(routeLayer)map.removeLayer(routeLayer);
+  routeLayer=L.polyline(coords,{weight:5}).addTo(map);
+  routeLayer.bindPopup('<b>실제 GPS 경로</b><br>'+f.name+'<br>좌표 '+coords.length+'개');
+  map.fitBounds(routeLayer.getBounds(),{padding:[30,30]});
+  document.getElementById('fileout').textContent=f.name+' · '+coords.length+'개 좌표';
+ };
+ r.readAsText(f);
+}
+function saveMemo(){
+ localStorage.setItem('nationMapResearchMemo',document.getElementById('memo').value);
+ alert('연구 메모를 이 브라우저에 저장했습니다.');
+}
+const saved=localStorage.getItem('nationMapResearchMemo');if(saved)document.getElementById('memo').value=saved;
+setCenter();calculateRoute();
+</script>
+</body>
+</html>

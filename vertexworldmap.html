@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <a href="vwm1.html" data-i18n="btn_open">GPS 경로 연구</a>
- <a href="longitude.html" data-i18n="btn_open">이동하는 북극점·남극점에 따른 경도 대원의 변화와 구면 좌표변환 모델</a>
- <a href="geography.html" data-i18n="btn_open">지역중심 세계지도와 지리 학습</a>
- <a href="geography1.html" data-i18n="btn_open">지리학의 이해1</a>
- <a href="geography2.html" data-i18n="btn_open">지리학의 이해2</a>
-<a href="geography3.html" data-i18n="btn_open">대원과 지리학의 이해1</a>
-<a href="geography4.html" data-i18n="btn_open">대원과 지리학의 이해2</a>
+ <a href="vwm1.html" data-i18n="btn_open">GPS 경로 ?�구</a>
+ <a href="longitude.html" data-i18n="btn_open">?�동?�는 북극?�·남극점???�른 경도 ?�?�의 변?��? 구면 좌표변??모델</a>
+ <a href="geography.html" data-i18n="btn_open">지??��???�계지?��? 지�??�습</a>
+ <a href="geography1.html" data-i18n="btn_open">지리학???�해1</a>
+ <a href="geography2.html" data-i18n="btn_open">지리학???�해2</a>
+<a href="geography3.html" data-i18n="btn_open">?�?�과 지리학???�해1</a>
+<a href="geography4.html" data-i18n="btn_open">?�?�과 지리학???�해2</a>
 <a href="geography5.html" data-i18n="btn_open">GPS Route File 1</a>
 <a href="geography6.html" data-i18n="btn_open">GPS Route File 2</a>
-<a href="pqindex.html" data-i18n="btn_open">푸꾸옥 여행정보</a>
-  <title>정점 중심 대원항로 & 거리각 90° 적도 분석기</title>
+<a href="geography7.html" data-i18n="btn_open">����� KML File 1</a>
+<a href="geography8.html" data-i18n="btn_open">����� KML File 2</a>
+<a href="pqindex.html" data-i18n="btn_open">?�꾸???�행?�보</a>
+  <title>?�점 중심 ?�?�항�?& 거리�?90° ?�도 분석�?/title>
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/topojson-client@3"></script>
@@ -199,88 +201,88 @@
 <body>
 
 <div class="container">
-  <h2>정점 중심 대원항로 & 거리각 90° 적도 분석기</h2>
-  <p>사용자가 설정한 정점(Vertex)을 대원항로의 최고점으로 삼아, 정점으로부터 정확히 거리각 90° 떨어진 적도상의 출발지(A)와 도착지(B)를 자동 동기화하여 대원항로 및 웨이포인트를 시각화합니다.</p>
+  <h2>?�점 중심 ?�?�항�?& 거리�?90° ?�도 분석�?/h2>
+  <p>?�용?��? ?�정???�점(Vertex)???�?�항로의 최고?�으�??�아, ?�점?�로부???�확??거리�?90° ?�어�??�도?�의 출발지(A)?� ?�착지(B)�??�동 ?�기?�하???�?�항�?�??�이?�인?��? ?�각?�합?�다.</p>
 
   <div class="controls-grid">
-    <!-- 정점 Vertex 입력 -->
+    <!-- ?�점 Vertex ?�력 -->
     <div class="control-group vertex-group">
-      <h4><b>중심 정점 (Vertex / 최고점)</b></h4>
+      <h4><b>중심 ?�점 (Vertex / 최고??</b></h4>
       <div class="input-row">
-        <input type="text" id="cityV-input" placeholder="정점 도시 검색 (예: 앵커리지)" value="앵커리지">
-        <button class="btn-vertex" onclick="searchCity('V')">검색</button>
+        <input type="text" id="cityV-input" placeholder="?�점 ?�시 검??(?? ?�커리�?)" value="?�커리�?">
+        <button class="btn-vertex" onclick="searchCity('V')">검??/button>
       </div>
       <div class="input-row">
-        <input type="number" id="latV-input" placeholder="위도" step="0.0001" value="61.2181">
+        <input type="number" id="latV-input" placeholder="?�도" step="0.0001" value="61.2181">
         <input type="number" id="lonV-input" placeholder="경도" step="0.0001" value="-149.9003">
       </div>
       <div id="statusV" class="status-msg"></div>
     </div>
 
-    <!-- 출발지 A (거리각 90° 적도) -->
+    <!-- 출발지 A (거리�?90° ?�도) -->
     <div class="control-group">
-      <h4>출발지 A (정점 기준 -90° 적도)</h4>
+      <h4>출발지 A (?�점 기�? -90° ?�도)</h4>
       <div class="input-row">
-        <input type="text" id="city1-input" value="적도 서쪽 지점 (Equator West)" readonly style="background:#f1f5f9;">
+        <input type="text" id="city1-input" value="?�도 ?�쪽 지??(Equator West)" readonly style="background:#f1f5f9;">
       </div>
       <div class="input-row">
-        <input type="number" id="lat1-input" placeholder="위도" readonly style="background:#f1f5f9;">
+        <input type="number" id="lat1-input" placeholder="?�도" readonly style="background:#f1f5f9;">
         <input type="number" id="lon1-input" placeholder="경도" readonly style="background:#f1f5f9;">
       </div>
-      <div id="status1" class="status-msg">자동 계산됨 ($\Delta\sigma = 90^\circ$)</div>
+      <div id="status1" class="status-msg">?�동 계산??($\Delta\sigma = 90^\circ$)</div>
     </div>
 
-    <!-- 도착지 B (거리각 90° 적도) -->
+    <!-- ?�착지 B (거리�?90° ?�도) -->
     <div class="control-group">
-      <h4>도착지 B (정점 기준 +90° 적도)</h4>
+      <h4>?�착지 B (?�점 기�? +90° ?�도)</h4>
       <div class="input-row">
-        <input type="text" id="city2-input" value="적도 동쪽 지점 (Equator East)" readonly style="background:#f1f5f9;">
+        <input type="text" id="city2-input" value="?�도 ?�쪽 지??(Equator East)" readonly style="background:#f1f5f9;">
       </div>
       <div class="input-row">
-        <input type="number" id="lat2-input" placeholder="위도" readonly style="background:#f1f5f9;">
+        <input type="number" id="lat2-input" placeholder="?�도" readonly style="background:#f1f5f9;">
         <input type="number" id="lon2-input" placeholder="경도" readonly style="background:#f1f5f9;">
       </div>
-      <div id="status2" class="status-msg">자동 계산됨 ($\Delta\sigma = 90^\circ$)</div>
+      <div id="status2" class="status-msg">?�동 계산??($\Delta\sigma = 90^\circ$)</div>
     </div>
   </div>
 
   <div class="action-bar">
-    <button onclick="applyVertexInput()" style="padding: 10px 24px; font-weight:600; background:#059669;">정점 중심 항로 재계산</button>
+    <button onclick="applyVertexInput()" style="padding: 10px 24px; font-weight:600; background:#059669;">?�점 중심 ??�� ?�계??/button>
     <div class="preset-buttons">
-      <button class="preset-btn" onclick="setVertexPreset('앵커리지', 61.2181, -149.9003)">정점: 앵커리지 (61.2°N)</button>
-      <button class="preset-btn" onclick="setVertexPreset('런던 북부', 51.5074, -0.1276)">정점: 런던 상공 (51.5°N)</button>
-      <button class="preset-btn" onclick="setVertexPreset('서울 북위 상공', 37.5665, 126.9780)">정점: 서울 상공 (37.6°N)</button>
+      <button class="preset-btn" onclick="setVertexPreset('?�커리�?', 61.2181, -149.9003)">?�점: ?�커리�? (61.2°N)</button>
+      <button class="preset-btn" onclick="setVertexPreset('?�던 북�?', 51.5074, -0.1276)">?�점: ?�던 ?�공 (51.5°N)</button>
+      <button class="preset-btn" onclick="setVertexPreset('?�울 북위 ?�공', 37.5665, 126.9780)">?�점: ?�울 ?�공 (37.6°N)</button>
     </div>
   </div>
 
   <div class="waypoint-panel">
-    <h4 style="margin-top:0; margin-bottom:8px;">웨이포인트 개수 설정</h4>
+    <h4 style="margin-top:0; margin-bottom:8px;">?�이?�인??개수 ?�정</h4>
     <div class="waypoint-bar">
-      <label for="wpCountInput"><b>중간 웨이포인트 개수:</b></label>
+      <label for="wpCountInput"><b>중간 ?�이?�인??개수:</b></label>
       <input type="number" id="wpCountInput" value="8" min="2" max="100" style="max-width: 100px;" oninput="updateAll()">
-      <span style="font-size:0.85rem; color:#64748b;">(적도A $\rightarrow$ 정점V $\rightarrow$ 적도B 전체 경로 분할 개수)</span>
+      <span style="font-size:0.85rem; color:#64748b;">(?�도A $\rightarrow$ ?�점V $\rightarrow$ ?�도B ?�체 경로 분할 개수)</span>
     </div>
   </div>
 
   <div class="results-grid">
-    <div class="card"><b>총 대원항로 거리</b><span id="resDist">—</span></div>
-    <div class="card"><b>A↔V, V↔B 거리</b><span id="resHalfDist">10,007.5 km</span></div>
-    <div class="card"><b>정점(Vertex) 위도</b><span id="resVLat">—</span></div>
-    <div class="card"><b>정점(Vertex) 경도</b><span id="resVLon">—</span></div>
+    <div class="card"><b>�??�?�항�?거리</b><span id="resDist">??/span></div>
+    <div class="card"><b>A?�V, V?�B 거리</b><span id="resHalfDist">10,007.5 km</span></div>
+    <div class="card"><b>?�점(Vertex) ?�도</b><span id="resVLat">??/span></div>
+    <div class="card"><b>?�점(Vertex) 경도</b><span id="resVLon">??/span></div>
   </div>
 
   <div class="map-section">
-    <div class="map-title">웨이포인트 상세 GPS 및 거리 데이터 표</div>
+    <div class="map-title">?�이?�인???�세 GPS �?거리 ?�이????/div>
     <div class="table-container">
       <table>
         <thead>
           <tr>
             <th>구분</th>
-            <th>지점명</th>
-            <th>위도(Lat)</th>
+            <th>지?�명</th>
+            <th>?�도(Lat)</th>
             <th>경도(Lon)</th>
             <th>구간 거리(km)</th>
-            <th>누적 거리(km)</th>
+            <th>?�적 거리(km)</th>
           </tr>
         </thead>
         <tbody id="waypoint-table-body">
@@ -291,11 +293,11 @@
 
   <div class="map-section">
     <div class="map-header">
-      <div class="map-title">정점 중심 사투영 심사도 지도 (Vertex Centered Great Circle Arc)</div>
+      <div class="map-title">?�점 중심 ?�투???�사??지??(Vertex Centered Great Circle Arc)</div>
       <div class="zoom-controls">
-        <button class="zoom-btn" onclick="zoomIn()" title="확대">+</button>
+        <button class="zoom-btn" onclick="zoomIn()" title="?��?">+</button>
         <button class="zoom-btn" onclick="zoomOut()" title="축소">-</button>
-        <button class="zoom-btn" onclick="resetZoom()" title="초기화">🔄 리셋</button>
+        <button class="zoom-btn" onclick="resetZoom()" title="초기??>?�� 리셋</button>
       </div>
     </div>
     <div class="svg-wrapper">
@@ -311,21 +313,21 @@
   </div>
 
   <div class="map-section">
-    <div class="map-title">표준 지도 시각화 (Leaflet Interactive Map)</div>
+    <div class="map-title">?��? 지???�각??(Leaflet Interactive Map)</div>
     <div id="leaflet-map"></div>
   </div>
 </div>
 
 <script>
-  const R = 6371.0088; // 지구 평균 반지름 (km)
+  const R = 6371.0088; // 지�??�균 반�?�?(km)
   const width = 960, height = 480;
 
   let pV = [-149.9003, 61.2181]; // [Lon, Lat]
   let p1 = [0, 0];
   let p2 = [0, 0];
-  let labelV = "앵커리지";
-  let label1 = "적도 서쪽 (A)";
-  let label2 = "적도 동쪽 (B)";
+  let labelV = "?�커리�?";
+  let label1 = "?�도 ?�쪽 (A)";
+  let label2 = "?�도 ?�쪽 (B)";
 
   let calculatedWaypoints = [];
   let currentZoomScale = 1;
@@ -365,7 +367,7 @@
     ];
   }
 
-  // D3 투영 설정
+  // D3 ?�영 ?�정
   const projection = d3.geoGnomonic().scale(190).translate([width / 2, height / 2]).clipAngle(80);
   const path = d3.geoPath().projection(projection);
   const svg = d3.select("#map");
@@ -429,18 +431,17 @@
 
   let routeLayers = [], leafletMarkers = [];
 
-  // 정점 V로부터 거리각 90도 떨어진 적도 A, B 지점 수학적 구하기
-  function computeEquatorEndpointsFromVertex(vLon, vLat) {
+  // ?�점 V로�???거리�?90???�어�??�도 A, B 지???�학??구하�?  function computeEquatorEndpointsFromVertex(vLon, vLat) {
     const latRad = rad(vLat);
     const lonRad = rad(vLon);
 
-    // 정점에서 위도가 0(적도)에 도달하는 경도 차이 deltaLon: cos(latRad) * tan(deltaLon) = 0 => deltaLon = 90 deg
+    // ?�점?�서 ?�도가 0(?�도)???�달?�는 경도 차이 deltaLon: cos(latRad) * tan(deltaLon) = 0 => deltaLon = 90 deg
     const deltaLon = 90;
 
     let lonA = vLon - deltaLon;
     let lonB = vLon + deltaLon;
 
-    // 경도 정규화 (-180 ~ 180)
+    // 경도 ?�규??(-180 ~ 180)
     if (lonA < -180) lonA += 360;
     if (lonB > 180) lonB -= 360;
 
@@ -459,7 +460,7 @@
     const V = vec(V_coord[1], V_coord[0]);
     const B = vec(B_coord[1], B_coord[0]);
 
-    const dist1 = R * (Math.PI / 2); // 90도 거리각 = R * pi/2
+    const dist1 = R * (Math.PI / 2); // 90??거리�?= R * pi/2
     const dist2 = R * (Math.PI / 2);
     const totalDist = dist1 + dist2;
 
@@ -468,11 +469,11 @@
       let p, name, type = "WP";
 
       if (i === 0) {
-        p = A; name = "적도 출발지 (A)"; type = "START";
+        p = A; name = "?�도 출발지 (A)"; type = "START";
       } else if (i === steps) {
-        p = B; name = "적도 도착지 (B)"; type = "END";
+        p = B; name = "?�도 ?�착지 (B)"; type = "END";
       } else if (i === halfSteps && steps % 2 === 0) {
-        p = V; name = labelV + " (정점)"; type = "VERTEX";
+        p = V; name = labelV + " (?�점)"; type = "VERTEX";
       } else if (t < 0.5) {
         p = slerp(A, V, t * 2);
         name = `WP ${i}`;
@@ -494,12 +495,12 @@
   function updateAll() {
     const wpCount = parseInt(document.getElementById("wpCountInput").value) || 8;
 
-    labelV = document.getElementById("cityV-input").value || "정점";
+    labelV = document.getElementById("cityV-input").value || "?�점";
     const vLat = parseFloat(document.getElementById("latV-input").value);
     const vLon = parseFloat(document.getElementById("lonV-input").value);
     pV = [vLon, vLat];
 
-    // 정점으로부터 거리각 90도 적도 지점 자동 도출
+    // ?�점?�로부??거리�?90???�도 지???�동 ?�출
     const endpoints = computeEquatorEndpointsFromVertex(vLon, vLat);
     p1 = endpoints.A;
     p2 = endpoints.B;
@@ -511,14 +512,14 @@
 
     calculatedWaypoints = computeWaypoints(p1, pV, p2, wpCount);
 
-    const totalDistance = R * Math.PI; // 180도 전체 호 길이
+    const totalDistance = R * Math.PI; // 180???�체 ??길이
     document.getElementById("resDist").textContent = totalDistance.toFixed(1) + " km";
     document.getElementById("resVLat").textContent = pV[1].toFixed(4) + "°";
     document.getElementById("resVLon").textContent = pV[0].toFixed(4) + "°";
 
     renderTable();
 
-    // 정점 V가 중심으로 오도록 D3 사투영 회전
+    // ?�점 V가 중심?�로 ?�도�?D3 ?�투???�전
     projection.rotate([-pV[0], -pV[1], 0]);
 
     graticulePath.datum(graticule).attr("d", path);
@@ -535,10 +536,10 @@
       const tr = document.createElement("tr");
 
       let badgeClass = "bg-wp";
-      let badgeText = "웨이포인트";
+      let badgeText = "?�이?�인??;
       if (wp.type === "START") { badgeClass = "bg-start"; badgeText = "출발지(A)"; }
-      else if (wp.type === "END") { badgeClass = "bg-end"; badgeText = "도착지(B)"; }
-      else if (wp.type === "VERTEX") { badgeClass = "bg-vertex"; badgeText = "정점(Vertex)"; }
+      else if (wp.type === "END") { badgeClass = "bg-end"; badgeText = "?�착지(B)"; }
+      else if (wp.type === "VERTEX") { badgeClass = "bg-vertex"; badgeText = "?�점(Vertex)"; }
 
       tr.innerHTML = `
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
@@ -555,7 +556,7 @@
   function renderMarkersAndLeaflet() {
     markerGroup.selectAll("*").remove();
 
-    // D3 지도 정점 마커
+    // D3 지???�점 마커
     const vXy = projection(pV);
     if (vXy && !isNaN(vXy[0])) {
       markerGroup.append("circle")
@@ -568,7 +569,7 @@
         .text(`${labelV} (Vertex)`);
     }
 
-    // D3 지도 웨이포인트 마커
+    // D3 지???�이?�인??마커
     calculatedWaypoints.forEach(wp => {
       const xy = projection([wp.lon, wp.lat]);
       if (xy && !isNaN(xy[0]) && !isNaN(xy[1])) {
@@ -586,8 +587,7 @@
 
     adjustMarkerSizes(currentZoomScale);
 
-    // Leaflet 지도
-    leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+    // Leaflet 지??    leafletMarkers.forEach(m => leafletMap.removeLayer(m));
     routeLayers.forEach(l => leafletMap.removeLayer(l));
     leafletMarkers = []; routeLayers = [];
 
@@ -613,17 +613,17 @@
       let marker;
       if (wp.type === "START" || wp.type === "END") {
         marker = L.marker([wp.lat, wp.lon]).addTo(leafletMap)
-          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°`);
+          .bindPopup(`<b>${wp.name}</b><br>?�도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°`);
       } else if (wp.type === "VERTEX") {
         marker = L.circleMarker([wp.lat, wp.lon], {
           radius: 8, fillColor: '#dc2626', color: '#fff', fillOpacity: 1, weight: 2
         }).addTo(leafletMap)
-          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°`);
+          .bindPopup(`<b>${wp.name}</b><br>?�도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°`);
       } else {
         marker = L.circleMarker([wp.lat, wp.lon], {
           radius: 5, fillColor: '#10b981', color: '#ffffff', fillOpacity: 1, weight: 1.5
         }).addTo(leafletMap)
-          .bindPopup(`<b>${wp.name}</b><br>위도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°<br>누적거리: ${wp.cumDist.toFixed(1)} km`);
+          .bindPopup(`<b>${wp.name}</b><br>?�도: ${wp.lat.toFixed(4)}°<br>경도: ${wp.lon.toFixed(4)}°<br>?�적거리: ${wp.cumDist.toFixed(1)} km`);
       }
       leafletMarkers.push(marker);
     });
@@ -640,7 +640,7 @@
     const cityName = inputEl.value.trim();
     if (!cityName) return;
 
-    setStatus('statusV', "검색 중...", "");
+    setStatus('statusV', "검??�?..", "");
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName)}`);
       const data = await response.json();
@@ -657,10 +657,10 @@
         setStatus('statusV', `찾음: ${name}`, "success");
         updateAll();
       } else {
-        setStatus('statusV', "도시를 찾을 수 없습니다.", "error");
+        setStatus('statusV', "?�시�?찾을 ???�습?�다.", "error");
       }
     } catch (err) {
-      setStatus('statusV', "검색 오류 발생", "error");
+      setStatus('statusV', "검???�류 발생", "error");
     }
   }
 
@@ -669,12 +669,12 @@
     const lonV = parseFloat(document.getElementById("lonV-input").value);
 
     if (isNaN(latV) || isNaN(lonV)) {
-      alert("정점의 올바른 GPS 좌표를 입력해주세요.");
+      alert("?�점???�바�?GPS 좌표�??�력?�주?�요.");
       return;
     }
 
     pV = [lonV, latV];
-    labelV = document.getElementById("cityV-input").value || "정점 지점";
+    labelV = document.getElementById("cityV-input").value || "?�점 지??;
 
     updateAll();
   }
