@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>지명·지도 기반 KML 제작 도구</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{--navy:#12324a;--blue:#087ea4;--pale:#eef7fa;--line:#d8e2e8;--ink:#172b3a;--muted:#5b6d79;--orange:#e87535}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink);background:#f4f7f9}
+header{background:linear-gradient(120deg,#12324a,#087ea4);color:white;padding:20px 24px}
+header h1{font-size:clamp(21px,3vw,30px);margin:0 0 6px}header p{margin:0;color:#e3f3f8;font-size:14px}
+main{max-width:1500px;margin:auto;padding:16px;display:grid;grid-template-columns:350px minmax(0,1fr);gap:16px}
+.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 4px 16px #17364a0a;min-width:0}
+h2{font-size:16px;margin:0 0 12px;color:var(--navy)}.section{padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--line)}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 5px}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid #cbd8df;border-radius:8px;font:inherit;font-size:14px;background:white;color:var(--ink)}
+button{border:0;border-radius:8px;padding:10px 12px;font-weight:700;cursor:pointer;font-size:13px}
+.primary{background:var(--blue);color:white}.secondary{background:var(--pale);color:var(--navy);border:1px solid #d0e6ed}.danger{background:#fff0ed;color:#a83a25;border:1px solid #f2c8bf}
+.row{display:flex;gap:8px}.row>*{min-width:0;flex:1}.hint{font-size:12px;line-height:1.55;color:var(--muted);margin:8px 0 0}
+#map{height:min(70vh,760px);min-height:430px;border-radius:11px;border:1px solid var(--line);z-index:1}
+.maphead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}.maphead p{margin:0;color:var(--muted);font-size:12px}
+#results{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:200px;overflow:auto}
+.result{padding:9px;border:1px solid var(--line);border-radius:8px;text-align:left;background:white;color:var(--ink);font-weight:500}
+.result strong{display:block;font-size:13px}.result small{color:var(--muted)}
+#pointList{display:flex;flex-direction:column;gap:8px;max-height:330px;overflow:auto}
+.point{border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:start}
+.pointnum{background:var(--pale);color:var(--blue);font-weight:800;border-radius:7px;text-align:center;padding:5px 0}
+.pointname{font-weight:750;font-size:13px;overflow-wrap:anywhere}.coords{font-size:11px;color:var(--muted);margin-top:4px}.pointactions{display:flex;gap:4px}.pointactions button{padding:6px 8px}
+.status{font-size:12px;min-height:18px;color:var(--muted);margin-top:8px}.status.error{color:#b42318}.status.ok{color:#18794e}
+footer{max-width:1500px;margin:0 auto;padding:0 16px 20px;color:var(--muted);font-size:12px}
+@media(max-width:850px){main{grid-template-columns:1fr;padding:10px}.panel{padding:13px}#map{height:55vh;min-height:360px}header{padding:17px}}
+</style>
+</head>
+<body>
+<header><h1>지명·지도 기반 KML 제작 도구</h1><p>장소 이름을 검색하거나 지도에서 직접 찍어 위치를 등록하고, Google Earth에서 열 수 있는 KML 파일로 저장하세요.</p></header>
+<main>
+<aside class="panel">
+  <div class="section">
+    <h2>1. 지명 검색으로 위치 추가</h2>
+    <label for="search">지명·주소</label>
+    <div class="row"><input id="search" placeholder="예: 만리포 해수욕장, 서울역"><button id="searchBtn" class="primary" style="flex:0 0 auto">검색</button></div>
+    <div id="results"></div>
+    <p class="hint">검색 결과는 인터넷 지명 검색 서비스를 사용합니다. 결과를 선택하면 지도에 표시됩니다.</p>
+  </div>
+  <div class="section">
+    <h2>2. 기존 KML 파일 열기</h2>
+    <label for="kmlFile">KML 파일 선택</label>
+    <input id="kmlFile" type="file" accept=".kml,application/vnd.google-earth.kml+xml,application/xml,text/xml">
+    <div class="row" style="margin-top:8px"><button id="loadKml" class="secondary">KML 불러오기</button><button id="clearImported" class="secondary">불러온 KML 지우기</button></div>
+    <p class="hint">KML 파일의 지점과 경로를 지도에 표시합니다. 지점은 편집 목록에 추가되며, 불러온 경로는 별도 레이어로 유지됩니다. KMZ는 압축 파일이므로 현재 버전에서는 지원하지 않습니다.</p>
+  </div>
+  <div class="section">
+    <h2>3. 지도에서 GPS 위치 추가</h2>
+    <p class="hint">지도에서 원하는 지점을 클릭하면 위도·경도가 자동 입력됩니다. 아래 버튼으로 현재 기기의 GPS 위치를 가져오거나 좌표를 직접 입력할 수도 있습니다.</p>
+    <div class="row" style="margin-top:9px">
+      <button id="pickMapPoint" class="secondary">지도 클릭으로 선택</button>
+      <button id="captureGps" class="secondary">현재 GPS 가져오기</button>
+    </div>
+    <div id="gpsStatus" class="status" role="status">지도 클릭 또는 GPS 버튼으로 위치를 선택하세요.</div>
+  </div>
+  <div class="section">
+    <h2>4. 선택한 위치 등록</h2>
+    <label for="pointName">지점 이름</label><input id="pointName" placeholder="예: 출발지 / 전망대 / 캠핑장">
+    <div class="row">
+      <div><label for="lat">위도 (Latitude)</label><input id="lat" inputmode="decimal" placeholder="36.000000"></div>
+      <div><label for="lon">경도 (Longitude)</label><input id="lon" inputmode="decimal" placeholder="126.000000"></div>
+    </div>
+    <button id="addPoint" class="primary" style="width:100%;margin-top:10px">현재 위치를 지점으로 추가</button>
+    <p class="hint">지도 빈 곳을 클릭하면 좌표가 입력됩니다. 위도·경도를 직접 입력해도 됩니다.</p>
+  </div>
+  <div class="section">
+    <h2>5. KML 정보 및 저장</h2>
+    <label for="docName">프로젝트 이름</label><input id="docName" value="나의 지도 프로젝트">
+    <label for="mode">지점 연결 방식</label>
+    <select id="mode"><option value="points">지점만 표시</option><option value="line">지점을 순서대로 선으로 연결</option></select>
+    <div class="row" style="margin-top:10px"><button id="export" class="primary">KML 다운로드</button><button id="clear" class="danger">전체 삭제</button></div>
+    <p class="hint">다운로드한 .kml 파일은 Google Earth에서 열 수 있습니다. 선 연결은 지점 등록 순서대로 만들어집니다.</p>
+    <div id="status" class="status" role="status"></div>
+  </div>
+  <div>
+    <h2>등록된 지점 <span id="count">(0)</span></h2>
+    <div id="pointList"><p class="hint">검색 결과를 선택하거나 지도 위를 클릭해 지점을 추가하세요.</p></div>
+  </div>
+</aside>
+<section class="panel">
+  <div class="maphead"><div><h2 style="margin:0 0 4px">지도 작업 공간</h2><p>지도를 클릭하면 해당 좌표를 선택합니다. 마커를 눌러 지점 정보를 확인할 수 있습니다.</p></div>
+  <div class="row" style="flex:0 1 430px;align-items:center"><div><label for="basemap" style="margin-top:0">지도 종류</label><select id="basemap"><option value="osm">OpenStreetMap</option><option value="satellite">위성지도 (Esri)</option><option value="topo">지형도 (OpenTopoMap)</option><option value="hot">OpenStreetMap HOT</option><option value="voyager">CartoDB Voyager</option></select></div><button id="fit" class="secondary" style="align-self:end">전체 지점 보기</button><button id="myLocation" class="secondary" style="align-self:end">내 위치</button></div></div>
+  <div id="map" aria-label="지도"></div>
+  <p class="hint">지도 종류에 따라 OpenStreetMap, Esri, OpenTopoMap, CARTO 타일을 사용합니다. 지명 검색과 지도 타일은 인터넷 연결이 필요합니다.</p>
+</section>
+</main>
+<footer>참고: KML은 WGS84 좌표를 사용합니다. KML 좌표 순서는 경도,위도,고도입니다. 해상 투어에서는 실제 출항 전 기상·조류·항로·구조 계획을 별도로 확인하세요.</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+(() => {
+ const $ = id => document.getElementById(id);
+ const map = L.map('map').setView([36.75,126.25],9);
+ const baseMaps = {
+   osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors'}),
+   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles &copy; Esri'}),
+   topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap'}),
+   hot: L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap contributors, HOT'}),
+   voyager: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors &copy; CARTO'})
+ };
+ let activeBase = baseMaps.osm.addTo(map);
+ let selected = null, points = [], markers = [], line = null, importedLayers = [], importedFeatures = [], pickMode = false, gpsMarker = null;
+ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ function status(msg,kind=''){ $('status').textContent=msg; $('status').className='status '+kind; }
+ function setSelected(lat,lon,name=''){
+   selected={lat:Number(lat),lon:Number(lon)};
+   $('lat').value=selected.lat.toFixed(6); $('lon').value=selected.lon.toFixed(6);
+   if(name && !$('pointName').value.trim()) $('pointName').value=name;
+ }
+ map.on('click', e=>{
+    setSelected(e.latlng.lat,e.latlng.lng);
+    $('gpsStatus').textContent=`지도에서 선택한 좌표: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+    status('지도에서 좌표를 선택했습니다. 이름을 입력하고 지점으로 추가하세요.');
+    if(pickMode){pickMode=false;$('pickMapPoint').textContent='지도 클릭으로 선택';}
+    map.getContainer().style.cursor='';
+  });
+ function render(){
+   markers.forEach(m=>map.removeLayer(m)); markers=[];
+   if(line){map.removeLayer(line);line=null;}
+   points.forEach((p,i)=>{
+     const m=L.marker([p.lat,p.lon]).addTo(map).bindPopup(`<strong>${esc(p.name)}</strong><br>${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`);
+     markers.push(m);
+   });
+   if($('mode').value==='line' && points.length>1) line=L.polyline(points.map(p=>[p.lat,p.lon]),{color:'#e87535',weight:4}).addTo(map);
+   $('count').textContent=`(${points.length})`;
+   const list=$('pointList'); list.innerHTML='';
+   if(!points.length){list.innerHTML='<p class="hint">아직 등록된 지점이 없습니다.</p>';return;}
+   points.forEach((p,i)=>{
+     const item=document.createElement('div');item.className='point';
+     item.innerHTML=`<div class="pointnum">${i+1}</div><div><div class="pointname">${esc(p.name)}</div><div class="coords">${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}</div></div><div class="pointactions"><button class="secondary" data-act="show" data-i="${i}" title="지도에서 보기">보기</button><button class="danger" data-act="del" data-i="${i}" title="삭제">×</button></div>`;
+     list.appendChild(item);
+   });
+ }
+ $('pointList').addEventListener('click',e=>{
+   const b=e.target.closest('button');if(!b)return;const i=Number(b.dataset.i);
+   if(b.dataset.act==='del'){points.splice(i,1);render();status('지점을 삭제했습니다.');}
+   else if(b.dataset.act==='show'){map.setView([points[i].lat,points[i].lon],14);markers[i]?.openPopup();}
+ });
+ $('pickMapPoint').addEventListener('click',()=>{
+    pickMode=true;
+    $('pickMapPoint').textContent='지도에서 위치를 클릭하세요…';
+    $('gpsStatus').textContent='오른쪽 지도를 클릭하면 해당 좌표가 입력됩니다.';
+    status('지도에서 원하는 위치를 클릭하세요.');
+    map.getContainer().style.cursor='crosshair';
+  });
+  $('captureGps').addEventListener('click',()=>{
+    if(!navigator.geolocation){
+      $('gpsStatus').textContent='이 브라우저에서는 GPS 위치 기능을 사용할 수 없습니다.';
+      status('위치 기능을 지원하지 않는 브라우저입니다.','error');return;
+    }
+    $('gpsStatus').textContent='기기의 GPS 위치를 확인하고 있습니다…';
+    status('현재 GPS 위치를 확인하고 있습니다…');
+    navigator.geolocation.getCurrentPosition(pos=>{
+      const lat=pos.coords.latitude,lon=pos.coords.longitude;
+      setSelected(lat,lon,'현재 GPS 위치');
+      if(gpsMarker) map.removeLayer(gpsMarker);
+      gpsMarker=L.circleMarker([lat,lon],{radius:8,color:'#087ea4',fillColor:'#36b9d6',fillOpacity:.9,weight:3})
+        .addTo(map).bindPopup(`현재 GPS 위치<br>${lat.toFixed(6)}, ${lon.toFixed(6)}<br>정확도 약 ${Math.round(pos.coords.accuracy)} m`).openPopup();
+      map.setView([lat,lon],16);
+      $('gpsStatus').textContent=`GPS 좌표: ${lat.toFixed(6)}, ${lon.toFixed(6)} (정확도 약 ${Math.round(pos.coords.accuracy)} m). 지점 추가 버튼을 누르면 등록됩니다.`;
+      status('현재 GPS 좌표를 가져왔습니다. 지점으로 추가할 수 있습니다.','ok');
+    },err=>{
+      const msg=err.code===1?'위치 권한이 거부되었습니다. 브라우저의 위치 권한을 허용하세요.':err.code===2?'기기의 위치를 확인할 수 없습니다. GPS와 위치 서비스를 확인하세요.':'위치 확인 시간이 초과되었습니다. 다시 시도하세요.';
+      $('gpsStatus').textContent=msg;status(msg,'error');
+    },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+  });
+  $('addPoint').addEventListener('click',()=>{
+   const lat=Number($('lat').value),lon=Number($('lon').value),name=$('pointName').value.trim();
+   if(!Number.isFinite(lat)||!Number.isFinite(lon)||$('lat').value.trim()===''||$('lon').value.trim()===''||lat < -90||lat>90||lon < -180||lon>180){status('위도는 -90~90, 경도는 -180~180 범위의 숫자로 입력하세요.','error');return;}
+   points.push({name:name||`지점 ${points.length+1}`,lat,lon});selected={lat,lon};$('pointName').value='';render();map.setView([lat,lon],Math.max(map.getZoom(),12));status('지점을 추가했습니다.','ok');
+ });
+ $('mode').addEventListener('change',render);
+ $('searchBtn').addEventListener('click',searchPlaces);
+ $('search').addEventListener('keydown',e=>{if(e.key==='Enter')searchPlaces();});
+ async function searchPlaces(){
+   const q=$('search').value.trim();if(!q){status('검색할 지명이나 주소를 입력하세요.','error');return;}
+   $('results').innerHTML='';status('지명을 검색하고 있습니다…');
+   try{
+     const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=ko&q='+encodeURIComponent(q);
+     const res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok)throw new Error('검색 서버 응답 오류');
+     const data=await res.json();if(!data.length){status('검색 결과가 없습니다. 다른 지명으로 검색해 보세요.','error');return;}
+     data.forEach(place=>{
+       const b=document.createElement('button');b.className='result';
+       b.innerHTML=`<strong>${esc(place.name||place.display_name.split(',')[0])}</strong><small>${esc(place.display_name)}</small>`;
+       b.addEventListener('click',()=>{
+         const lat=Number(place.lat),lon=Number(place.lon);setSelected(lat,lon,place.name||place.display_name.split(',')[0]);
+         map.setView([lat,lon],14);L.popup().setLatLng([lat,lon]).setContent(esc(place.name||place.display_name)).openOn(map);
+         status('검색 위치를 선택했습니다. 지점으로 추가할 수 있습니다.','ok');
+       });$('results').appendChild(b);
+     });
+     status(`${data.length}개의 검색 결과를 찾았습니다.`);
+   }catch(err){status('지명 검색에 실패했습니다. 인터넷 연결을 확인하거나 잠시 후 다시 시도하세요.','error');}
+ }
+ $('fit').addEventListener('click',()=>{
+   if(!points.length){map.setView([36.75,126.25],9);return;}
+   const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lon]));map.fitBounds(bounds.pad(.2),{maxZoom:15});
+ });
+ $('myLocation').addEventListener('click',()=>{
+   if(!navigator.geolocation){status('이 브라우저에서는 위치 기능을 사용할 수 없습니다.','error');return;}
+   status('현재 위치를 확인하고 있습니다…');
+   navigator.geolocation.getCurrentPosition(pos=>{
+     const {latitude:lat,longitude:lon}=pos.coords;setSelected(lat,lon,'현재 위치');map.setView([lat,lon],15);
+     L.circleMarker([lat,lon],{radius:8,color:'#087ea4'}).addTo(map).bindPopup('현재 위치').openPopup();
+     $('gpsStatus').textContent=`현재 위치: ${lat.toFixed(6)}, ${lon.toFixed(6)}. 지점 추가 버튼을 눌러 등록하세요.`;
+     status('현재 위치를 선택했습니다. 필요하면 지점으로 추가하세요.','ok');
+   },()=>status('위치 권한을 확인할 수 없습니다. HTTPS 또는 localhost 환경에서 위치 권한을 허용하세요.','error'),{enableHighAccuracy:true,timeout:10000});
+ });
+ function xml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
+ $('export').addEventListener('click',()=>{
+   if(!points.length){status('KML로 저장할 지점을 먼저 추가하세요.','error');return;}
+   const name=$('docName').value.trim()||'나의 지도 프로젝트';
+   const placemarks=points.map((p,i)=>`<Placemark><name>${xml(p.name)}</name><description>${xml(`지점 ${i+1} / 위도 ${p.lat.toFixed(6)}, 경도 ${p.lon.toFixed(6)}`)}</description><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>`).join('\n');
+   const path=$('mode').value==='line'&&points.length>1?`<Placemark><name>${xml(name+' 경로')}</name><Style><LineStyle><color>ff3587e8</color><width>4</width></LineStyle></Style><LineString><tessellate>1</tessellate><coordinates>${points.map(p=>`${p.lon},${p.lat},0`).join('\n')}</coordinates></LineString></Placemark>`:'';
+   const preservedImported=importedFeatures.join('\\n');
+   const kml=`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xml(name)}</name>\n${placemarks}\n${path}\n</Document></kml>`;
+   const blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml;charset=utf-8'}),url=URL.createObjectURL(blob);
+   const a=document.createElement('a');a.href=url;a.download=(name.replace(/[\\/:*?"<>|]/g,'_')||'map_project')+'.kml';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+   status('KML 파일 다운로드를 시작했습니다. Google Earth에서 열어 확인하세요.','ok');
+ });
+ $('basemap').addEventListener('change',()=>{
+   const next=baseMaps[$('basemap').value];if(!next)return;
+   map.removeLayer(activeBase);activeBase=next;activeBase.addTo(map);
+ });
+ function clearImported(){
+   importedLayers.forEach(layer=>map.removeLayer(layer));importedLayers=[];
+   importedFeatures=[];
+ }
+ function parseCoordinates(text){
+   return (text||'').trim().split(/\s+/).map(tuple=>{
+     const a=tuple.split(',').map(Number);return a.length>=2&&Number.isFinite(a[0])&&Number.isFinite(a[1])?[a[1],a[0]]:null;
+   }).filter(Boolean);
+ }
+ $('loadKml').addEventListener('click',async()=>{
+   const file=$('kmlFile').files[0];
+   if(!file){status('먼저 KML 파일을 선택하세요.','error');return;}
+   if(!/\\.kml$/i.test(file.name)){status('현재는 .kml 파일만 지원합니다. KMZ 파일은 KML로 변환한 뒤 불러오세요.','error');return;}
+   try{
+     const raw=await file.text(),xmlDoc=new DOMParser().parseFromString(raw,'application/xml');
+     if(xmlDoc.querySelector('parsererror')||!xmlDoc.documentElement||xmlDoc.documentElement.localName.toLowerCase()!=='kml')throw new Error('올바른 KML 파일이 아닙니다.');
+     const placemarks=[...xmlDoc.getElementsByTagNameNS('*','Placemark')];
+     if(!placemarks.length)throw new Error('파일에서 Placemark 지점이나 경로를 찾지 못했습니다.');
+     clearImported();
+     let added=0, visible=0;
+     placemarks.forEach((pm,idx)=>{
+       const nameNode=[...pm.children].find(n=>n.localName==='name');
+       const name=(nameNode?.textContent||`불러온 지점 ${idx+1}`).trim();
+       const pointNodes=[...pm.getElementsByTagNameNS('*','Point')];
+       pointNodes.forEach(node=>{
+         const c=node.getElementsByTagNameNS('*','coordinates')[0];if(!c)return;
+         const coords=parseCoordinates(c.textContent);if(!coords.length)return;
+         const [lat,lon]=coords[0];
+         points.push({name,lat,lon});added++;
+       });
+       const lineNodes=[...pm.getElementsByTagNameNS('*','LineString')];
+       lineNodes.forEach(node=>{
+         const c=node.getElementsByTagNameNS('*','coordinates')[0];if(!c)return;
+         const coords=parseCoordinates(c.textContent);if(coords.length<2)return;
+         const layer=L.polyline(coords,{color:'#9b59b6',weight:4,dashArray:'7 5'}).addTo(map).bindPopup(esc(name));
+         importedLayers.push(layer);visible++;
+       });
+       const polygonNodes=[...pm.getElementsByTagNameNS('*','Polygon')];
+       polygonNodes.forEach(node=>{
+         const c=node.getElementsByTagNameNS('*','coordinates')[0];if(!c)return;
+         const coords=parseCoordinates(c.textContent);if(coords.length<3)return;
+         const layer=L.polygon(coords,{color:'#9b59b6',weight:2,fillOpacity:.15}).addTo(map).bindPopup(esc(name));
+         importedLayers.push(layer);visible++;
+       });
+       if(lineNodes.length||polygonNodes.length) importedFeatures.push(new XMLSerializer().serializeToString(pm));
+     });
+     render();
+     const allLayers=[...markers,...importedLayers];
+     if(allLayers.length){const group=L.featureGroup(allLayers);map.fitBounds(group.getBounds().pad(.12),{maxZoom:15});}
+     status(`KML 불러오기 완료: 지점 ${added}개, 경로·영역 ${visible}개를 지도에 표시했습니다. 지도에서 보이지 않으면 '전체 지점 보기'를 눌러 확인하세요.`,'ok');
+   }catch(err){status(err.message||'KML 파일을 읽지 못했습니다.','error');}
+ });
+ $('clearImported').addEventListener('click',()=>{clearImported();render();status('불러온 KML 경로·영역 레이어를 지웠습니다.');});
+ $('clear').addEventListener('click',()=>{if(!points.length&&!importedLayers.length)return;if(confirm('등록된 지점과 불러온 KML 레이어를 모두 삭제할까요?')){points=[];clearImported();render();status('모든 지점과 불러온 레이어를 삭제했습니다.');}});
+ render();
+})();
+</script>
+</body>
+</html>
