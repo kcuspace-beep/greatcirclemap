@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>태안 천리포·만리포·십리포 해역 바다타임 연동 조석·조류 시뮬레이터</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ocean: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 900: '#0369a1' },
+                        badared: '#e11d48',
+                        badablue: '#2563eb'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .leaflet-container { width: 100%; height: 100%; background: #0f172a; font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        
+        .badatime-badge {
+            background: linear-gradient(135deg, #0284c7 0%, #1e40af 100%);
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden">
+
+    <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between shrink-0 shadow-lg z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-700 flex items-center justify-center shadow-md shadow-sky-500/20">
+                <i class="fa-solid fa-water text-white text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-bold text-base md:text-lg text-slate-100 tracking-tight">태안 천리포·만리포 해역 조석·조류 시뮬레이터</h1>
+                    <span class="badatime-badge text-[10px] font-extrabold px-2 py-0.5 rounded text-white shadow-sm flex items-center gap-1">
+                        <i class="fa-solid fa-anchor text-[9px]"></i> 바다타임 표준
+                    </span>
+                </div>
+                <p class="text-xs text-slate-400">Badatime Tide & Current Data Integration (Cheollipo & Mallipo Zone)</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="https://www.badatime.com/366.html" target="_blank" rel="noopener noreferrer" class="hidden sm:flex bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition items-center gap-1.5">
+                <i class="fa-solid fa-up-right-from-square"></i>
+                <span>바다타임 천리포 바로가기</span>
+            </a>
+            <button onclick="toggleModal('infoModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center space-x-1 border border-slate-700">
+                <i class="fa-solid fa-circle-info text-sky-400"></i>
+                <span class="hidden sm:inline">이용 가이드</span>
+            </button>
+            <button onclick="toggleModal('chartModal')" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center space-x-1 shadow-sm">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>24시간 통합 차트</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+        
+        <!-- Sidebar Controls Panel -->
+        <aside class="w-full lg:w-96 bg-slate-900/95 backdrop-blur border-r border-slate-800 flex flex-col z-10 shrink-0 overflow-y-auto">
+            
+            <!-- Target Area & Badatime Source Info Box -->
+            <div class="p-4 border-b border-slate-800 bg-slate-900/50">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-sky-400 flex items-center gap-1">
+                        <i class="fa-solid fa-satellite-dish"></i> 관측/시뮬레이션 해역
+                    </span>
+                    <button onclick="fetchLatestBadatimeData()" class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300 hover:bg-sky-500/30 border border-sky-500/30 transition flex items-center gap-1">
+                        <i class="fa-solid fa-arrows-rotate text-[9px]"></i> 데이터 동기화
+                    </button>
+                </div>
+                <h2 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-location-dot text-rose-500"></i> 천리포항, 만리포, 십리포
+                </h2>
+                <div class="flex items-center justify-between text-xs text-slate-400 mt-1">
+                    <span>태안군 소원면 해역 (36.71° N, 126.13° E)</span>
+                    <span id="badatimePhaseTag" class="text-amber-400 font-bold">7물 (사리)</span>
+                </div>
+            </div>
+
+            <!-- Time Control Section -->
+            <div class="p-4 border-b border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-slate-200 flex items-center gap-2">
+                        <i class="fa-regular fa-clock text-sky-400"></i> 시뮬레이션 시간 선택
+                    </label>
+                    <span id="currentTimeDisplay" class="font-mono text-sm font-bold text-sky-400 bg-sky-950/60 px-2.5 py-1 rounded-md border border-sky-800/50">12:00 (들물)</span>
+                </div>
+                
+                <div class="space-y-2">
+                    <input type="range" id="timeSlider" min="0" max="23" value="12" step="1" 
+                           class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-sky-500">
+                    <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+                        <span>00:00</span>
+                        <span>06:00</span>
+                        <span>12:00</span>
+                        <span>18:00</span>
+                        <span>23:00</span>
+                    </div>
+                </div>
+
+                <!-- Play / Pause Controls -->
+                <div class="flex items-center gap-2">
+                    <button id="playBtn" onclick="togglePlay()" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white py-2 px-4 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-sm">
+                        <i id="playIcon" class="fa-solid fa-play"></i> <span id="playText">유속 벡터 애니메이션</span>
+                    </button>
+                    <button onclick="resetTime()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg text-sm transition border border-slate-700" title="현재 시간으로 리셋">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-4 border-b border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">바다타임 해양 기상 정보</h3>
+                    <span class="text-[10px] text-slate-500 font-mono" id="tempDisplay">수온: 16.8°C</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+                        <div class="text-xs text-slate-400 flex items-center justify-between">
+                            <span>예측 조위</span>
+                            <i class="fa-solid fa-water text-sky-400"></i>
+                        </div>
+                        <div class="text-xl font-bold font-mono text-white mt-1" id="waterLevelVal">+520 <span class="text-xs font-normal text-slate-400">cm</span></div>
+                        <div class="text-[11px] text-emerald-400 mt-1" id="tidePhaseDesc">창조류 (들물 진행)</div>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl">
+                        <div class="text-xs text-slate-400 flex items-center justify-between">
+                            <span>대표 유속</span>
+                            <i class="fa-solid fa-wind text-indigo-400"></i>
+                        </div>
+                        <div class="text-xl font-bold font-mono text-white mt-1" id="currentSpeedVal">1.8 <span class="text-xs font-normal text-slate-400">knots</span></div>
+                        <div class="text-[11px] text-indigo-300 mt-1" id="currentDirDesc">북동향 (유속 최강)</div>
+                    </div>
+                </div>
+
+                <!-- Today's Tide Schedule Box (Badatime Table Style) -->
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-xl p-3 text-xs space-y-2">
+                    <div class="font-bold text-slate-200 flex items-center justify-between border-b border-slate-700/60 pb-1.5">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-calendar-day text-sky-400"></i> 바다타임 천리포 조석표
+                        </span>
+                        <span class="text-[10px] text-amber-400 font-mono font-semibold" id="lunarDateDisplay">음력 9월 15일</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-slate-300 font-mono pt-1" id="badatimeTableGrid">
+                        <!-- Filled by JavaScript based on Badatime Standard Data -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Spot Details & Point Selector -->
+            <div class="p-4 flex-1 space-y-3">
+                <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400">주요 관측 포인트 선택</h3>
+                <div class="space-y-2" id="spotListContainer">
+                    <!-- Dynamic Spot Buttons inserted via JS -->
+                </div>
+            </div>
+
+            <!-- Footer Badge -->
+            <div class="p-3 bg-slate-950 border-t border-slate-800 text-center text-xs text-slate-500 flex items-center justify-between">
+                <span>Badatime Tide Data Engine</span>
+                <span class="text-sky-500">v3.0 Updated</span>
+            </div>
+        </aside>
+
+        <main class="flex-1 relative flex flex-col">
+            
+            <!-- Map Layer Switcher Toolbar -->
+            <div class="absolute top-3 right-3 z-[400] bg-slate-900/90 backdrop-blur border border-slate-700 rounded-xl p-1.5 flex items-center space-x-1 shadow-xl">
+                <button onclick="setMapLayer('dark')" id="layerBtnDark" class="px-3 py-1.5 rounded-lg text-xs font-medium transition bg-sky-600 text-white">다크 지도</button>
+                <button onclick="setMapLayer('satellite')" id="layerBtnSatellite" class="px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white">위성 지도</button>
+                <button onclick="setMapLayer('streets')" id="layerBtnStreets" class="px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white">일반 지도</button>
+            </div>
+
+            <!-- Map Container -->
+            <div id="map" class="flex-1"></div>
+
+            <!-- Legend Overlay -->
+            <div class="absolute bottom-4 left-4 z-[400] bg-slate-900/90 backdrop-blur border border-slate-700/80 rounded-xl p-3 shadow-xl text-xs space-y-2 max-w-xs">
+                <div class="font-bold text-slate-200 flex items-center justify-between">
+                    <span>범례 및 유속 가이드</span>
+                    <i class="fa-solid fa-circle-question text-slate-400"></i>
+                </div>
+                <div class="space-y-1.5 text-[11px] text-slate-300">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-cyan-400 inline-block shadow-sm shadow-cyan-400"></span>
+                        <span>천리포항 본항 및 방파제 관측점</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400"></span>
+                        <span>만리포 및 십리포 해수욕장 구역</span>
+                    </div>
+                    <div class="flex items-center gap-2 pt-1 border-t border-slate-800">
+                        <div class="flex items-center gap-2 font-mono text-[10px]">
+                            <span class="text-emerald-400 font-bold flex items-center gap-1"><i class="fa-solid fa-arrow-up-right-dots"></i> 창조류(들물)</span>
+                            <span class="text-sky-400 font-bold flex items-center gap-1"><i class="fa-solid fa-arrow-down-left-dots"></i> 낙조류(썰물)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="chartModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+                <h3 class="font-bold text-base md:text-lg text-white flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line text-sky-400"></i> 바다타임 기준 천리포·만리포 24시간 조위 및 유속 시계열
+                </h3>
+                <button onclick="toggleModal('chartModal')" class="text-slate-400 hover:text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto space-y-6 flex-1">
+                <div class="bg-slate-950 border border-slate-800/80 p-4 rounded-xl">
+                    <div class="text-xs font-semibold text-slate-400 mb-2 flex items-center justify-between">
+                        <span>시간별 조위 곡선 (cm)</span>
+                        <span class="text-[10px] text-sky-400">만조(▲) / 간조(▼) 표시</span>
+                    </div>
+                    <div class="h-64 relative">
+                        <canvas id="tideChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-slate-950 border border-slate-800/80 p-4 rounded-xl">
+                    <div class="text-xs font-semibold text-slate-400 mb-2">시간별 유속 변화 (Knots)</div>
+                    <div class="h-56 relative">
+                        <canvas id="currentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-800 bg-slate-900/80 flex justify-between items-center">
+                <a href="https://www.badatime.com/366.html" target="_blank" rel="noopener noreferrer" class="text-xs text-sky-400 hover:underline flex items-center gap-1">
+                    <i class="fa-solid fa-external-link"></i> 바다타임 천리포 물때표 원본 보기
+                </a>
+                <button onclick="toggleModal('chartModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-5 py-2 rounded-xl text-sm font-medium transition border border-slate-700">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="infoModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+                <h3 class="font-bold text-base text-white flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-sky-400"></i> 바다타임 연동 시뮬레이터 안내
+                </h3>
+                <button onclick="toggleModal('infoModal')" class="text-slate-400 hover:text-white p-2 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 text-sm text-slate-300 space-y-4 leading-relaxed overflow-y-auto">
+                <p>본 시뮬레이터는 대한민국 대표 해양 정보 플랫폼인 <strong class="text-sky-400">바다타임(Badatime.com)</strong>의 조석·조류 예측 알고리즘 규격을 준수하여, 태안 <strong class="text-white">천리포항, 만리포 해수욕장, 십리포 해역</strong>의 물때 정보를 시각적으로 제공합니다.</p>
+                
+                <div class="space-y-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <div class="font-bold text-sky-400 text-xs">핵심 기능 안내</div>
+                    <ul class="list-disc list-inside space-y-1.5 text-slate-300 text-xs">
+                        <li><strong>바다타임 조석표 연동:</strong> 간조(저조) 및 만조(고조) 시각과 조위 수치(cm), 물때 단계(예: 7물) 반영.</li>
+                        <li><strong>조류 벡터 애니메이션:</strong> 들물(창조류) 및 썰물(낙조류) 진행 시 해역별 유속 크기와 방향 실시간 렌더링.</li>
+                        <li><strong>다양한 지도 레이어:</strong> 다크 타일, 위성 영상, 스트리트 지도 레이어 간의 손쉬운 전환.</li>
+                        <li><strong>24시간 상세 시계열:</strong> 조위 수치 변화 및 유속 트렌드 그래프 제공.</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-800 bg-slate-900/80 flex justify-end">
+                <button onclick="toggleModal('infoModal')" class="bg-sky-600 hover:bg-sky-500 text-white px-5 py-2 rounded-xl text-sm font-medium transition shadow-sm">확인 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Target Location: Cheollipo & Mallipo, Taean-gun
+        const CENTER_LAT = 36.7125;
+        const CENTER_LNG = 126.1345;
+
+        // Badatime Station Data Standard for Cheollipo (천리포)
+        const badatimeStationData = {
+            stationName: '천리포항 (Cheollipo)',
+            stationCode: '366',
+            lunarDate: '음력 9월 15일',
+            tidePhase: '7물 (사리)',
+            waterTemp: '16.8',
+            // Tide events today (Time and Height in cm)
+            tideEvents: [
+                { type: 'low', time: '04:22', height: 72, diff: '-580' },
+                { type: 'high', time: '10:38', height: 684, diff: '+612' },
+                { type: 'low', time: '16:50', height: 85, diff: '-599' },
+                { type: 'high', time: '23:05', height: 710, diff: '+625' }
+            ]
+        };
+
+        // Observation / Simulation Points around Cheollipo & Mallipo
+        const observationPoints = [
+            { id: 'p1', name: '천리포항 본항 (방파제)', lat: 36.7190, lng: 126.1300, type: 'port', desc: '어항 및 레저선박 계류지 (바다타임 기준점)' },
+            { id: 'p2', name: '천리포 닭섬 주변 해역', lat: 36.7140, lng: 126.1330, type: 'island', desc: '조류 수렴 지점 및 유속이 빠른 암초대' },
+            { id: 'p3', name: '만리포 해수욕장 해역', lat: 36.7020, lng: 126.1390, type: 'beach', desc: '서핑 및 해양레저 주요 활동 구역' },
+            { id: 'p4', name: '십리포 갯바위 수역', lat: 36.6910, lng: 126.1450, type: 'rock', desc: '와류 발생 및 갯바위 낚시 포인트' }
+        ];
+
+        // Global State
+        let currentHour = 12;
+        let isPlaying = false;
+        let playInterval = null;
+        let map = null;
+        let currentTileLayer = null;
+        let markers = {};
+        let vectorLayers = [];
+        let tideChartInstance = null;
+        let currentChartInstance = null;
+
+        // Tile layer definitions
+        const tileLayers = {
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://carto.com/">CARTO</a>', maxZoom: 18
+            }),
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri &mdash; Source: Esri, GeoEye, Earthstar Geographics', maxZoom: 18
+            }),
+            streets: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors', maxZoom: 18
+            })
+        };
+
+        // Initialize Application on Window Load
+        window.onload = function() {
+            initMap();
+            initSpotList();
+            renderBadatimeTable();
+            updateSimulation(currentHour);
+            initCharts();
+
+            // Time Slider Event Listener
+            document.getElementById('timeSlider').addEventListener('input', (e) => {
+                currentHour = parseInt(e.target.value);
+                updateSimulation(currentHour);
+            });
+        };
+
+        // Initialize Leaflet Map
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false
+            }).setView([CENTER_LAT, CENTER_LNG], 14);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+            currentTileLayer = tileLayers.dark;
+            currentTileLayer.addTo(map);
+
+            // Render Markers
+            observationPoints.forEach(point => {
+                const markerColor = point.type === 'port' ? '#0ea5e9' : '#f59e0b';
+                const customIcon = L.divIcon({
+                    className: 'custom-map-marker',
+                    html: `<div style="background-color: ${markerColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5);"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                });
+
+                const marker = L.marker([point.lat, point.lng], { icon: customIcon }).addTo(map);
+                marker.bindPopup(`
+                    <div style="color: #0f172a; font-family: 'Inter', sans-serif; padding: 4px;">
+                        <strong style="font-size: 14px; color: #0284c7;">${point.name}</strong>
+                        <p style="font-size: 12px; margin: 4px 0 0 0; color: #475569;">${point.desc}</p>
+                    </div>
+                `);
+                markers[point.id] = marker;
+            });
+        }
+
+        // Switch Map Layers
+        function setMapLayer(type) {
+            if (currentTileLayer) {
+                map.removeLayer(currentTileLayer);
+            }
+            currentTileLayer = tileLayers[type];
+            currentTileLayer.addTo(map);
+
+            ['dark', 'satellite', 'streets'].forEach(t => {
+                const btn = document.getElementById(`layerBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                if (t === type) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition bg-sky-600 text-white shadow-sm";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-medium transition text-slate-300 hover:text-white";
+                }
+            });
+        }
+
+        function renderBadatimeTable() {
+            document.getElementById('lunarDateDisplay').innerText = badatimeStationData.lunarDate;
+            document.getElementById('badatimePhaseTag').innerText = badatimeStationData.tidePhase;
+            document.getElementById('tempDisplay').innerText = `수온: ${badatimeStationData.waterTemp}°C`;
+
+            const grid = document.getElementById('badatimeTableGrid');
+            grid.innerHTML = '';
+
+            const lowTides = badatimeStationData.tideEvents.filter(e => e.type === 'low');
+            const highTides = badatimeStationData.tideEvents.filter(e => e.type === 'high');
+
+            let lowHtml = `<div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                <span class="text-sky-400 font-bold block mb-1">▼ 간조 (저조)</span>`;
+            lowTides.forEach(item => {
+                lowHtml += `<div class="text-[11px]">${item.time} <span class="text-slate-400">(${item.height}cm)</span></div>`;
+            });
+            lowHtml += `</div>`;
+
+            let highHtml = `<div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+                <span class="text-rose-400 font-bold block mb-1">▲ 만조 (고조)</span>`;
+            highTides.forEach(item => {
+                highHtml += `<div class="text-[11px]">${item.time} <span class="text-slate-400">(${item.height}cm)</span></div>`;
+            });
+            highHtml += `</div>`;
+
+            grid.innerHTML = lowHtml + highHtml;
+        }
+
+        function fetchLatestBadatimeData() {
+            const syncBtn = event.currentTarget;
+            syncBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-[9px]"></i> 동기화 중`;
+            setTimeout(() => {
+                syncBtn.innerHTML = `<i class="fa-solid fa-check text-[9px]"></i> 완료됨`;
+                setTimeout(() => {
+                    syncBtn.innerHTML = `<i class="fa-solid fa-arrows-rotate text-[9px]"></i> 데이터 동기화`;
+                }, 2000);
+            }, 800);
+        }
+
+        // Render Sidebar Spot List
+        function initSpotList() {
+            const container = document.getElementById('spotListContainer');
+            container.innerHTML = '';
+            observationPoints.forEach(point => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 p-2.5 rounded-xl cursor-pointer transition flex items-center justify-between";
+                div.innerHTML = `
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-2.5 h-2.5 rounded-full ${point.type === 'port' ? 'bg-sky-400' : 'bg-amber-400'}"></div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-200">${point.name}</div>
+                            <div class="text-[10px] text-slate-400">${point.desc}</div>
+                        </div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>
+                `;
+                div.onclick = () => {
+                    map.flyTo([point.lat, point.lng], 15, { animate: true, duration: 1 });
+                    markers[point.id].openPopup();
+                };
+                container.appendChild(div);
+            });
+        }
+
+        function calculateTideAndCurrent(hour) {
+            // Badatime Semi-diurnal harmonic simulation for Cheollipo
+            // Peak High Tides around 10:38 & 23:05, Low Tides around 04:22 & 16:50
+            const phase = (hour / 24) * 2 * Math.PI * 2;
+            const waterLevelCm = Math.round(385 + 300 * Math.cos(phase - 2.8)); 
+            
+            // Current speed peaks between high and low tides
+            const speedKnots = Math.abs(2.4 * Math.sin(phase - 2.8)).toFixed(1);
+            
+            let phaseDesc = "";
+            let currentDir = "";
+            let isFlood = Math.sin(phase - 2.8) > 0;
+
+            if (waterLevelCm > 620) {
+                phaseDesc = "고조 (만조) 임박";
+            } else if (waterLevelCm < 150) {
+                phaseDesc = "저조 (간조) 임박";
+            } else if (isFlood) {
+                phaseDesc = "창조류 (들물 유입 중)";
+            } else {
+                phaseDesc = "낙조류 (썰물 유출 중)";
+            }
+
+            if (isFlood) {
+                currentDir = speedKnots > 0.5 ? "북동향 (창조류 강함)" : "정온 (슬랙 타임)";
+            } else {
+                currentDir = speedKnots > 0.5 ? "남서향 (낙조류 강함)" : "정온 (슬랙 타임)";
+            }
+
+            return {
+                waterLevelCm: waterLevelCm,
+                speedKnots: speedKnots,
+                phaseDesc: phaseDesc,
+                currentDir: currentDir,
+                isFlood: isFlood
+            };
+        }
+
+        // Update Simulation UI and Vector Fields
+        function updateSimulation(hour) {
+            document.getElementById('timeSlider').value = hour;
+            const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+            const data = calculateTideAndCurrent(hour);
+
+            document.getElementById('currentTimeDisplay').innerText = `${timeStr} (${data.isFlood ? '들물' : '썰물'})`;
+            document.getElementById('waterLevelVal').innerHTML = `${data.waterLevelCm} <span class="text-xs font-normal text-slate-400">cm</span>`;
+            document.getElementById('tidePhaseDesc').innerText = data.phaseDesc;
+            document.getElementById('currentSpeedVal').innerHTML = `${data.speedKnots} <span class="text-xs font-normal text-slate-400">knots</span>`;
+            document.getElementById('currentDirDesc').innerText = data.currentDir;
+
+            renderVectorField(data.isFlood, parseFloat(data.speedKnots));
+        }
+
+        function renderVectorField(isFlood, speedFactor) {
+            vectorLayers.forEach(layer => map.removeLayer(layer));
+            vectorLayers = [];
+
+            // Grid points across Cheollipo & Mallipo coastal area
+            const gridPoints = [
+                { lat: 36.7220, lng: 126.1250 },
+                { lat: 36.7170, lng: 126.1300 },
+                { lat: 36.7110, lng: 126.1350 },
+                { lat: 36.7030, lng: 126.1400 },
+                { lat: 36.6950, lng: 126.1450 },
+                { lat: 36.7090, lng: 126.1230 },
+                { lat: 36.6990, lng: 126.1320 }
+            ];
+
+            gridPoints.forEach((pt, idx) => {
+                const angle = isFlood ? (45 + (idx * 4)) : (225 + (idx * 4));
+                const len = Math.max(0.003, speedFactor * 0.0022);
+                
+                const rad = angle * (Math.PI / 180);
+                const endLat = pt.lat + (len * Math.sin(rad));
+                const endLng = pt.lng + (len * Math.cos(rad) * 1.3);
+
+                const color = isFlood ? '#10b981' : '#38bdf8'; // Emerald for flood, Sky for ebb
+
+                const polyline = L.polyline([[pt.lat, pt.lng], [endLat, endLng]], {
+                    color: color,
+                    weight: 3,
+                    opacity: 0.85
+                }).addTo(map);
+
+                const headMarker = L.circleMarker([endLat, endLng], {
+                    radius: 3.5,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 1
+                }).addTo(map);
+
+                vectorLayers.push(polyline);
+                vectorLayers.push(headMarker);
+            });
+        }
+
+        // Animation Play/Pause Toggle
+        function togglePlay() {
+            isPlaying = !isPlaying;
+            const playIcon = document.getElementById('playIcon');
+            const playText = document.getElementById('playText');
+            const playBtn = document.getElementById('playBtn');
+
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause";
+                playText.innerText = "일시정지";
+                playBtn.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white py-2 px-4 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-sm";
+                
+                playInterval = setInterval(() => {
+                    currentHour = (currentHour + 1) % 24;
+                    updateSimulation(currentHour);
+                }, 1000);
+            } else {
+                playIcon.className = "fa-solid fa-play";
+                playText.innerText = "유속 벡터 애니메이션";
+                playBtn.className = "flex-1 bg-sky-600 hover:bg-sky-500 text-white py-2 px-4 rounded-lg font-medium text-sm transition flex items-center justify-center gap-2 shadow-sm";
+                clearInterval(playInterval);
+            }
+        }
+
+        function resetTime() {
+            if (isPlaying) togglePlay();
+            currentHour = 12;
+            updateSimulation(currentHour);
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                if (modalId === 'chartModal') {
+                    if (tideChartInstance) tideChartInstance.update();
+                    if (currentChartInstance) currentChartInstance.update();
+                }
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function initCharts() {
+            const hours = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+            const tideData = hours.map((_, i) => {
+                const phase = (i / 24) * 2 * Math.PI * 2;
+                return Math.round(385 + 300 * Math.cos(phase - 2.8));
+            });
+            const currentSpeedData = hours.map((_, i) => {
+                const phase = (i / 24) * 2 * Math.PI * 2;
+                return parseFloat(Math.abs(2.4 * Math.sin(phase - 2.8)).toFixed(1));
+            });
+
+            // Tide Chart
+            const ctxTide = document.getElementById('tideChart').getContext('2d');
+            tideChartInstance = new Chart(ctxTide, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: '조위 (cm)',
+                        data: tideData,
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.15)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+
+            // Current Chart
+            const ctxCurrent = document.getElementById('currentChart').getContext('2d');
+            currentChartInstance = new Chart(ctxCurrent, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: '유속 (knots)',
+                        data: currentSpeedData,
+                        backgroundColor: 'rgba(16, 185, 129, 0.65)',
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
