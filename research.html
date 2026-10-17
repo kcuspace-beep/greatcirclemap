@@ -366,7 +366,7 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
     <label style="margin-top:10px;" id="t-lbl-filter">지도 표시 마커 선택</label>
     <div class="filter-group">
       <label class="filter-item"><input type="checkbox" id="chk-grid" checked onchange="render()"><span id="lbl-chk-grid">위·경도 그리드선</span></label>
-      <label class="filter-item"><input type="checkbox" id="chk-g20" checked onchange="render()"> G20 수도</label>
+      <label class="filter-item" title="주요국 및 세계 각국의 수도 표시"><input type="checkbox" id="chk-g20" checked onchange="render()"> 세계 각국 수도</label>
       <label class="filter-item"><input type="checkbox" id="chk-rivers" checked onchange="render()"> 10대 강</label>
       <label class="filter-item"><input type="checkbox" id="chk-mountains" checked onchange="render()"> 10대 산</label>
       <label class="filter-item"><input type="checkbox" id="chk-trenches" checked onchange="render()"> 10대 해구</label>
@@ -455,7 +455,7 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
       <b id="t-ov-title">해석 안내</b><br>
       <span id="modeText"></span><br>
       <span id="countryDataStatus">국경 데이터 불러오는 중…</span><br>
-      <span id="t-ov-legend">★ 빨강: 극동/극서점 · 초록: 수도 · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점</span>
+      <span id="t-ov-legend">★ 빨강: 극동/극서점 · 초록: 수도(클릭하면 국가 지도) · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점</span>
     </div>
   </div>
 </section>
@@ -524,6 +524,81 @@ const g20Capitals = [
   { country: "유럽연합 (EU)", capital: "브뤼셀", lat: 50.8503, lon: 4.3517 },
   { country: "아프리카연합 (AU)", capital: "아디스아바바", lat: 9.0320, lon: 38.7421 }
 ];
+
+// 수도 마커 클릭 시 해당 국가/수도의 Google Maps 대표 지도로 이동합니다.
+function capitalMapUrl(item){
+  const query = item.country + " " + item.capital;
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(query);
+}
+
+// 세계 각국의 수도 좌표를 공개 CSV에서 추가로 불러옵니다.
+// 네트워크가 차단되거나 데이터가 불러와지지 않으면 기본 주요국 수도를 계속 표시합니다.
+async function loadWorldCapitals(){
+  const url = "https://raw.githubusercontent.com/katerinaSo/countries_cities_data/main/country-capitals.csv";
+  try{
+    const response = await fetch(url, {cache:"force-cache"});
+    if(!response.ok) throw new Error("HTTP " + response.status);
+    const csv = await response.text();
+    const rows = parseCSVRows(csv);
+    if(rows.length < 2) throw new Error("No capital rows");
+    const header = rows[0].map(v=>String(v).trim().toLowerCase());
+    const idx = {
+      country: header.indexOf("countryname"),
+      capital: header.indexOf("capitalname"),
+      lat: header.indexOf("capitallatitude"),
+      lon: header.indexOf("capitallongitude"),
+      code: header.indexOf("countrycode")
+    };
+    if(Object.values(idx).some(v=>v<0)) throw new Error("Unexpected CSV columns");
+    let added = 0;
+    const knownCodes = new Set(g20Capitals.map(x=>x.code).filter(Boolean));
+    rows.slice(1).forEach(row=>{
+      const country = (row[idx.country]||"").trim();
+      const capital = (row[idx.capital]||"").trim();
+      const lat = Number(row[idx.lat]), lon = Number(row[idx.lon]);
+      const code = (row[idx.code]||"").trim();
+      if(!country || !capital || !Number.isFinite(lat) || !Number.isFinite(lon) ||
+         Math.abs(lat)>90 || Math.abs(lon)>180) return;
+      // 주요 수도 목록에 이미 있는 좌표는 중복 등록하지 않습니다.
+      const duplicate = g20Capitals.some(x =>
+        Math.abs(x.lat-lat)<0.35 && Math.abs(normalizeLon(x.lon-lon))<0.45
+      );
+      if(duplicate || (code && knownCodes.has(code))) return;
+      g20Capitals.push({
+        country, capital, lat, lon, code,
+        type: "World Capital",
+        continent: (row[header.indexOf("continentname")]||"").trim()
+      });
+      if(code) knownCodes.add(code);
+      added++;
+    });
+    if(added) render();
+    const filterLabel = document.querySelector('label[for="chk-g20"]');
+    if(filterLabel) filterLabel.title = "세계 각국 수도 " + (g20Capitals.length) + "곳 표시";
+  }catch(err){
+    console.warn("World capital dataset could not be loaded; showing built-in capital list.", err);
+  }
+}
+
+// CSV parser that respects quoted fields and commas inside city names (e.g. Washington, D.C.).
+function parseCSVRows(text){
+  const rows=[]; let row=[], field="", quoted=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i], next=text[i+1];
+    if(ch==='"' && quoted && next==='"'){field+='"';i++;}
+    else if(ch==='"'){quoted=!quoted;}
+    else if(ch===',' && !quoted){row.push(field);field="";}
+    else if((ch==='\\n' || ch==='\\r') && !quoted){
+      if(ch==='\\r' && next==='\\n') i++;
+      row.push(field); field="";
+      if(row.some(v=>v.trim()!=="")) rows.push(row);
+      row=[];
+    }else field+=ch;
+  }
+  if(field.length || row.length){row.push(field);rows.push(row);}
+  return rows;
+}
+
 
 const topRivers = [
   { name: "나일강 (Nile)", len: "6,650 km", lat: -2.2822, lon: 29.3312 },
@@ -604,7 +679,7 @@ const i18n = {
     sec5: "⑤ Math Essentials",
     mapTitle: "Center-Oriented World Map",
     ovTitle: "Guide",
-    ovLegend: "★ Red: East/West Extremes · Green: Capital · Cyan: River · Orange: Mountain · Purple: Trench",
+    ovLegend: "★ Red: East/West Extremes · Green: Clickable capital (opens country map) · Cyan: River · Orange: Mountain · Purple: Trench",
     centersTitle: "GPS Coordinates of 8 Triangle Centers",
     thZone: "Zone", thLat: "Latitude", thLon: "Longitude", thStatus: "Status", statusActive: "Active",
     sec6: "⑥ 3D Coordinates & Rotation",
@@ -629,7 +704,7 @@ const i18n = {
     sec5: "⑤ Cốt Lõi Toán Học",
     mapTitle: "Bản Đồ Thế Giới Trung Tâm",
     ovTitle: "Hướng dẫn",
-    ovLegend: "★ Đỏ: Cực Đông/Tây · Xanh: Thủ đô · Xanh dương: Sông · Cam: Núi · Tím: Rãnh biển",
+    ovLegend: "★ Đỏ: Cực Đông/Tây · Xanh: Thủ đô (nhấp để mở bản đồ quốc gia) · Xanh dương: Sông · Cam: Núi · Tím: Rãnh biển",
     centersTitle: "Tọa Độ GPS 8 Điểm Tam Giác Cầu",
     thZone: "Khu vực", thLat: "Vĩ độ", thLon: "Kinh độ", thStatus: "Trạng thái", statusActive: "Hoạt động",
     sec6: "⑥ Tọa Độ 3D & Phép Quay",
@@ -647,6 +722,7 @@ let zoomLevel = 1.0;
 let panX = 0, panY = 0;
 let isDragging = false;
 let startX, startY;
+let pointerDownX = 0, pointerDownY = 0, suppressMarkerClick = false;
 let activeMarkerPositions = [];
 let countryScreenFeatures = [];
 let selectedCountry = null;
@@ -1759,7 +1835,7 @@ function render(){
       let p = project(q.lat, q.lon, w, h, s.proj);
       if (p.visible === false) return;
 
-      activeMarkerPositions.push({ x: p.x, y: p.y, data: item, type: 'G20 Capital', detail: item.capital });
+      activeMarkerPositions.push({ x: p.x, y: p.y, data: item, type: 'Capital', detail: item.capital, url: capitalMapUrl(item) });
       drawStar(p.x, p.y, 5, 7, 3.5, "#5fe0a2");
       ctx.fillStyle = "#ffffff"; ctx.font = "bold 10px sans-serif";
       ctx.fillText(item.capital.split(" ")[0], p.x + 8, p.y + 3);
@@ -1864,12 +1940,14 @@ canvas.addEventListener('dblclick', (e) => {
 
 canvas.addEventListener('mousedown', (e) => {
   isDragging = true;
+  pointerDownX = e.clientX; pointerDownY = e.clientY; suppressMarkerClick = false;
   startX = e.clientX - panX;
   startY = e.clientY - panY;
 });
 
 window.addEventListener('mousemove', (e) => {
   if (isDragging) {
+    if (Math.hypot(e.clientX-pointerDownX, e.clientY-pointerDownY) > 5) suppressMarkerClick = true;
     panX = e.clientX - startX;
     panY = e.clientY - startY;
     render();
@@ -1891,7 +1969,7 @@ window.addEventListener('mousemove', (e) => {
       tooltip.style.display = "block";
       tooltip.style.left = (mx + 15) + "px";
       tooltip.style.top = (my - 15) + "px";
-      tooltip.innerHTML = `<strong style="color:var(--gold)">${item.data.name || item.data.country}</strong><br><span style="color:var(--cyan)">${item.type}</span>: ${item.detail}<br><span style="color:var(--muted)">${latStr}, ${lonStr}</span>`;
+      tooltip.innerHTML = `<strong style="color:var(--gold)">${item.data.name || item.data.country}</strong><br><span style="color:var(--cyan)">${item.type}</span>: ${item.detail}<br><span style="color:var(--muted)">${latStr}, ${lonStr}</span>${item.url ? '<br><span style="color:var(--green)">↗ 클릭하면 해당 국가의 지도 열기</span>' : ''}`;
       hovered = true;
       break;
     }
@@ -1899,6 +1977,21 @@ window.addEventListener('mousemove', (e) => {
 
   if (!hovered) {
     tooltip.style.display = "none";
+  }
+});
+
+canvas.addEventListener('click', (e) => {
+  if (suppressMarkerClick) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  // 수도 마커를 먼저 판정하여 클릭 시 해당 국가의 대표 지도로 연결합니다.
+  const hit = activeMarkerPositions
+    .filter(item => item.url && (item.type === 'Capital' || item.type === 'World Capital'))
+    .map(item => ({item, distance: Math.hypot(item.x-mx, item.y-my)}))
+    .filter(hit => hit.distance < 13)
+    .sort((a,b) => a.distance-b.distance)[0];
+  if (hit) {
+    window.open(hit.item.url, '_blank', 'noopener,noreferrer');
   }
 });
 
@@ -2128,6 +2221,7 @@ resize();
 resizeIntroCanvas();
 calculateGreatCircle();
 loadCountryBoundaries();
+loadWorldCapitals();
 loop();
 requestAnimationFrame(renderIntroGlobe);
 
