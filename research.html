@@ -158,6 +158,38 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 
 @media(max-width:1100px){main{grid-template-columns:280px 1fr}.right{display:none}}
 @media(max-width:720px){body{overflow:auto;height:auto}header{height:auto;flex-wrap:wrap}main{height:auto;grid-template-columns:1fr}.left,.right{display:block}.mapWrap{height:60vh}}
+
+
+/* 지도 아래 좌우 이동 조작 패널 */
+.map-pan-controls{
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:9px 12px;
+  border-top:1px solid var(--line);
+  background:rgba(8,25,43,.98);
+}
+.map-pan-controls button{
+  width:auto;
+  min-width:78px;
+  padding:8px 13px;
+  background:#102f4b;
+  border:1px solid #2877a8;
+  color:var(--cyan);
+  white-space:nowrap;
+}
+.map-pan-controls button:hover{background:#1179be;color:#fff}
+.map-pan-controls .pan-reset{color:var(--gold);border-color:#927b35}
+.map-pan-readout{font-size:11px;color:var(--muted);min-width:105px;text-align:center}
+@media(max-width:720px){
+  .map-pan-controls{gap:5px;padding:8px 5px}
+  .map-pan-controls button{min-width:62px;padding:8px 7px;font-size:11px}
+  .map-pan-readout{min-width:75px;font-size:10px}
+}
+
 </style>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -458,6 +490,14 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
       <span id="t-ov-legend">★ 빨강: 극동/극서점 · 초록: 수도(클릭하면 국가 지도) · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점</span>
     </div>
   </div>
+  <div class="map-pan-controls" aria-label="세계지도 좌우 이동">
+    <button type="button" onclick="shiftMapHorizontal(-160)">⟵ 왼쪽 이동</button>
+    <button type="button" onclick="shiftMapHorizontal(-40)" title="조금 왼쪽으로">◂</button>
+    <span class="map-pan-readout" id="panReadout">좌우 이동: 0 px</span>
+    <button type="button" onclick="shiftMapHorizontal(40)" title="조금 오른쪽으로">▸</button>
+    <button type="button" onclick="shiftMapHorizontal(160)">오른쪽 이동 ⟶</button>
+    <button type="button" class="pan-reset" onclick="resetHorizontalPan()">좌우 위치 초기화</button>
+  </div>
 </section>
 
 <aside class="panel right">
@@ -720,6 +760,8 @@ const i18n = {
 let currentLang = "ko";
 let zoomLevel = 1.0;
 let panX = 0, panY = 0;
+// 버튼 좌우 이동은 화면을 잘라내지 않고 경도 기준으로 세계를 순환시킵니다.
+let mapPanLon = 0;
 let isDragging = false;
 let startX, startY;
 let pointerDownX = 0, pointerDownY = 0, suppressMarkerClick = false;
@@ -1401,7 +1443,7 @@ function drawGPSRouteOnCanvas(w,h,b,s){
   const pts=[];
   for(const point of gpsRoutePoints){
     const q=rotateSph(point.lat,point.lon,b);
-    q.lon=normalizeLon(q.lon-s.offset);
+    q.lon=normalizeLon(q.lon-s.offset+mapPanLon);
     const p=project(q.lat,q.lon,w,h,s.proj);
     if(pts.length){
       const prev=pts[pts.length-1];
@@ -1664,7 +1706,7 @@ function render(){
   if ($("chk-grid")?.checked) {
     for(let lo=-180;lo<=180;lo+=30){
       let pts=[]; for(let la=-90;la<=90;la+=2){
-        let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
+        let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset+mapPanLon);
         let p=project(q.lat,q.lon,w,h,s.proj);
         pts.push(p);
       }
@@ -1672,7 +1714,7 @@ function render(){
     }
     for(let la=-75;la<=75;la+=15){
       let pts=[]; for(let lo=-180;lo<=180;lo+=2){
-        let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset);
+        let q=rotateSph(la,lo,b); q.lon=normalizeLon(q.lon-s.offset+mapPanLon);
         let p=project(q.lat,q.lon,w,h,s.proj);
         if (pts.length > 0) {
           const prevP = pts[pts.length - 1];
@@ -1691,7 +1733,7 @@ function render(){
     let pts = [];
     poly.forEach((c, idx) => {
       let q = rotateSph(c[0], c[1], b); 
-      q.lon = normalizeLon(q.lon - s.offset);
+      q.lon = normalizeLon(q.lon - s.offset + mapPanLon);
       let p = project(q.lat, q.lon, w, h, s.proj);
 
       // 이전 점과의 X축 거리 차이가 캔버스 폭의 절반 이상 벌어지면 (경도 래핑 지점)
@@ -1717,7 +1759,7 @@ function render(){
       country.rings.forEach((ring, ringIndex)=>{
         const pts=[];
         ring.forEach(c=>{
-          const q=rotateSph(c[1],c[0],b); q.lon=normalizeLon(q.lon-s.offset);
+          const q=rotateSph(c[1],c[0],b); q.lon=normalizeLon(q.lon-s.offset+mapPanLon);
           const p=project(q.lat,q.lon,w,h,s.proj);
           if (pts.length > 0) {
             const prevP = pts[pts.length - 1];
@@ -1751,7 +1793,7 @@ function render(){
       let sx=0, sy=0, n=0;
       ring.forEach(c=>{sx+=c[0]; sy+=c[1]; n++;});
       const lon=sx/n, lat=sy/n;
-      let q=rotateSph(lat,lon,b); q.lon=normalizeLon(q.lon-s.offset);
+      let q=rotateSph(lat,lon,b); q.lon=normalizeLon(q.lon-s.offset+mapPanLon);
       const p=project(q.lat,q.lon,w,h,s.proj);
       if(p.visible===false) return;
       labelSeen.add(country.iso3);
@@ -1796,7 +1838,7 @@ function render(){
   const now = Date.now() * 0.003;
   baseCenters.forEach((center, idx) => {
     let q = rotateSph(center.lat, center.lon, b);
-    q.lon = normalizeLon(q.lon - s.offset);
+    q.lon = normalizeLon(q.lon - s.offset + mapPanLon);
     let p = project(q.lat, q.lon, w, h, s.proj);
     if (p.visible === false) return;
 
@@ -1831,7 +1873,7 @@ function render(){
   if ($("chk-g20").checked) {
     g20Capitals.forEach((item) => {
       let q = rotateSph(item.lat, item.lon, b);
-      q.lon = normalizeLon(q.lon - s.offset);
+      q.lon = normalizeLon(q.lon - s.offset + mapPanLon);
       let p = project(q.lat, q.lon, w, h, s.proj);
       if (p.visible === false) return;
 
@@ -1845,7 +1887,7 @@ function render(){
   if ($("chk-rivers").checked) {
     topRivers.forEach((item, idx) => {
       let q = rotateSph(item.lat, item.lon, b);
-      q.lon = normalizeLon(q.lon - s.offset);
+      q.lon = normalizeLon(q.lon - s.offset + mapPanLon);
       let p = project(q.lat, q.lon, w, h, s.proj);
       if (p.visible === false) return;
 
@@ -1859,7 +1901,7 @@ function render(){
   if ($("chk-mountains").checked) {
     topMountains.forEach((item, idx) => {
       let q = rotateSph(item.lat, item.lon, b);
-      q.lon = normalizeLon(q.lon - s.offset);
+      q.lon = normalizeLon(q.lon - s.offset + mapPanLon);
       let p = project(q.lat, q.lon, w, h, s.proj);
       if (p.visible === false) return;
 
@@ -1873,7 +1915,7 @@ function render(){
   if ($("chk-trenches").checked) {
     topTrenches.forEach((item, idx) => {
       let q = rotateSph(item.lat, item.lon, b);
-      q.lon = normalizeLon(q.lon - s.offset);
+      q.lon = normalizeLon(q.lon - s.offset + mapPanLon);
       let p = project(q.lat, q.lon, w, h, s.proj);
       if (p.visible === false) return;
 
@@ -1918,6 +1960,37 @@ function drawGlobe(b,s){
   gctx.fillStyle="#ff6675";gctx.beginPath();gctx.arc(cx,cy,5,0,Math.PI*2);gctx.fill();
 }
 
+function updatePanReadout(){
+  const el=$("panReadout");
+  if(el) el.textContent=`세계 좌우 위치: ${((mapPanLon % 360 + 360) % 360).toFixed(1)}°`;
+}
+
+function shiftMapHorizontal(delta){
+  if(selectedBaseMap!=="custom"){
+    // 타일 지도는 좌우 이동 시 지도가 이어지도록 지도 엔진에 맡깁니다.
+    if(leafletMap) leafletMap.panBy([delta,0],{animate:false});
+    return;
+  }
+  const w = canvas.clientWidth || 1;
+  // 화면 너비를 지구 한 바퀴(360°)에 대응시켜 경도를 순환 이동합니다.
+  // 따라서 한쪽 가장자리에서 사라진 지역이 반대쪽 가장자리로 다시 나타납니다.
+  mapPanLon = ((mapPanLon + (delta / w) * 360) % 360 + 360) % 360;
+  panX = 0;
+  render();
+  updatePanReadout();
+}
+
+function resetHorizontalPan(){
+  if(selectedBaseMap!=="custom" && leafletMap){
+    fitBaseMapToCenter();
+    return;
+  }
+  mapPanLon=0;
+  panX=0;
+  render();
+  updatePanReadout();
+}
+
 function zoomMap(factor) {
   zoomLevel = Math.max(0.25, Math.min(50.0, zoomLevel * factor));
   if(zoomLevel<2.5 && !countryFocusLocked) selectedCountry=null;
@@ -1925,7 +1998,7 @@ function zoomMap(factor) {
 }
 
 function resetZoomPan() {
-  zoomLevel = 1.0; panX = 0; panY = 0; selectedCountry=null; countryFocusLocked=false; render();
+  zoomLevel = 1.0; panX = 0; panY = 0; mapPanLon=0; selectedCountry=null; countryFocusLocked=false; render(); updatePanReadout();
 }
 
 canvas.addEventListener('wheel', (e) => {
