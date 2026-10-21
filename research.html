@@ -60,6 +60,11 @@ background:rgba(8,25,43,.96);border-bottom:1px solid var(--line);box-shadow:0 4p
 .brand small{color:var(--muted);font-size:11px}
 .header-right{display:flex;align-items:center;gap:12px}
 select.lang-select{background:#071827;color:var(--cyan);border:1px solid var(--line);padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer}
+.day-night-controls{display:flex;gap:5px;align-items:center}
+.day-night-btn{width:auto;min-width:66px;padding:8px 12px;background:#102b47;border:1px solid #34627d;color:#d7eaf7;border-radius:8px;white-space:nowrap}
+.day-night-btn.active{background:linear-gradient(135deg,#f59e0b,#facc15);border-color:#fde68a;color:#172033;box-shadow:0 0 10px #facc1540}
+#nightModeBtn.active{background:linear-gradient(135deg,#172554,#334155);border-color:#93c5fd;color:#f8fafc;box-shadow:0 0 10px #60a5fa40}
+@media(max-width:720px){.day-night-btn{padding:7px 9px;min-width:58px}}
 .badge{padding:6px 12px;border:1px solid #2877a8;border-radius:10px;color:var(--gold);font-size:12px;display:flex;align-items:center;gap:6px}
 .pulse-dot{width:8px;height:8px;background-color:var(--green);border-radius:50%;box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
 @keyframes pulse{0%{opacity:0.4}50%{opacity:1}100%{opacity:0.4}}
@@ -290,6 +295,11 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
     <small id="t-head-sub">GPS → 3D 벡터 → 좌표 회전 → 새로운 위·경도 → 지도 투영</small>
   </div>
   <div class="header-right">
+    <div class="day-night-controls" role="group" aria-label="낮과 밤 영역 선택">
+      <button type="button" id="dayModeBtn" class="day-night-btn active" aria-pressed="true" onclick="setDayNightMode('day')">☀️ 낮</button>
+      <button type="button" id="nightModeBtn" class="day-night-btn" aria-pressed="false" onclick="setDayNightMode('night')">🌙 밤</button>
+      <button type="button" id="noDayNightBtn" class="day-night-btn" aria-pressed="false" onclick="setDayNightMode('none')">◐ 표시 안 함</button>
+    </div>
     <select id="langSelect" class="lang-select" onchange="changeLanguage(this.value)">
       <option value="ko" selected>한국어 (Korean)</option>
       <option value="en">English</option>
@@ -1749,6 +1759,9 @@ function render(){
     drawPath(pts, "#38bdf8", 1.2, "rgba(14, 116, 144, 0.28)");
   });
 
+  // 낮/밤 영역 오버레이: 중앙 경도 180도(지도 폭의 절반)를 기준으로 명암을 표시합니다.
+  drawDayNightOverlay(w,h);
+
   // 사용자 첨부 GPS 실제 이동 경로
   drawGPSRouteOnCanvas(w,h,b,s);
 
@@ -1934,6 +1947,45 @@ function render(){
   updateReadout(b,s);
   drawGlobe(b,s);
   if($('zoomReadout'))$('zoomReadout').textContent=Math.round(zoomLevel*100)+"%";
+}
+
+let dayNightMode = "day";
+function setDayNightMode(mode){
+  dayNightMode = ["day", "night", "none"].includes(mode) ? mode : "day";
+  $("dayModeBtn").classList.toggle("active", dayNightMode === "day");
+  $("nightModeBtn").classList.toggle("active", dayNightMode === "night");
+  $("noDayNightBtn").classList.toggle("active", dayNightMode === "none");
+  $("dayModeBtn").setAttribute("aria-pressed", String(dayNightMode === "day"));
+  $("nightModeBtn").setAttribute("aria-pressed", String(dayNightMode === "night"));
+  $("noDayNightBtn").setAttribute("aria-pressed", String(dayNightMode === "none"));
+  render();
+}
+function drawDayNightOverlay(w,h){
+  if(!w || !h || dayNightMode === "none") return;
+  const sideW=w/4, centerX=w/4, centerW=w/2;
+  ctx.save();
+  if(dayNightMode === "day"){
+    // 중앙 180도는 따뜻한 빛으로 더 밝게, 양쪽 반구는 어둡게 표시
+    ctx.fillStyle="rgba(255, 250, 225, 0.20)";
+    ctx.fillRect(centerX,0,centerW,h);
+    ctx.fillStyle="rgba(0, 5, 18, 0.42)";
+    ctx.fillRect(0,0,sideW,h);
+    ctx.fillRect(w-sideW,0,sideW,h);
+    ctx.strokeStyle="rgba(255, 220, 120, 0.70)";
+    ctx.lineWidth=1.5;
+    ctx.strokeRect(centerX+0.75,0,centerW-1.5,h);
+  }else{
+    // 중앙 180도는 밤으로 어둡게, 바깥쪽 반구는 낮처럼 밝게 표시
+    ctx.fillStyle="rgba(0, 5, 18, 0.58)";
+    ctx.fillRect(centerX,0,centerW,h);
+    ctx.fillStyle="rgba(255, 245, 210, 0.16)";
+    ctx.fillRect(0,0,sideW,h);
+    ctx.fillRect(w-sideW,0,sideW,h);
+    ctx.strokeStyle="rgba(147, 197, 253, 0.75)";
+    ctx.lineWidth=1.5;
+    ctx.strokeRect(centerX+0.75,0,centerW-1.5,h);
+  }
+  ctx.restore();
 }
 
 function add(a,b){return a.map((x,i)=>x+b[i])}
