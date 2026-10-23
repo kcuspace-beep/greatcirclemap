@@ -7,6 +7,25 @@
 <style>
 :root{--navy:#123047;--blue:#087eaa;--aqua:#dff5f7;--ink:#203443;--muted:#617584;--line:#d8e3e9;--bg:#f4f8fa;--green:#16845b;--orange:#b96911;--red:#b53c42}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+
+/* 비밀번호 인증 오버레이 스타일 */
+#authOverlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(18, 48, 71, 0.95);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999; backdrop-filter: blur(6px);
+}
+.auth-box {
+  background: white; border-radius: 16px; padding: 32px 24px;
+  width: 90%; max-width: 360px; text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+.auth-box h2 { margin: 0 0 8px; color: var(--navy); font-size: 22px; }
+.auth-box p { margin: 0 0 20px; color: var(--muted); font-size: 14px; }
+.auth-box input { width: 100%; text-align: center; font-size: 20px; letter-spacing: 4px; margin-bottom: 12px; }
+.auth-box button { width: 100%; font-size: 16px; padding: 12px; }
+.auth-error { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
+
 header{background:linear-gradient(120deg,#123047,#087eaa);color:white;padding:28px max(18px,calc((100% - 1180px)/2))}
 .language-picker{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px}.language-picker label{font-size:13px}.language-picker select{min-height:36px;padding:6px 10px;color:#203443}
 header h1{margin:0 0 8px;font-size:clamp(24px,4vw,34px)}header p{margin:0;color:#e3f6fc}
@@ -23,6 +42,18 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
 </style>
 </head>
 <body>
+
+<!-- 비밀번호 인증 오버레이 -->
+<div id="authOverlay">
+  <div class="auth-box">
+    <h2>🔒 접속 인증</h2>
+    <p>비밀번호 4자리를 입력해 주세요.</p>
+    <input type="password" id="authPassword" maxlength="4" placeholder="••••" autofocus>
+    <button id="authBtn">확인</button>
+    <div id="authError" class="auth-error">비밀번호가 올바르지 않습니다.</div>
+  </div>
+</div>
+
 <header>
   <div class="language-picker"><label for="languageSelect" data-i18n="언어 선택">언어 선택</label>
     <select id="languageSelect" aria-label="Language">
@@ -98,6 +129,38 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
   </section>
 </main>
 <footer>SUP CLUB · 주간 예약 관리 도구</footer>
+
+<script>
+// 비밀번호 인증 스크립트
+(() => {
+  const PASS = "6747";
+  const overlay = document.getElementById("authOverlay");
+  const input = document.getElementById("authPassword");
+  const btn = document.getElementById("authBtn");
+  const err = document.getElementById("authError");
+
+  if (sessionStorage.getItem("sup_auth") === "true") {
+    overlay.style.display = "none";
+  }
+
+  function checkPass() {
+    if (input.value === PASS) {
+      sessionStorage.setItem("sup_auth", "true");
+      overlay.style.display = "none";
+    } else {
+      err.style.display = "block";
+      input.value = "";
+      input.focus();
+    }
+  }
+
+  btn.addEventListener("click", checkPass);
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") checkPass();
+  });
+})();
+</script>
+
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -280,10 +343,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
       const all = [root, ...root.querySelectorAll('*')];
       for (const el of all) {
         for (const attr of ['placeholder','title','aria-label']) {
-          const key = 'orig-'+attr;
-          if (el.hasAttribute(attr) && !el.dataset[key]) el.dataset[key] = el.getAttribute(attr);
-          if (el.dataset[key]) {
-            const original = el.dataset[key];
+          const key = 'data-orig-' + attr;
+          if (el.hasAttribute(attr) && !el.hasAttribute(key)) el.setAttribute(key, el.getAttribute(attr));
+          if (el.hasAttribute(key)) {
+            const original = el.getAttribute(key);
             el.setAttribute(attr, translations[currentLang]?.[original] || original);
           }
         }
