@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUP 클럽 보드 예약표</title>
+<style>
+:root{--navy:#123047;--blue:#087eaa;--aqua:#dff5f7;--ink:#203443;--muted:#617584;--line:#d8e3e9;--bg:#f4f8fa;--green:#16845b;--orange:#b96911;--red:#b53c42}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:var(--ink)}
+header{background:linear-gradient(120deg,#123047,#087eaa);color:white;padding:28px max(18px,calc((100% - 1180px)/2))}
+.language-picker{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:12px}.language-picker label{font-size:13px}.language-picker select{min-height:36px;padding:6px 10px;color:#203443}
+header h1{margin:0 0 8px;font-size:clamp(24px,4vw,34px)}header p{margin:0;color:#e3f6fc}
+main{max-width:1180px;margin:22px auto;padding:0 16px 42px}.panel{background:white;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 4px 16px #15374a0a}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.field{display:flex;flex-direction:column;gap:5px;min-width:140px;flex:1}.field label{font-size:13px;color:var(--muted);font-weight:650}
+input,select,button{font:inherit;border-radius:9px;border:1px solid #c9d8e0;padding:10px 11px;min-height:42px}input,select{background:white;color:var(--ink)}button{cursor:pointer;background:var(--blue);border-color:var(--blue);color:white;font-weight:700}button.secondary{background:white;color:var(--ink);border-color:var(--line)}button.danger{background:#fff3f3;color:var(--red);border-color:#f0cccc}button:focus,input:focus,select:focus{outline:3px solid #78c9e4;outline-offset:1px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}.stat{background:#f4fafc;border-radius:12px;padding:12px}.stat small{display:block;color:var(--muted)}.stat strong{font-size:22px}
+.weekbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.weekbar h2{margin:0;font-size:21px}.hint{font-size:13px;color:var(--muted)}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{border-collapse:separate;border-spacing:0;width:100%;min-width:840px;background:white}th,td{padding:9px 8px;text-align:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}th{background:#eef6f9;font-size:13px;position:sticky;top:0;z-index:1}th:first-child,td:first-child{position:sticky;left:0;background:#f8fbfc;z-index:2;font-weight:750;min-width:86px}td:last-child,th:last-child{border-right:0}tr:last-child td{border-bottom:0}.slot{min-width:96px;vertical-align:top}.slot .avail{font-size:12px;color:var(--muted);margin-bottom:6px}.slot button{width:100%;padding:7px 5px;font-size:12px;min-height:34px}.slot button.booked{background:#e0f5ec;color:#116642;border-color:#a6dec7}.slot button.full{background:#fce9e9;color:#a32e35;border-color:#f2c5c5}.slot button.closed{background:#eef1f3;color:#77848d;border-color:#dce2e5}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:12px}.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}.section-title{font-size:18px;margin:0 0 14px}.notice{background:#fff8e8;border:1px solid #f0dfb5;border-radius:10px;padding:12px;color:#76501d;font-size:13px;line-height:1.55}
+.list{display:flex;flex-direction:column;gap:8px}.booking{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;gap:12px;justify-content:space-between;align-items:center}.booking strong{display:block}.booking small{color:var(--muted)}.empty{padding:18px;text-align:center;color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+@media(max-width:720px){main{padding:0 10px 28px}.panel{padding:13px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.two-col{grid-template-columns:1fr}.field{min-width:calc(50% - 10px)}header{padding:22px 16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="language-picker"><label for="languageSelect" data-i18n="언어 선택">언어 선택</label>
+    <select id="languageSelect" aria-label="Language">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+      <option value="vi">Tiếng Việt</option>
+    </select>
+  </div>
+  <h1 data-i18n="🏄 SUP 클럽 보드 예약표">🏄 SUP 클럽 보드 예약표</h1>
+  <p data-i18n="요일별 · 오전 5시부터 오후 8시까지 · 보드별 이용 현황 확인">요일별 · 오전 5시부터 오후 8시까지 · 보드별 이용 현황 확인</p>
+</header>
+<main>
+  <section class="panel">
+    <div class="toolbar">
+      <div class="field"><label for="weekDate">조회할 주의 날짜</label><input type="date" id="weekDate"></div>
+      <div class="field"><label for="memberName">회원 이름</label><input id="memberName" placeholder="예: 홍길동" maxlength="40"></div>
+      <div class="field"><label for="boardCount">클럽 보유 SUP 대수</label><input id="boardCount" type="number" min="1" max="200" value="10"></div>
+      <button id="saveBoardCount">보드 대수 적용</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><small>등록된 보드</small><strong id="totalBoards">10대</strong></div>
+      <div class="stat"><small>이번 주 예약</small><strong id="weekBookings">0건</strong></div>
+      <div class="stat"><small>이번 주 예약 보드-시간</small><strong id="boardHours">0</strong></div>
+      <div class="stat"><small>조회 주간</small><strong id="weekLabel">—</strong></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="weekbar">
+      <div><h2 id="scheduleTitle">주간 예약 현황</h2><div class="hint">시간 칸을 누르면 해당 시간에 예약할 수 있습니다.</div></div>
+      <div class="toolbar" style="align-items:center">
+        <button class="secondary" id="prevWeek">← 이전 주</button>
+        <button class="secondary" id="thisWeek">이번 주</button>
+        <button class="secondary" id="nextWeek">다음 주 →</button>
+      </div>
+    </div>
+    <div class="table-wrap"><table id="schedule"></table></div>
+    <div class="legend">
+      <span><i class="dot" style="background:#e0f5ec"></i>예약 있음</span>
+      <span><i class="dot" style="background:#fce9e9"></i>잔여 보드 없음</span>
+      <span><i class="dot" style="background:#eef1f3"></i>예약 마감/불가</span>
+      <span>시간대: 05:00–06:00부터 19:00–20:00까지</span>
+    </div>
+  </section>
+
+  <section class="two-col">
+    <div class="panel">
+      <h2 class="section-title">예약 신청 / 관리</h2>
+      <div class="toolbar">
+        <div class="field"><label for="bookDate">이용 날짜</label><input type="date" id="bookDate"></div>
+        <div class="field"><label for="bookTime">시작 시간</label><select id="bookTime"></select></div>
+        <div class="field"><label for="bookDuration">이용 시간</label><select id="bookDuration"><option value="1">1시간</option><option value="2">2시간</option><option value="3">3시간</option><option value="4">4시간</option></select></div>
+        <div class="field"><label for="bookBoards">필요한 보드 대수</label><input id="bookBoards" type="number" min="1" max="200" value="1"></div>
+        <div class="field"><label for="bookMember">예약 회원</label><input id="bookMember" placeholder="회원 이름" maxlength="40"></div>
+        <div class="field"><label for="bookNote">메모 (선택)</label><input id="bookNote" placeholder="예: 오전 투어"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button id="makeBooking">예약 등록</button><button class="secondary" id="clearForm">입력 지우기</button></div>
+      <p class="hint">예약은 05:00–20:00 범위 안에서만 가능합니다. 이용 종료 시각이 20:00을 넘으면 안 됩니다.</p>
+      <div id="formMessage" aria-live="polite"></div>
+    </div>
+    <div class="panel">
+      <h2 class="section-title">선택한 주의 예약 목록</h2>
+      <div class="toolbar" style="margin-bottom:12px">
+        <div class="field"><label for="filterMember">회원 이름으로 찾기</label><input id="filterMember" placeholder="이름 일부 입력"></div>
+        <button class="secondary" id="exportCsv">CSV 내려받기</button>
+      </div>
+      <div id="bookingList" class="list"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2 class="section-title">운영 시 참고</h2>
+    <div class="notice">이 웹페이지는 현재 사용 중인 브라우저의 저장 공간(localStorage)에 예약을 보관하는 시제품입니다. 같은 기기·같은 브라우저에서는 새로고침 후에도 유지되지만, 회원 각자의 휴대전화에서 예약을 함께 보거나 실시간으로 공유하지는 않습니다. 실제 클럽 공동 예약으로 운영하려면 로그인, 중앙 데이터베이스, 서버 배포가 추가로 필요합니다. 예약 취소 전에는 클럽 운영 규칙과 이용자 확인 절차를 정해 주세요.</div>
+  </section>
+</main>
+<footer>SUP CLUB · 주간 예약 관리 도구</footer>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const DAYS = ['일','월','화','수','목','금','토'];
+  const TIMES = Array.from({length:15}, (_,i)=>5+i);
+  const STORE = 'supClubBookings_v1';
+  const COUNT_STORE = 'supClubBoardCount_v1';
+  let bookings = [];
+  try { bookings = JSON.parse(localStorage.getItem(STORE) || '[]'); if(!Array.isArray(bookings)) bookings=[]; } catch { bookings=[]; }
+  let boardCount = Math.max(1, Number(localStorage.getItem(COUNT_STORE) || 10));
+  $('boardCount').value = boardCount;
+  $('totalBoards').textContent = boardCount + '대';
+  const today = new Date();
+  const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const parseDate = s => {const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,12);};
+  const mondayOf = date => {const d=new Date(date); d.setHours(12,0,0,0); const offset=(d.getDay()+6)%7; d.setDate(d.getDate()-offset); return d;};
+  const weekStart = () => mondayOf(parseDate($('weekDate').value || iso(today)));
+  const addDays = (d,n) => {const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const timeLabel = h => `${String(h).padStart(2,'0')}:00`;
+  const save = () => localStorage.setItem(STORE, JSON.stringify(bookings));
+  const sameWeek = b => {const d=parseDate(b.date), start=weekStart(), end=addDays(start,7); return d>=start && d<end;};
+  const rangesOverlap = (aStart,aEnd,bStart,bEnd) => aStart < bEnd && bStart < aEnd;
+  const usedAt = (date,h,ignoreId=null) => bookings.filter(b=>b.id!==ignoreId && b.date===date && rangesOverlap(h,h+1,b.start,b.start+b.duration)).reduce((sum,b)=>sum+b.boards,0);
+  const freeAt = (date,h) => Math.max(0,boardCount-usedAt(date,h));
+  const setMessage = (text, good=false) => {$('formMessage').innerHTML = `<div style="margin-top:10px;padding:10px;border-radius:9px;background:${good?'#e6f7ef':'#fff0ef'};color:${good?'#116642':'#a32e35'}">${esc(text)}</div>`;};
+  function populateTimes(){ $('bookTime').innerHTML=TIMES.map(h=>`<option value="${h}">${timeLabel(h)}</option>`).join(''); }
+  function render(){
+    const start=weekStart(), end=addDays(start,6);
+    $('weekDate').value=$('weekDate').value || iso(today);
+    $('scheduleTitle').textContent=`${iso(start)} ~ ${iso(end)} 예약 현황`;
+    $('weekLabel').textContent=`${start.getMonth()+1}/${start.getDate()}–${end.getMonth()+1}/${end.getDate()}`;
+    const weekly=bookings.filter(sameWeek);
+    $('weekBookings').textContent=weekly.length+'건';
+    $('boardHours').textContent=weekly.reduce((sum,b)=>sum+b.boards*b.duration,0);
+    let html='<thead><tr><th>시간</th>';
+    for(let i=0;i<7;i++){const d=addDays(start,i);html+=`<th>${DAYS[d.getDay()]}요일<br><small>${d.getMonth()+1}/${d.getDate()}</small></th>`;}
+    html+='</tr></thead><tbody>';
+    for(const h of TIMES){
+      html+=`<tr><td>${timeLabel(h)}<br><small>–${timeLabel(h+1)}</small></td>`;
+      for(let i=0;i<7;i++){
+        const d=addDays(start,i), date=iso(d), used=usedAt(date,h), free=Math.max(0,boardCount-used);
+        const dayBookings=bookings.filter(b=>b.date===date && rangesOverlap(h,h+1,b.start,b.start+b.duration));
+        let label=free===0?'마감':dayBookings.length?`예약 ${used}대 · 잔여 ${free}`:`가능 ${free}대`;
+        let cls=free===0?'full':dayBookings.length?'booked':'';
+        html+=`<td class="slot"><div class="avail">${label}</div><button class="${cls}" data-date="${date}" data-hour="${h}" ${free===0?'disabled':''}>${free===0?'보드 없음':'예약하기'}</button></td>`;
+      }
+      html+='</tr>';
+    }
+    html+='</tbody>';$('schedule').innerHTML=html;
+    $('schedule').querySelectorAll('button[data-date]').forEach(btn=>btn.addEventListener('click',()=>{
+      $('bookDate').value=btn.dataset.date;$('bookTime').value=btn.dataset.hour;$('bookBoards').focus();
+      $('bookMember').value=$('memberName').value.trim();$('bookDate').scrollIntoView({behavior:'smooth',block:'center'});
+    }));
+    renderList();
+  }
+  function renderList(){
+    const filter=$('filterMember').value.trim().toLowerCase();
+    const list=bookings.filter(sameWeek).filter(b=>!filter || b.member.toLowerCase().includes(filter)).sort((a,b)=>a.date.localeCompare(b.date)||a.start-b.start);
+    if(!list.length){$('bookingList').innerHTML='<div class="empty">해당 주에 등록된 예약이 없습니다.</div>';return;}
+    $('bookingList').innerHTML=list.map(b=>`<div class="booking"><div><strong>${esc(b.member)} · ${b.boards}대</strong><small>${b.date} (${DAYS[parseDate(b.date).getDay()]}) · ${timeLabel(b.start)}–${timeLabel(b.start+b.duration)}${b.note?' · '+esc(b.note):''}</small></div><button class="danger" data-cancel="${esc(b.id)}">취소</button></div>`).join('');
+    $('bookingList').querySelectorAll('[data-cancel]').forEach(btn=>btn.addEventListener('click',()=>{
+      const b=bookings.find(x=>x.id===btn.dataset.cancel);if(!b)return;
+      if(!confirm(`${b.member}님의 ${b.date} ${timeLabel(b.start)} 예약을 취소할까요?`))return;
+      bookings=bookings.filter(x=>x.id!==b.id);save();render();
+    }));
+  }
+  function clearForm(){ $('bookDate').value=$('weekDate').value || iso(today);$('bookTime').value='5';$('bookDuration').value='1';$('bookBoards').value='1';$('bookMember').value=$('memberName').value.trim();$('bookNote').value='';$('formMessage').innerHTML='';}
+  $('makeBooking').addEventListener('click',()=>{
+    const date=$('bookDate').value, start=Number($('bookTime').value), duration=Number($('bookDuration').value), boards=Number($('bookBoards').value), member=$('bookMember').value.trim(), note=$('bookNote').value.trim();
+    if(!date||!member){setMessage('이용 날짜와 회원 이름을 입력해 주세요.');return;}
+    if(!Number.isInteger(boards)||boards<1||boards>boardCount){setMessage(`보드 대수는 1~${boardCount}대 사이로 입력해 주세요.`);return;}
+    if(start<5||start+duration>20){setMessage('이용 시간은 05:00부터 20:00 사이여야 합니다.');return;}
+    for(let h=start;h<start+duration;h++){if(usedAt(date,h)+boards>boardCount){setMessage(`${date} ${timeLabel(h)} 시간대의 잔여 보드가 부족합니다. 가능한 대수: ${freeAt(date,h)}대`);return;}}
+    bookings.push({id:`${Date.now()}_${Math.random().toString(36).slice(2,8)}`,date,start,duration,boards,member,note,createdAt:new Date().toISOString()});
+    save();$('weekDate').value=date;$('memberName').value=member;render();setMessage('예약이 등록되었습니다.',true);
+  });
+  $('saveBoardCount').addEventListener('click',()=>{
+    const n=Number($('boardCount').value);
+    if(!Number.isInteger(n)||n<1||n>200){setMessage('보유 보드 대수는 1~200 사이의 정수로 입력해 주세요.');return;}
+    const conflict=bookings.find(b=>{for(let h=b.start;h<b.start+b.duration;h++){if(bookings.filter(x=>x.date===b.date&&rangesOverlap(h,h+1,x.start,x.start+x.duration)).reduce((s,x)=>s+x.boards,0)>n)return true;}return false;});
+    if(conflict){setMessage('현재 예약 수보다 보유 대수를 적게 설정할 수 없습니다. 먼저 예약을 조정해 주세요.');return;}
+    boardCount=n;localStorage.setItem(COUNT_STORE,String(n));$('totalBoards').textContent=n+'대';render();setMessage(`보유 보드를 ${n}대로 설정했습니다.`,true);
+  });
+  $('weekDate').addEventListener('change',()=>{render();$('bookDate').value=$('weekDate').value;});
+  $('prevWeek').addEventListener('click',()=>{$('weekDate').value=iso(addDays(weekStart(),-7));render();});
+  $('nextWeek').addEventListener('click',()=>{$('weekDate').value=iso(addDays(weekStart(),7));render();});
+  $('thisWeek').addEventListener('click',()=>{$('weekDate').value=iso(today);render();});
+  $('filterMember').addEventListener('input',renderList);
+  $('clearForm').addEventListener('click',clearForm);
+  $('exportCsv').addEventListener('click',()=>{
+    const rows=[['날짜','회원','시작','종료','이용시간','보드대수','메모'],...bookings.filter(sameWeek).sort((a,b)=>a.date.localeCompare(b.date)||a.start-b.start).map(b=>[b.date,b.member,timeLabel(b.start),timeLabel(b.start+b.duration),b.duration,b.boards,b.note])];
+    const csv='\uFEFF'+rows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=`SUP_예약_${$('weekDate').value}.csv`;a.click();URL.revokeObjectURL(url);
+  });
+  $('weekDate').value=iso(today);populateTimes();$('bookDate').value=iso(today);render();clearForm();
+})();
+</script>
+
+<script>
+(() => {
+  const translations = {
+    en: {
+      "언어 선택":"Language","🏄 SUP 클럽 보드 예약표":"🏄 SUP Club Board Booking",
+      "요일별 · 오전 5시부터 오후 8시까지 · 보드별 이용 현황 확인":"Daily schedule · 5:00 AM–8:00 PM · Check board availability",
+      "조회할 주의 날짜":"Date in the week to view","회원 이름":"Member name","클럽 보유 SUP 대수":"SUP boards owned by club",
+      "보드 대수 적용":"Apply board count","등록된 보드":"Total boards","이번 주 예약":"Bookings this week",
+      "이번 주 예약 보드-시간":"Board-hours this week","조회 주간":"Selected week","주간 예약 현황":"Weekly booking schedule",
+      "시간 칸을 누르면 해당 시간에 예약할 수 있습니다.":"Select a time slot to start a booking.",
+      "← 이전 주":"← Previous week","이번 주":"This week","다음 주 →":"Next week →","시간":"Time",
+      "예약 있음":"Booked","잔여 보드 없음":"No boards left","예약 마감/불가":"Unavailable / full",
+      "예약하기":"Book","보드 없음":"No boards","예약 신청 / 관리":"Create / manage booking","이용 날짜":"Date",
+      "시작 시간":"Start time","이용 시간":"Duration","1시간":"1 hour","2시간":"2 hours","3시간":"3 hours","4시간":"4 hours",
+      "필요한 보드 대수":"Number of boards","예약 회원":"Member","메모 (선택)":"Note (optional)",
+      "예: 오전 투어":"e.g. morning tour","예약 등록":"Create booking","입력 지우기":"Clear form",
+      "예약은 05:00–20:00 범위 안에서만 가능합니다. 이용 종료 시각이 20:00을 넘으면 안 됩니다.":"Bookings must be between 05:00 and 20:00. The end time cannot be later than 20:00.",
+      "선택한 주의 예약 목록":"Bookings for selected week","회원 이름으로 찾기":"Search by member name",
+      "이름 일부 입력":"Enter part of a name","CSV 내려받기":"Download CSV","운영 시 참고":"Important operating note",
+      "해당 주에 등록된 예약이 없습니다.":"No bookings for this week.","취소":"Cancel",
+      "이 웹페이지는 현재 사용 중인 브라우저의 저장 공간(localStorage)에 예약을 보관하는 시제품입니다. 같은 기기·같은 브라우저에서는 새로고침 후에도 유지되지만, 회원 각자의 휴대전화에서 예약을 함께 보거나 실시간으로 공유하지는 않습니다. 실제 클럽 공동 예약으로 운영하려면 로그인, 중앙 데이터베이스, 서버 배포가 추가로 필요합니다. 예약 취소 전에는 클럽 운영 규칙과 이용자 확인 절차를 정해 주세요.":"This is a prototype that stores bookings in this browser's local storage. Bookings remain after refreshing on the same device and browser, but are not shared in real time with members on other phones. A shared club system requires login, a central database, and server hosting. Set club rules and a confirmation process before allowing cancellations.",
+      "SUP CLUB · 주간 예약 관리 도구":"SUP CLUB · Weekly booking manager",
+      "예약이 등록되었습니다.":"Booking created.","이용 날짜와 회원 이름을 입력해 주세요.":"Enter the date and member name.",
+      "보유 보드 대수는 1~200 사이의 정수로 입력해 주세요.":"Enter a whole number of boards between 1 and 200.",
+      "현재 예약 수보다 보유 대수를 적게 설정할 수 없습니다. 먼저 예약을 조정해 주세요.":"Board count cannot be lower than existing bookings. Adjust bookings first.",
+      "예약을 취소할까요?":"Cancel this booking?","대":"boards","가능":"Available","예약":"Booked","잔여":"left",
+      "요일":"day","일요일":"Sunday","월요일":"Monday","화요일":"Tuesday","수요일":"Wednesday","목요일":"Thursday","금요일":"Friday","토요일":"Saturday"
+    },
+    vi: {
+      "언어 선택":"Chọn ngôn ngữ","🏄 SUP 클럽 보드 예약표":"🏄 Bảng đặt ván SUP của câu lạc bộ",
+      "요일별 · 오전 5시부터 오후 8시까지 · 보드별 이용 현황 확인":"Lịch hằng ngày · 05:00–20:00 · Kiểm tra tình trạng ván",
+      "조회할 주의 날짜":"Ngày trong tuần cần xem","회원 이름":"Tên thành viên","클럽 보유 SUP 대수":"Số ván SUP của câu lạc bộ",
+      "보드 대수 적용":"Áp dụng số ván","등록된 보드":"Tổng số ván","이번 주 예약":"Lượt đặt tuần này",
+      "이번 주 예약 보드-시간":"Tổng giờ-ván tuần này","조회 주간":"Tuần đang xem","주간 예약 현황":"Lịch đặt ván trong tuần",
+      "시간 칸을 누르면 해당 시간에 예약할 수 있습니다.":"Chọn một khung giờ để đặt ván.",
+      "← 이전 주":"← Tuần trước","이번 주":"Tuần này","다음 주 →":"Tuần sau →","시간":"Giờ",
+      "예약 있음":"Đã có đặt","잔여 보드 없음":"Hết ván","예약 마감/불가":"Đã kín / Không khả dụng",
+      "예약하기":"Đặt ván","보드 없음":"Hết ván","예약 신청 / 관리":"Tạo / quản lý đặt ván","이용 날짜":"Ngày sử dụng",
+      "시작 시간":"Giờ bắt đầu","이용 시간":"Thời lượng","1시간":"1 giờ","2시간":"2 giờ","3시간":"3 giờ","4시간":"4 giờ",
+      "필요한 보드 대수":"Số ván cần dùng","예약 회원":"Thành viên đặt","메모 (선택)":"Ghi chú (không bắt buộc)",
+      "예: 오전 투어":"Ví dụ: tour buổi sáng","예약 등록":"Tạo đặt chỗ","입력 지우기":"Xóa nội dung",
+      "예약은 05:00–20:00 범위 안에서만 가능합니다. 이용 종료 시각이 20:00을 넘으면 안 됩니다.":"Chỉ được đặt trong khoảng 05:00–20:00. Thời gian kết thúc không được sau 20:00.",
+      "선택한 주의 예약 목록":"Danh sách đặt chỗ trong tuần","회원 이름으로 찾기":"Tìm theo tên thành viên",
+      "이름 일부 입력":"Nhập một phần tên","CSV 내려받기":"Tải CSV","운영 시 참고":"Lưu ý vận hành",
+      "해당 주에 등록된 예약이 없습니다.":"Tuần này chưa có đặt chỗ.","취소":"Hủy",
+      "이 웹페이지는 현재 사용 중인 브라우저의 저장 공간(localStorage)에 예약을 보관하는 시제품입니다. 같은 기기·같은 브라우저에서는 새로고침 후에도 유지되지만, 회원 각자의 휴대전화에서 예약을 함께 보거나 실시간으로 공유하지는 않습니다. 실제 클럽 공동 예약으로 운영하려면 로그인, 중앙 데이터베이스, 서버 배포가 추가로 필요합니다. 예약 취소 전에는 클럽 운영 규칙과 이용자 확인 절차를 정해 주세요.":"Đây là bản thử nghiệm lưu đặt chỗ trong bộ nhớ localStorage của trình duyệt hiện tại. Dữ liệu vẫn còn sau khi tải lại trên cùng thiết bị và trình duyệt, nhưng không đồng bộ trực tiếp sang điện thoại của thành viên khác. Để dùng chung cho câu lạc bộ, cần có đăng nhập, cơ sở dữ liệu trung tâm và máy chủ. Hãy thống nhất quy định câu lạc bộ và quy trình xác nhận trước khi cho phép hủy.",
+      "SUP CLUB · 주간 예약 관리 도구":"SUP CLUB · Công cụ quản lý đặt ván hằng tuần",
+      "예약이 등록되었습니다.":"Đã tạo đặt chỗ.","이용 날짜와 회원 이름을 입력해 주세요.":"Vui lòng nhập ngày sử dụng và tên thành viên.",
+      "보유 보드 대수는 1~200 사이의 정수로 입력해 주세요.":"Nhập số ván nguyên từ 1 đến 200.",
+      "현재 예약 수보다 보유 대수를 적게 설정할 수 없습니다. 먼저 예약을 조정해 주세요.":"Không thể đặt số ván thấp hơn số ván đã được đặt. Vui lòng điều chỉnh các đặt chỗ trước.",
+      "예약을 취소할까요?":"Bạn có muốn hủy đặt chỗ này không?","대":"ván","가능":"Còn","예약":"Đặt","잔여":"còn",
+      "요일":"","일요일":"Chủ nhật","월요일":"Thứ Hai","화요일":"Thứ Ba","수요일":"Thứ Tư","목요일":"Thứ Năm","금요일":"Thứ Sáu","토요일":"Thứ Bảy"
+    }
+  };
+  const originals = new WeakMap();
+  let currentLang = 'ko';
+  const translateText = (source) => {
+    if (currentLang === 'ko') return source;
+    const dict = translations[currentLang];
+    const trimmed = source.trim();
+    if (dict[trimmed]) return source.replace(trimmed, dict[trimmed]);
+    let out = trimmed;
+    out = out.replace(/^(일|월|화|수|목|금|토)요일$/, (_,d) => ({일:'Sunday',월:'Monday',화:'Tuesday',수:'Wednesday',목:'Thursday',금:'Friday',토:'Saturday'}[d] || d) );
+    if (currentLang === 'vi') out = out.replace(/^(일|월|화|수|목|금|토)요일$/, (_,d) => ({일:'Chủ nhật',월:'Thứ Hai',화:'Thứ Ba',수:'Thứ Tư',목:'Thứ Năm',금:'Thứ Sáu',토:'Thứ Bảy'}[d]));
+    out = out.replace(/^가능 (\d+)대$/, (_,n)=>currentLang==='en'?`Available ${n}`:`Còn ${n} ván`);
+    out = out.replace(/^예약 (\d+)대 · 잔여 (\d+)$/, (_,a,b)=>currentLang==='en'?`Booked ${a} · ${b} left`:`Đã đặt ${a} · còn ${b} ván`);
+    out = out.replace(/^(\d+)대$/, (_,n)=>currentLang==='en'?`${n} boards`:`${n} ván`);
+    out = out.replace(/^(\d+)건$/, (_,n)=>currentLang==='en'?`${n} bookings`:`${n} lượt`);
+    out = out.replace(/^예약은 05:00부터 20:00 사이여야 합니다\.$/, currentLang==='en'?'Bookings must be between 05:00 and 20:00.':'Đặt chỗ phải nằm trong khoảng 05:00–20:00.');
+    return source.replace(trimmed, out);
+  };
+  function walk(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while (node = walker.nextNode()) {
+      if (!originals.has(node)) originals.set(node, node.nodeValue);
+      const original = originals.get(node);
+      node.nodeValue = translateText(original);
+    }
+    if (root.nodeType === 1) {
+      const all = [root, ...root.querySelectorAll('*')];
+      for (const el of all) {
+        for (const attr of ['placeholder','title','aria-label']) {
+          const key = 'orig-'+attr;
+          if (el.hasAttribute(attr) && !el.dataset[key]) el.dataset[key] = el.getAttribute(attr);
+          if (el.dataset[key]) {
+            const original = el.dataset[key];
+            el.setAttribute(attr, translations[currentLang]?.[original] || original);
+          }
+        }
+      }
+    }
+  }
+  function applyLanguage(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    walk(document.body);
+    const select = document.getElementById('languageSelect');
+    if (select) select.value = lang;
+  }
+  const select = document.getElementById('languageSelect');
+  select.addEventListener('change', () => applyLanguage(select.value));
+  const observer = new MutationObserver(records => {
+    for (const record of records) {
+      if (record.type === 'childList') record.addedNodes.forEach(n => { if (n.nodeType === 1 || n.nodeType === 3) walk(n); });
+    }
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
+  applyLanguage('ko');
+})();
+</script>
+
+</body>
+</html>
