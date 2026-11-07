@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대원 전체 구간 베어링 그래프</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#172033;background:#f3f6fa}
+*{box-sizing:border-box}body{margin:0;padding:20px}main{max-width:1100px;margin:auto}
+header,.panel{background:#fff;border:1px solid #dce3ed;border-radius:15px;padding:20px;margin-bottom:15px}
+h1{font-size:clamp(23px,4vw,32px);margin:0 0 8px}h2{font-size:19px;margin:0 0 14px}
+p{line-height:1.65}.muted,.hint{color:#667085}.hint{font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
+label{display:block;font-weight:650;margin-bottom:7px}input[type=range]{width:100%;accent-color:#1769aa}
+select,button{font:inherit;border-radius:9px;padding:10px 12px;border:1px solid #d0d8e4;background:#fff}
+button{background:#1769aa;color:white;border:0;cursor:pointer}.secondary{background:#edf2f7;color:#172033;border:1px solid #d0d8e4}
+.value{font-weight:750;color:#1769aa;font-variant-numeric:tabular-nums}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-top:18px}
+.metric{padding:12px;background:#f3f6fa;border-radius:10px}.metric small{display:block;color:#667085}.metric strong{font-size:21px}
+canvas{width:100%;height:auto;display:block;border:1px solid #e1e7ef;border-radius:10px}
+.formula{background:#f3f6fa;border-radius:10px;padding:14px;overflow-x:auto;font-family:Georgia,serif}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+.callout{border-left:4px solid #1769aa;padding:10px 14px;background:#f1f7fc;border-radius:7px}
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stage{background:#f3f6fa;border-radius:9px;padding:10px;text-align:center;font-size:13px}
+.stage strong{display:block}
+@media(max-width:600px){body{padding:10px}.panel,header{padding:14px}.stages{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<header>
+<h1>대원 전체 구간: 출발 적도 → 최고점 → 반대편 적도</h1>
+<p class="muted">적도에서 출발해 대원 최고점을 통과한 뒤 지구 반대편 적도에 도착할 때까지, 전체 180° 대원 구간의 위도와 진행 베어링을 계산합니다.</p>
+</header>
+<section class="panel">
+<h2>1. 대원 조건과 진행 위치</h2>
+<div class="grid">
+<div><label for="vertex">대원 최고점 위도: <span id="vertexText" class="value">+35.0°</span></label><input id="vertex" type="range" min="-89" max="89" step="0.5" value="35"><div class="hint">북쪽 최고점 (+), 남쪽 최고점 (−). 정확한 극점은 특이점이므로 제외합니다.</div></div>
+<div><label for="direction">진행 방향</label><select id="direction"><option value="east">동쪽 진행</option><option value="west">서쪽 진행</option></select><div class="hint">베어링은 북쪽 0°부터 시계 방향으로 표시합니다.</div></div>
+<div><label for="progress">전체 대원 진행 위치: <span id="progressText" class="value">45.0°</span></label><input id="progress" type="range" min="0" max="180" step="0.5" value="45"><div class="hint">0° 출발 적도 → 90° 최고점 → 180° 반대편 적도</div></div>
+</div>
+<div class="stages">
+<div class="stage"><strong>0° · 출발</strong>시작 적도</div>
+<div class="stage"><strong>90° · 중간</strong>대원 최고점</div>
+<div class="stage"><strong>180° · 도착</strong>반대편 적도</div>
+</div>
+<div class="metrics">
+<div class="metric"><small>현재 위도</small><strong id="currentLat">+24.1°</strong></div>
+<div class="metric"><small>현재 베어링</small><strong id="currentBearing">70.4°</strong></div>
+<div class="metric"><small>적도 출발 베어링</small><strong id="startBearing">55.0°</strong></div>
+<div class="metric"><small>반대편 적도 도착 베어링</small><strong id="endBearing">125.0°</strong></div>
+<div class="metric"><small>최고점 위도</small><strong id="vertexMetric">+35.0°</strong></div>
+<div class="metric"><small>Clairaut 상수</small><strong id="constant">0.8192</strong></div>
+</div>
+<div class="callout" id="phase" style="margin-top:14px">현재 위치: 출발 적도에서 최고점으로 이동 중입니다.</div>
+</section>
+<section class="panel">
+<h2>2. 전체 180° 대원 경로의 베어링 변화</h2>
+<canvas id="bearingChart" width="1000" height="470"></canvas>
+<p class="hint">곡선은 출발 적도부터 최고점을 지나 반대편 적도까지 이어집니다. 세로축은 0°~360° 베어링, 가로축은 출발점으로부터의 대원 중심각입니다. 표시된 점이 현재 진행 위치입니다.</p>
+</section>
+<section class="panel">
+<h2>3. 전체 대원 경로의 위도 변화</h2>
+<canvas id="latitudeChart" width="1000" height="400"></canvas>
+<p class="hint">출발 적도에서 위도가 최고점(또는 최저점)에 도달한 뒤 다시 적도로 돌아오는 모양을 표시합니다.</p>
+</section>
+<section class="panel">
+<h2>4. 계산 원리</h2>
+<div class="formula">
+<strong>위도와 대원 진행각 δ의 관계</strong><br>
+sin φ = sin φ<sub>v</sub> · sin δ<br><br>
+<strong>Clairaut 관계식</strong><br>
+cos φ · sin α = cos φ<sub>v</sub><br><br>
+<strong>동향 초기 베어링</strong><br>
+α₀ = 90° − φ<sub>v</sub><br><br>
+<strong>동향 반대편 적도 베어링</strong><br>
+α₁ = 90° + φ<sub>v</sub>
+</div>
+<p>δ는 출발 적도에서 측정한 대원 중심각(0°~180°), φ는 현재 위도, φv는 부호를 가진 최고점 위도, α는 진행 베어링입니다. 최고점 전후에는 Clairaut 식의 역삼각함수 가지(branch)가 바뀝니다.</p>
+<p>북쪽 최고점(+φv)의 동향 경로에서는 베어링이 적도 출발각(90°−φv)에서 증가해 최고점에서 90°가 되고, 이후 반대편 적도에서 90°+φv가 됩니다. 남쪽 최고점(−φv)은 반대로 출발각이 90°보다 크고 최고점에서 90°를 거쳐 반대편 적도에서 90°보다 작아집니다.</p>
+<p class="hint">구형 지구 가정의 이론값입니다. 동향/서향은 경로의 동·서 진행 부호를 바꾸며, 위도 변화와 최고점 통과 위치는 동일하게 계산합니다. 극점에 정확히 닿는 경로는 방위각이 정의되지 않는 특이점이 있어 최고점 ±89°까지 설정할 수 있습니다.</p>
+<div class="actions"><button id="reset">초기값 복원</button><button class="secondary" id="save">두 그래프 PNG 저장</button></div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id),rad=x=>x*Math.PI/180,deg=x=>x*180/Math.PI,norm=x=>(x%360+360)%360;
+const fmt=x=>(x>=0?"+":"")+x.toFixed(1)+"°";
+function stateAt(delta,v,dir){
+ const d=rad(delta),phi=deg(Math.asin(Math.max(-1,Math.min(1,Math.sin(rad(v))*Math.sin(d)))));
+ const ratio=Math.max(-1,Math.min(1,Math.cos(rad(v))/Math.cos(rad(phi))));
+ const acute=deg(Math.asin(ratio));
+ let east;
+ if(v>=0) east=delta<=90?acute:180-acute;
+ else east=delta<=90?180-acute:acute;
+ const bearing=norm(dir==="east"?east:east+180);
+ return {phi,bearing};
+}
+function axes(ctx,w,h,xmin,xmax,ymin,ymax,xlabel,ylabel){
+ const L=75,R=25,T=25,B=55,pw=w-L-R,ph=h-T-B;
+ ctx.clearRect(0,0,w,h);ctx.font="13px system-ui";ctx.lineWidth=1;ctx.strokeStyle="#e5eaf1";ctx.fillStyle="#667085";
+ for(let i=0;i<=6;i++){const x=L+pw*i/6,val=xmin+(xmax-xmin)*i/6;ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,T+ph);ctx.stroke();ctx.textAlign="center";ctx.fillText(val.toFixed(0)+"°",x,T+ph+23)}
+ for(let i=0;i<=6;i++){const y=T+ph*i/6,val=ymax-(ymax-ymin)*i/6;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(L+pw,y);ctx.stroke();ctx.textAlign="right";ctx.fillText(val.toFixed(0)+"°",L-10,y+4)}
+ ctx.strokeStyle="#667085";ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,T+ph);ctx.lineTo(L+pw,T+ph);ctx.stroke();
+ ctx.fillStyle="#344054";ctx.textAlign="center";ctx.fillText(xlabel,L+pw/2,h-9);ctx.save();ctx.translate(18,T+ph/2);ctx.rotate(-Math.PI/2);ctx.fillText(ylabel,0,0);ctx.restore();
+ return {X:x=>L+(x-xmin)/(xmax-xmin)*pw,Y:y=>T+(ymax-y)/(ymax-ymin)*ph};
+}
+function draw(){
+ const v=+$("vertex").value,dir=$("direction").value,delta=+$("progress").value;
+ const p=stateAt(delta,v,dir),start=norm(90-v+(dir==="west"?180:0)),end=norm(90+v+(dir==="west"?180:0));
+ $("vertexText").textContent=fmt(v);$("progressText").textContent=delta.toFixed(1)+"°";
+ $("currentLat").textContent=fmt(p.phi);$("currentBearing").textContent=p.bearing.toFixed(1)+"°";
+ $("startBearing").textContent=start.toFixed(1)+"°";$("endBearing").textContent=end.toFixed(1)+"°";
+ $("vertexMetric").textContent=fmt(v);$("constant").textContent=Math.cos(rad(v)).toFixed(4);
+ let stage=delta<90?"출발 적도에서 최고점으로 이동 중입니다.":delta>90?"최고점을 지나 반대편 적도로 이동 중입니다.":"대원 최고점에 도달했습니다.";
+ $("phase").textContent="현재 위치: "+stage+" 현재 위도 "+fmt(p.phi)+", 진행 베어링 "+p.bearing.toFixed(1)+"°입니다.";
+ const bc=$("bearingChart"),ctx=bc.getContext("2d"),g=axes(ctx,bc.width,bc.height,0,180,0,360,"출발점부터 대원 중심각 δ","진행 베어링 α");
+ ctx.beginPath();ctx.strokeStyle=dir==="east"?"#1769aa":"#e17b27";ctx.lineWidth=4;
+ for(let i=0;i<=720;i++){const x=i*.25,y=stateAt(x,v,dir).bearing;if(i===0)ctx.moveTo(g.X(x),g.Y(y));else ctx.lineTo(g.X(x),g.Y(y))}
+ ctx.stroke();
+ // Mark start, vertex, destination and current position.
+ for(const [x,label,color] of [[0,"출발","#16856b"],[90,"최고점","#8b5cf6"],[180,"도착","#16856b"],[delta,"현재","#d94841"]]){
+  const y=stateAt(x,v,dir).bearing;ctx.fillStyle=color;ctx.beginPath();ctx.arc(g.X(x),g.Y(y),label==="현재"?8:5,0,Math.PI*2);ctx.fill();
+ }
+ const lc=$("latitudeChart"),lctx=lc.getContext("2d"),lg=axes(lctx,lc.width,lc.height,0,180,-90,90,"출발점부터 대원 중심각 δ","위도 φ");
+ lctx.beginPath();lctx.strokeStyle="#16856b";lctx.lineWidth=4;
+ for(let i=0;i<=720;i++){const x=i*.25,y=stateAt(x,v,dir).phi;if(i===0)lctx.moveTo(lg.X(x),lg.Y(y));else lctx.lineTo(lg.X(x),lg.Y(y))}
+ lctx.stroke();
+ const cy=stateAt(delta,v,dir).phi;lctx.fillStyle="#d94841";lctx.beginPath();lctx.arc(lg.X(delta),lg.Y(cy),8,0,Math.PI*2);lctx.fill();
+}
+$("vertex").addEventListener("input",draw);$("progress").addEventListener("input",draw);$("direction").addEventListener("change",draw);
+$("reset").addEventListener("click",()=>{$("vertex").value=35;$("direction").value="east";$("progress").value=45;draw()});
+$("save").addEventListener("click",()=>{const out=document.createElement("canvas");out.width=1000;out.height=900;const c=out.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,1000,900);c.drawImage($("bearingChart"),0,0);c.drawImage($("latitudeChart"),0,480);const a=document.createElement("a");a.download="great-circle-full-arc-bearing.png";a.href=out.toDataURL("image/png");a.click()});
+draw();
+</script></body></html>
