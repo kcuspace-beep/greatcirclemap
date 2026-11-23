@@ -150,7 +150,6 @@ button.secondary{background:#193650}.buttons{display:grid;grid-template-columns:
 .country-focus-card b{color:var(--cyan);font-size:13px}.country-focus-card small{display:block;color:var(--muted);line-height:1.45;margin-top:3px}.country-focus-card button{margin-top:7px;width:auto;padding:5px 9px}
 .country-focus-badge{position:absolute;right:12px;bottom:12px;z-index:9;padding:6px 9px;border-radius:7px;background:#071827dd;border:1px solid #2a6385;color:var(--gold);font-size:10px;display:none}
 
-.overlay{position:absolute;left:12px;bottom:12px;background:#071827dd;border:1px solid #2a6385;border-radius:9px;padding:8px 12px;font-size:11px;line-height:1.5;backdrop-filter:blur(5px);z-index:5;pointer-events:none}
 #globeCanvas{width:100%;height:180px;background:#061320;border-radius:8px;border:1px solid #24516b}
 
 .map-tooltip{position:absolute;display:none;background:rgba(7,24,39,0.95);border:1px solid var(--green);color:#fff;padding:8px 12px;border-radius:6px;font-size:11px;pointer-events:none;z-index:100;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
@@ -493,12 +492,6 @@ th{color:var(--cyan);background:rgba(0,0,0,0.2)}
 
     <div id="tooltip" class="map-tooltip"></div>
 
-    <div class="overlay">
-      <b id="t-ov-title">해석 안내</b><br>
-      <span id="modeText"></span><br>
-      <span id="countryDataStatus">국경 데이터 불러오는 중…</span><br>
-      <span id="t-ov-legend">★ 빨강: 극동/극서점 · 초록: 수도(클릭하면 국가 지도) · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점</span>
-    </div>
   </div>
   <div class="map-pan-controls" aria-label="세계지도 좌우 이동">
     <button type="button" onclick="shiftMapHorizontal(-160)">⟵ 왼쪽 이동</button>
@@ -703,8 +696,6 @@ const i18n = {
     sec4: "④ 대원 계산", lblALat: "출발 φ₁", lblALon: "출발 λ₁", lblBLat: "도착 φ₂", lblBLon: "도착 λ₂", btnCalcGc: "대원 / 최고점 계산",
     sec5: "⑤ 수학적 핵심",
     mapTitle: "국가 중심 세계지도",
-    ovTitle: "해석 안내",
-    ovLegend: "★ 빨강: 극동/극서점 · 초록: 수도 · 하늘색: 강 · 주황: 산 · 보라: 해구 · 노랑: 8개 중심점",
     centersTitle: "구면직각삼각형 중심점 8곳 GPS",
     thZone: "구역", thLat: "위도", thLon: "경도", thStatus: "상태", statusActive: "정상",
     sec6: "⑥ 3D 구면 좌표와 회전",
@@ -728,8 +719,6 @@ const i18n = {
     sec4: "④ Great Circle Calc", lblALat: "Start φ₁", lblALon: "Start λ₁", lblBLat: "End φ₂", lblBLon: "End λ₂", btnCalcGc: "Calculate Great Circle",
     sec5: "⑤ Math Essentials",
     mapTitle: "Center-Oriented World Map",
-    ovTitle: "Guide",
-    ovLegend: "★ Red: East/West Extremes · Green: Clickable capital (opens country map) · Cyan: River · Orange: Mountain · Purple: Trench",
     centersTitle: "GPS Coordinates of 8 Triangle Centers",
     thZone: "Zone", thLat: "Latitude", thLon: "Longitude", thStatus: "Status", statusActive: "Active",
     sec6: "⑥ 3D Coordinates & Rotation",
@@ -753,8 +742,6 @@ const i18n = {
     sec4: "④ Tính Vòng Tròn Lớn", lblALat: "Điểm đi φ₁", lblALon: "Điểm đi λ₁", lblBLat: "Điểm đến φ₂", lblBLon: "Điểm đến λ₂", btnCalcGc: "Tính Vòng Tròn Lớn",
     sec5: "⑤ Cốt Lõi Toán Học",
     mapTitle: "Bản Đồ Thế Giới Trung Tâm",
-    ovTitle: "Hướng dẫn",
-    ovLegend: "★ Đỏ: Cực Đông/Tây · Xanh: Thủ đô (nhấp để mở bản đồ quốc gia) · Xanh dương: Sông · Cam: Núi · Tím: Rãnh biển",
     centersTitle: "Tọa Độ GPS 8 Điểm Tam Giác Cầu",
     thZone: "Khu vực", thLat: "Vĩ độ", thLon: "Kinh độ", thStatus: "Trạng thái", statusActive: "Hoạt động",
     sec6: "⑥ Tọa Độ 3D & Phép Quay",
@@ -882,8 +869,6 @@ function changeLanguage(langKey) {
   $("t-lbl-blon").textContent = t.lblBLon;
   $("btn-calc-gc").textContent = t.btnCalcGc;
   $("t-sec5-title").textContent = t.sec5;
-  $("t-ov-title").textContent = t.ovTitle;
-  $("t-ov-legend").textContent = t.ovLegend;
   $("t-centers-title").textContent = t.centersTitle;
   $("th-zone").textContent = t.thZone;
   $("th-lat").textContent = t.thLat;
@@ -1942,7 +1927,6 @@ function render(){
   $("centerReadout").textContent=`${fmt(s.lat)}°, ${fmt(s.lon)}°`;
   $("mapTitle").textContent=`${i18n[currentLang].mapTitle} · ${$("projection").selectedOptions[0].text}`;
   updateProjectionInfo();
-  $("modeText").textContent=s.mode==="center"? `${i18n[currentLang].optCenter}` : `${i18n[currentLang].optPole}`;
   if($("countryDataStatus")) $("countryDataStatus").textContent = countryDataStatus === "loaded" ? "국경 데이터: Natural Earth 110m" : (countryDataStatus === "loading" ? "국경 데이터 불러오는 중…" : "국경 데이터 로드 실패 — 단순 육지선 사용");
   updateReadout(b,s);
   drawGlobe(b,s);
